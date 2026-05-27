@@ -1,0 +1,6 @@
+streamlit
+supabase
+anthropic
+pandas
+google-api-python-client
+google-auth-oauthlib
