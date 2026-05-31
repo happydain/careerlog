@@ -428,6 +428,8 @@ def parse_hanahn_kakao(text, year, requester, request_date):
             # 대면/비대면
             if "비대면" in clean: current_location = "줌"
             elif "대면" in clean: current_location = "오프"
+            else:
+                current_location = "오프"  
 
             continue
 
