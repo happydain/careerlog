@@ -525,8 +525,8 @@ if menu == "📥 보건스케줄 입력":
             use_container_width=True,
             num_rows="dynamic",  # 이 옵션 덕분에 직접 행 추가/삭제가 가능합니다.
             column_config={
-                "강의일시": st.column_config.TextColumn("강의일시"),
-                "요일": st.column_config.SelectboxColumn("요일", options=["월", "화", "수", "목", "금", "토", "일"]),
+                "강의일시": st.column_config.DateColumn("강의일시", format="YYYY. M. D"),
+                "요일": st.column_config.TextColumn("요일"),
                 "시작": st.column_config.TextColumn("시작"),
                 "종료": st.column_config.TextColumn("종료"),
                 "의뢰기관": st.column_config.SelectboxColumn("의뢰기관", options=["대한협수원", "대한협인천", "대한협서울", "중대협", "한안협", "잡그레이드"]),
@@ -545,10 +545,16 @@ if menu == "📥 보건스케줄 입력":
         # [중요] 사용자가 직접 입력할 때 '시수'와 '강의료(1일)'가 자동 계산되도록 보완
         if not edited_df.empty:
             try:
-                # 시작/종료 시간을 기반으로 시수 계산
-                edited_df["시수"] = edited_df.apply(lambda r: calc_hours(r["시작"], r["종료"]) if pd.notna(r["시작"]) and pd.notna(r["종료"]) else 0, axis=1)
-                # 시수와 시간당 강의료를 기반으로 1일 강의료 계산
-                edited_df["강의료(1일)"] = edited_df.apply(lambda r: calc_fee(r["시수"], r["강의료(1시간)"]) if pd.notna(r["시수"]) and pd.notna(r["강의료(1시간)"]) else 0, axis=1)
+                def auto_weekday(r):
+                    try:
+                        d = pd.to_datetime(r["강의일시"])
+                        return ["월", "화", "수", "목", "금", "토", "일"][d.weekday()]
+                    except:
+                        return r["요일"]
+        
+                edited_df["요일"] = edited_df.apply(auto_weekday, axis=1)  # ← 추가
+                edited_df["시수"] = edited_df.apply(...)
+                edited_df["강의료(1일)"] = edited_df.apply(...)
             except Exception:
                 pass
     
