@@ -494,13 +494,20 @@ if menu == "📥 보건스케줄 입력":
     if uploaded_file:
         if st.button("📄 엑셀 일정 변환"):
             try:
-                df_excel = parse_daehan_excel(
-                    uploaded_file,
-                    excel_agency,
-                    ""   
-                )
+                if excel_agency == "대한협인천":
+                    df_excel = parse_incheon_excel(
+                        uploaded_file,
+                        excel_agency,
+                        excel_requester,
+                        excel_request_date.strftime("%Y-%m-%d")
+                    )
+                else:
+                    df_excel = parse_daehan_excel(uploaded_file, excel_agency, "")
+                    df_excel["의뢰자"] = excel_requester
+                    df_excel["의뢰일"] = excel_request_date.strftime("%Y-%m-%d")
+        
                 if df_excel.empty:
-                    st.warning("변환된 일정이 없습니다. 엑셀 형식을 확인해주세요.")
+                    st.warning("변환된 일정이 없습니다.")
                 else:
                     st.session_state["temp_df"] = df_excel
                     st.success(f"{len(df_excel)}건 일정 생성 완료")
