@@ -56,21 +56,16 @@ def get_gsheet_client():
 def append_to_gsheet(df):
     try:
         client = get_gsheet_client()
-
         st.write("1. 인증 성공")
 
-        sheet = client.open_by_key(
-            SPREADSHEET_ID
-        ).sheet1
-
+        sheet = client.open_by_key(SPREADSHEET_ID).sheet1
         st.write("2. 시트 연결 성공")
 
-        values = df.values.tolist()
-
+        # NaN/None → 빈 문자열로 변환 후 저장
+        df_clean = df.fillna("").astype(str)
+        values = df_clean.values.tolist()
         sheet.append_rows(values)
-
         st.write("3. 저장 성공")
-
         return True
 
     except Exception as e:
@@ -79,9 +74,26 @@ def append_to_gsheet(df):
 
 
 def load_gsheet():
-    client = get_gsheet_client()
-    sheet = client.open_by_key(SPREADSHEET_ID).sheet1
-    return pd.DataFrame(sheet.get_all_records())
+    try:
+        client = get_gsheet_client()
+        sheet = client.open_by_key(SPREADSHEET_ID).sheet1
+        data = sheet.get_all_records()
+
+        if not data:
+            return pd.DataFrame(columns=COLUMNS)
+
+        df = pd.DataFrame(data)
+
+        # 필수 컬럼 누락 시 빈 컬럼 추가
+        for col in COLUMNS:
+            if col not in df.columns:
+                df[col] = ""
+
+        return df
+
+    except Exception as e:
+        st.error(f"구글시트 불러오기 오류: {e}")
+        return pd.DataFrame(columns=COLUMNS)
 
 
 # -----------------------------
@@ -112,13 +124,19 @@ def parse_time_range(text, default_start="14:00", default_end="16:00"):
 
 
 def calc_hours(start, end):
-    s = int(str(start).split(":")[0])
-    e = int(str(end).split(":")[0])
-    return max(e - s, 0)
+    try:
+        s = int(str(start).split(":")[0])
+        e = int(str(end).split(":")[0])
+        return max(e - s, 0)
+    except (ValueError, IndexError):
+        return 0
 
 
 def calc_fee(hours, hourly_fee):
-    return int(hours) * int(hourly_fee)
+    try:
+        return int(hours) * int(hourly_fee)
+    except (ValueError, TypeError):
+        return 0
 
 
 def extract_instructor(text):
@@ -132,35 +150,22 @@ def extract_manager(text):
 
 
 def detect_agency(text):
-
     text = str(text)
 
-    # 대한산안협
-
     if "대한산안협" in text or "대한산업안전협회" in text:
-
         if "서울" in text:
             return "대한협서울"
-
         if "수원" in text:
             return "대한협수원"
-
         if "인천" in text:
             return "대한협인천"
-
         return "대한협"
-
-    # 중대협
 
     if "중대협" in text:
         return "중대협"
 
-    # 한안협
-
     if "한안협" in text:
         return "한안협"
-
-    # 잡그레이드
 
     if "잡그레이드" in text:
         return "잡그레이드"
@@ -211,13 +216,19 @@ def parse_dates_from_text(text, year):
     range_matches = re.findall(r"(\d{1,2})월\s*(\d{1,2})\s*[~\-]\s*(\d{1,2})일", text)
     for month, start_day, end_day in range_matches:
         for day in range(int(start_day), int(end_day) + 1):
-            dates.append(datetime(year, int(month), day))
+            try:
+                dates.append(datetime(year, int(month), day))
+            except ValueError:
+                pass
 
     normal_matches = re.findall(r"(\d{1,2})월\s*(\d{1,2})일", text)
     for month, day in normal_matches:
-        date_obj = datetime(year, int(month), int(day))
-        if date_obj not in dates:
-            dates.append(date_obj)
+        try:
+            date_obj = datetime(year, int(month), int(day))
+            if date_obj not in dates:
+                dates.append(date_obj)
+        except ValueError:
+            pass
 
     return dates
 
@@ -234,7 +245,6 @@ def make_row(
     instructor,
     hourly_fee
 ):
-
     hours = calc_hours(start, end)
 
     return {
@@ -251,10 +261,8 @@ def make_row(
         "시수": hours,
         "강의료(1시간)": hourly_fee,
         "강의료(1일)": calc_fee(hours, hourly_fee),
-
-        # 신규 컬럼
         "의뢰자": "",
-        "의뢰일": None,
+        "의뢰일": "",
         "특이사항": "",
         "변경이력": "",
         "내부메모": ""
@@ -281,8 +289,12 @@ def parse_kakao_text(text, year):
     for line in lines:
         clean = line.replace("*", "").strip()
 
+        # 교육 정보 헤더 줄 (날짜 없는 줄)
         if "교육" in clean and not re.search(r"\d{1,2}월", clean):
-            agency = detect_agency(clean)
+            detected_agency = detect_agency(clean)
+            if detected_agency:
+                agency = detected_agency
+
             detected_target = detect_target(clean)
             if detected_target:
                 target = detected_target
@@ -293,10 +305,12 @@ def parse_kakao_text(text, year):
 
             continue
 
+        # 시간 기본값 업데이트
         if "시간" in clean and "동일" in clean:
             start_default, end_default = parse_time_range(clean, start_default, end_default)
             continue
 
+        # 담당자 줄 스킵
         if "담당자" in clean:
             continue
 
@@ -304,13 +318,9 @@ def parse_kakao_text(text, year):
 
         if dates:
             start, end = parse_time_range(clean, start_default, end_default)
-
             detected_subject = detect_subject(clean)
-            if detected_subject:
-                subject = detected_subject
-
-            if not subject:
-                subject = "응급처치"
+            # ✅ 수정: 줄별 과목 감지 → 없으면 헤더 과목 → 없으면 기본값
+            final_subject = detected_subject or subject or "응급처치"
 
             for date_obj in dates:
                 rows.append(
@@ -319,7 +329,7 @@ def parse_kakao_text(text, year):
                         start=start,
                         end=end,
                         agency=agency,
-                        subject=subject,
+                        subject=final_subject,
                         target=target,
                         industry=industry,
                         location=location,
@@ -354,24 +364,30 @@ def parse_daehan_excel(uploaded_file, agency, target):
     rows = []
 
     for _, row in df.iterrows():
-        if "강의일" not in df.columns or pd.isna(row.get("강의일")):
+        if "강의일" not in df.columns:
             continue
 
-        lecture_date = pd.to_datetime(row.get("강의일"), errors="coerce")
+        lecture_date_raw = row.get("강의일")
+        if pd.isna(lecture_date_raw):
+            continue
+
+        lecture_date = pd.to_datetime(lecture_date_raw, errors="coerce")
         if pd.isna(lecture_date):
             continue
 
-        time_text = row.get("강의시간", "")
+        time_text = str(row.get("강의시간", ""))
         start, end = parse_time_range(time_text)
 
-        instructor = row.get("주강사", "")
-        subject_raw = str(row.get("과목", ""))
+        instructor = str(row.get("주강사", "")) if pd.notna(row.get("주강사")) else ""
+        subject_raw = str(row.get("과목", "")) if pd.notna(row.get("과목")) else ""
         subject = detect_subject(subject_raw) or subject_raw
 
-        industry = row.get("업종", DEFAULT_INDUSTRY)
-        room = row.get("지역", "")
+        industry_raw = row.get("업종")
+        industry = str(industry_raw) if pd.notna(industry_raw) else DEFAULT_INDUSTRY
 
-        location = "오프" if pd.notna(room) and str(room).strip() else "오프"
+        room_raw = row.get("지역")
+        room = str(room_raw).strip() if pd.notna(room_raw) else ""
+        location = f"오프 ({room})" if room else "오프"
 
         rows.append(
             make_row(
@@ -399,7 +415,7 @@ st.sidebar.title("📅 CareerLog")
 
 menu = st.sidebar.radio(
     "메뉴 선택",
-     [
+    [
         "📥 보건스케줄 입력",
         "📋 보건스케줄 보기",
         "📊 협회별 월별 스케줄",
@@ -411,50 +427,43 @@ st.title("📅 보건스케줄 자동정리")
 st.info("카톡 텍스트와 협회별 엑셀 파일을 같은 포맷으로 정리해 구글시트에 저장합니다.")
 
 
-
-if menu == "보건스케줄 입력":
+# =====================
+# 📥 보건스케줄 입력
+# =====================
+if menu == "📥 보건스케줄 입력":
 
     st.header("📥 보건스케줄 입력")
 
-    # =====================
-    # 카톡 입력
-    # =====================
-
+    # --- 카톡 입력 ---
     st.markdown("### 카톡/이메일 강의 의뢰 텍스트")
 
     year = st.number_input(
         "기준 연도",
         min_value=2024,
         max_value=2035,
-        value=2026,
+        value=datetime.now().year,
         step=1
     )
 
     raw_text = st.text_area(
-         "강의 요청 메시지를 붙여넣으세요.",
+        "강의 요청 메시지를 붙여넣으세요.",
         height=250
     )
 
     if st.button("🪄 카톡 일정 분석"):
         if raw_text.strip():
-
-            df_text = parse_kakao_text(
-                raw_text,
-                year
-            )
-
-            st.session_state["temp_df"] = df_text
-
-            st.success(
-                f"{len(df_text)}건 일정 생성 완료"
-            )
+            df_text = parse_kakao_text(raw_text, year)
+            if df_text.empty:
+                st.warning("날짜 정보를 찾지 못했습니다. 텍스트를 확인해주세요.")
+            else:
+                st.session_state["temp_df"] = df_text
+                st.success(f"{len(df_text)}건 일정 생성 완료")
+        else:
+            st.warning("텍스트를 입력해주세요.")
 
     st.divider()
 
-    # =====================
-    # 엑셀 업로드
-    # =====================
-
+    # --- 엑셀 업로드 ---
     st.markdown("### 강의의뢰 엑셀 업로드")
 
     uploaded_file = st.file_uploader(
@@ -477,37 +486,32 @@ if menu == "보건스케줄 입력":
             ]
         )
 
-    
+    # ✅ 수정: 누락된 대상자 selectbox 추가
+    with col2:
+        excel_target = st.selectbox(
+            "대상자",
+            ["안전관리자", "관리감독자", "보건관리자", "기타"]
+        )
+
     if uploaded_file:
-
         if st.button("📄 엑셀 일정 변환"):
-
             try:
-
                 df_excel = parse_daehan_excel(
                     uploaded_file,
                     excel_agency,
-                    excel_target
+                    excel_target   # ✅ 수정: "" → excel_target
                 )
-
-                st.session_state["temp_df"] = df_excel
-
-                st.success(
-                    f"{len(df_excel)}건 일정 생성 완료"
-                )
-
+                if df_excel.empty:
+                    st.warning("변환된 일정이 없습니다. 엑셀 형식을 확인해주세요.")
+                else:
+                    st.session_state["temp_df"] = df_excel
+                    st.success(f"{len(df_excel)}건 일정 생성 완료")
             except Exception as e:
-
-                st.error(
-                    f"엑셀 변환 오류: {e}"
-                )
+                st.error(f"엑셀 변환 오류: {e}")
 
     st.divider()
 
-    # =====================
-    # 최종 확인
-    # =====================
-
+    # --- 최종 확인 및 저장 ---
     st.header("📋 최종 확인 및 저장")
 
     if "temp_df" in st.session_state:
@@ -517,22 +521,18 @@ if menu == "보건스케줄 입력":
             use_container_width=True,
             num_rows="dynamic",
             column_config={
-
                 "강의료(1시간)": st.column_config.NumberColumn(
                     "강의료(1시간)",
                     format="₩%d"
                 ),
-
                 "강의료(1일)": st.column_config.NumberColumn(
                     "강의료(1일)",
                     format="₩%d"
                 ),
-
                 "시수": st.column_config.NumberColumn(
                     "시수",
                     format="%d"
                 ),
-
                 "방식/위치": st.column_config.SelectboxColumn(
                     "방식/위치",
                     options=[
@@ -544,20 +544,16 @@ if menu == "보건스케줄 입력":
                         "수원 5층",
                         "서울 교육장",
                         "기타"
-                        
                     ]
                 ),
-
                 "특이사항": st.column_config.TextColumn(
                     "특이사항",
                     width="large"
                 ),
-
                 "변경이력": st.column_config.TextColumn(
                     "변경이력",
                     width="large"
                 ),
-
                 "내부메모": st.column_config.TextColumn(
                     "내부메모",
                     width="large"
@@ -568,27 +564,15 @@ if menu == "보건스케줄 입력":
         col1, col2, col3 = st.columns(3)
 
         with col1:
-
             if st.button("💾 구글시트 저장"):
-
-                if append_to_gsheet(
-                    edited_df
-                ):
-
-                    st.success(
-                        "구글시트 저장 완료"
-                    )
+                if append_to_gsheet(edited_df):
+                    st.success("구글시트 저장 완료")
+                    del st.session_state["temp_df"]
+                    st.rerun()
 
         with col2:
-
             buffer = io.BytesIO()
-
-            edited_df.to_excel(
-                buffer,
-                index=False,
-                engine="xlsxwriter"
-            )
-
+            edited_df.to_excel(buffer, index=False, engine="xlsxwriter")
             st.download_button(
                 label="📥 엑셀 다운로드",
                 data=buffer.getvalue(),
@@ -597,44 +581,113 @@ if menu == "보건스케줄 입력":
             )
 
         with col3:
-
-            if st.button(
-                "🧹 초기화"
-            ):
-
+            if st.button("🧹 초기화"):
                 del st.session_state["temp_df"]
-
                 st.rerun()
 
+
+# =====================
+# 📋 보건스케줄 보기
+# =====================
 elif menu == "📋 보건스케줄 보기":
 
     st.header("📋 보건스케줄 보기")
 
-    try:
+    df = load_gsheet()
 
-        df = load_gsheet()
-
+    if df.empty:
+        st.info("저장된 데이터가 없습니다.")
+    else:
+        # ✅ 수정: 컬럼 존재 여부 확인 후 필터 생성
         col1, col2, col3 = st.columns(3)
 
         with col1:
-            agency_filter = st.selectbox(
-                "의뢰기관",
-                ["전체"] + sorted(df["의뢰기관"].dropna().unique().tolist())
-            )
+            agency_options = sorted(df["의뢰기관"].dropna().unique().tolist()) if "의뢰기관" in df.columns else []
+            agency_filter = st.selectbox("의뢰기관", ["전체"] + agency_options)
 
         with col2:
-            instructor_filter = st.selectbox(
-                "강사님",
-                ["전체"] + sorted(df["강사님"].dropna().unique().tolist())
-            )
+            instructor_options = sorted(df["강사님"].dropna().unique().tolist()) if "강사님" in df.columns else []
+            instructor_filter = st.selectbox("강사님", ["전체"] + instructor_options)
 
         with col3:
-            subject_filter = st.selectbox(
-                "과정명",
-                ["전체"] + sorted(df["과정명"].dropna().unique().tolist())
-            )
+            subject_options = sorted(df["과정명"].dropna().unique().tolist()) if "과정명" in df.columns else []
+            subject_filter = st.selectbox("과정명", ["전체"] + subject_options)
 
         filtered_df = df.copy()
 
-        if agency_filter != "전체":
-           
+        if agency_filter != "전체" and "의뢰기관" in filtered_df.columns:
+            filtered_df = filtered_df[filtered_df["의뢰기관"] == agency_filter]
+
+        if instructor_filter != "전체" and "강사님" in filtered_df.columns:
+            filtered_df = filtered_df[filtered_df["강사님"] == instructor_filter]
+
+        if subject_filter != "전체" and "과정명" in filtered_df.columns:
+            filtered_df = filtered_df[filtered_df["과정명"] == subject_filter]
+
+        st.dataframe(filtered_df, use_container_width=True, height=700)
+
+
+# =====================
+# 📊 협회별 월별 스케줄
+# =====================
+elif menu == "📊 협회별 월별 스케줄":
+
+    st.header("📊 협회별 월별 스케줄")
+
+    df = load_gsheet()
+
+    if df.empty:
+        st.info("저장된 데이터가 없습니다.")
+    else:
+        if "강의일시" in df.columns and "의뢰기관" in df.columns and "시수" in df.columns:
+            try:
+                df["강의일시_dt"] = pd.to_datetime(df["강의일시"], errors="coerce")
+                df["월"] = df["강의일시_dt"].dt.month
+                df["시수"] = pd.to_numeric(df["시수"], errors="coerce").fillna(0)
+
+                pivot = df.pivot_table(
+                    index="의뢰기관",
+                    columns="월",
+                    values="시수",
+                    aggfunc="sum",
+                    fill_value=0
+                )
+                st.dataframe(pivot, use_container_width=True)
+            except Exception as e:
+                st.error(f"집계 오류: {e}")
+        else:
+            st.warning("필요한 컬럼(강의일시, 의뢰기관, 시수)이 없습니다.")
+
+
+# =====================
+# 👨‍🏫 강사별 대시보드
+# =====================
+elif menu == "👨‍🏫 강사별 대시보드":
+
+    st.header("👨‍🏫 강사별 대시보드")
+
+    df = load_gsheet()
+
+    if df.empty:
+        st.info("저장된 데이터가 없습니다.")
+    else:
+        if "강사님" in df.columns:
+            instructor_list = sorted(df["강사님"].dropna().unique().tolist())
+            selected = st.selectbox("강사 선택", instructor_list)
+
+            instructor_df = df[df["강사님"] == selected].copy()
+
+            st.subheader(f"{selected} 강사 일정")
+            st.dataframe(instructor_df, use_container_width=True, height=500)
+
+            if "시수" in instructor_df.columns and "강의료(1일)" in instructor_df.columns:
+                try:
+                    total_hours = pd.to_numeric(instructor_df["시수"], errors="coerce").sum()
+                    total_fee = pd.to_numeric(instructor_df["강의료(1일)"], errors="coerce").sum()
+                    c1, c2 = st.columns(2)
+                    c1.metric("총 시수", f"{total_hours:.0f}시간")
+                    c2.metric("총 강의료", f"₩{total_fee:,.0f}")
+                except Exception as e:
+                    st.error(f"집계 오류: {e}")
+        else:
+            st.warning("강사님 컬럼이 없습니다.")
