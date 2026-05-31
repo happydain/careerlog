@@ -278,7 +278,9 @@ def parse_kakao_text(text, year):
     subject = ""
     location = DEFAULT_LOCATION
     industry = DEFAULT_INDUSTRY
-    start_default, end_default = parse_time_range(clean_for_time)
+    s, e = parse_time_range(clean_for_time)
+    if s is not None:
+        start_default, end_default = s, e
 
 
     lines = [line.strip() for line in text.splitlines() if line.strip()]
