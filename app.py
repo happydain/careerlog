@@ -454,10 +454,10 @@ if menu == "보건스케줄 입력":
     # 엑셀 업로드
     # =====================
 
-    st.markdown("### 대한산안협 엑셀 업로드")
+    st.markdown("### 강의의뢰 엑셀 업로드")
 
     uploaded_file = st.file_uploader(
-        "대한산안협 엑셀 업로드",
+        "강의의뢰 엑셀 업로드",
         type=["xlsx"]
     )
 
