@@ -110,6 +110,7 @@ def normalize_time(hour):
     return f"{hour:02d}:00"
 
 
+# 이 함수 전체를 찾아서
 def parse_time_range(text, default_start="14:00", default_end="16:00"):
     text = str(text)
 
