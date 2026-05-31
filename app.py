@@ -672,15 +672,24 @@ if menu == "📥 보건스케줄 입력":
         col1, col2, col3, col4 = st.columns(4)
 
         with col1:
-            if st.button("🔄 요일/시수 자동계산"):
+            if st.button("🔄 요일/시수/강의료 자동계산"):
                 try:
                     def auto_weekday(r):
                         try:
                             return ["월", "화", "수", "목", "금", "토", "일"][pd.to_datetime(r["강의일시"]).weekday()]
                         except:
                             return r["요일"]
+            
+                    def auto_fee(r):
+                        agency = str(r.get("의뢰기관", ""))
+                        instructor = str(r.get("강사님", ""))
+                        if agency == "한안협":
+                            return 120000 if instructor == "이다인" else 110000
+                        return r["강의료(1시간)"]
+            
                     edited_df["요일"] = edited_df.apply(auto_weekday, axis=1)
                     edited_df["시수"] = edited_df.apply(lambda r: calc_hours(r["시작"], r["종료"]) if pd.notna(r["시작"]) and pd.notna(r["종료"]) else 0, axis=1)
+                    edited_df["강의료(1시간)"] = edited_df.apply(auto_fee, axis=1)
                     edited_df["강의료(1일)"] = edited_df.apply(lambda r: calc_fee(r["시수"], r["강의료(1시간)"]) if pd.notna(r["시수"]) and pd.notna(r["강의료(1시간)"]) else 0, axis=1)
                     st.session_state["temp_df"] = edited_df
                     st.rerun()
