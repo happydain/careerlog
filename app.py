@@ -296,17 +296,18 @@ if menu == "📥 보건스케줄 입력":
     
     # 공통 세팅
     st.markdown("### ⚙️ 기본 정보 설정")
-    col1, col2, col3 = st.columns(3)
+    col1, col2, col3, col4 = st.columns(4)
     with col1:
         common_agency = st.selectbox("의뢰기관", ["대한협수원", "대한협인천", "대한협서울", "중대협", "한안협", "잡그레이드"])
     with col2:
         common_requester = st.text_input("담당자 이름")
     with col3:
         common_date = st.date_input("의뢰일", value=datetime.now())
+    with col4:
+        year = st.number_input("기준 연도", min_value=2024, max_value=2035, value=datetime.now().year, step=1)
     
     st.divider()
-
-    year = st.number_input("기준 연도", min_value=2024, max_value=2035, value=datetime.now().year, step=1)
+    
     raw_text = st.text_area("강의 요청 메시지를 붙여넣으세요.", height=250)
 
     if st.button("🪄 카톡 일정 분석"):
