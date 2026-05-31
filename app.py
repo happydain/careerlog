@@ -335,38 +335,7 @@ def parse_kakao_text(text, year):
 
     return pd.DataFrame(rows, columns=COLUMNS)
     
-        # 담당자 줄 스킵
-        if "담당자" in clean:
-            continue
-
-        dates = parse_dates_from_text(clean, year)
-
-        if dates:
-            start, end = parse_time_range(clean)
-            # 시간 못 찾으면 동일 기본값 사용
-            if start is None:
-                start, end = start_default, end_default
-            detected_subject = detect_subject(clean)
-            # ✅ 수정: 줄별 과목 감지 → 없으면 헤더 과목 → 없으면 기본값
-            final_subject = detected_subject or subject or "응급처치"
-
-            for date_obj in dates:
-                rows.append(
-                    make_row(
-                        date_obj=date_obj,
-                        start=start,
-                        end=end,
-                        agency=agency,
-                        subject=final_subject,
-                        target=target,
-                        industry=industry,
-                        location=location,
-                        instructor=instructor,
-                        hourly_fee=DEFAULT_HOURLY_FEE
-                    )
-                )
-
-    return pd.DataFrame(rows, columns=COLUMNS)
+    
 
 
 # -----------------------------
