@@ -252,8 +252,8 @@ def make_row(
     return {
         "강의일시": f"{date_obj.year}. {date_obj.month}. {date_obj.day}",
         "요일": get_weekday(date_obj),
-        "시작": st.column_config.TextColumn("시작"),
-        "종료": st.column_config.TextColumn("종료"),
+        "시작": start,
+        "종료": end,    
         "의뢰기관": agency,
         "과정명": subject,
         "대상자": target,
