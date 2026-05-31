@@ -132,15 +132,40 @@ def extract_manager(text):
 
 
 def detect_agency(text):
-    if "수원" in text:
-        return "수원"
-    if "인천" in text:
-        return "인천"
-    if "서울" in text or "중대협" in text:
-        return "중대협"
+
+    text = str(text)
+
+    # 대한산안협
+
     if "대한산안협" in text or "대한산업안전협회" in text:
+
+        if "서울" in text:
+            return "대한협서울"
+
+        if "수원" in text:
+            return "대한협수원"
+
+        if "인천" in text:
+            return "대한협인천"
+
+        return "대한협"
+
+    # 중대협
+
+    if "중대협" in text:
         return "중대협"
-    return "중대협"
+
+    # 한안협
+
+    if "한안협" in text:
+        return "한안협"
+
+    # 잡그레이드
+
+    if "잡그레이드" in text:
+        return "잡그레이드"
+
+    return ""
 
 
 def detect_target(text):
@@ -451,18 +476,7 @@ if menu == "보건스케줄 입력":
             ]
         )
 
-    with col2:
-        excel_target = st.selectbox(
-            "대상자",
-            [
-                "관리감독자",
-                "안전관리자",
-                "보건관리자",
-                "안전보건관리책임자",
-                "근로자"
-            ]
-        )
-
+    
     if uploaded_file:
 
         if st.button("📄 엑셀 일정 변환"):
