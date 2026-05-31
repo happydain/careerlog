@@ -368,7 +368,10 @@ def parse_daehan_excel(uploaded_file, agency, target):
         if pd.isna(lecture_date_raw):
             continue
 
-        lecture_date = pd.to_datetime(lecture_date_raw, errors="coerce")
+        lecture_date_str = re.sub(r"년\s*", "-", str(lecture_date_raw))
+        lecture_date_str = re.sub(r"월\s*", "-", lecture_date_str)
+        lecture_date_str = re.sub(r"일.*", "", lecture_date_str).strip()
+        lecture_date = pd.to_datetime(lecture_date_str, errors="coerce")
         if pd.isna(lecture_date):
             continue
 
@@ -384,7 +387,15 @@ def parse_daehan_excel(uploaded_file, agency, target):
 
         room_raw = row.get("지역")
         room = str(room_raw).strip() if pd.notna(room_raw) else ""
-        location = f"오프 ({room})" if room else "오프"
+        
+        if "인천" in agency:
+            room_map = {
+                "제1강의실": "인천 1강의실",
+                "제2강의실": "인천 2강의실",
+            }
+            location = room_map.get(room, room) if room else "오프"
+        else:
+            location = f"오프 ({room})" if room else "오프"
 
         rows.append(
             make_row(
