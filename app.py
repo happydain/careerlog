@@ -307,10 +307,9 @@ def parse_seoul_kakao(text, year, requester, request_date):
             continue
 
         # 월 헤더: "- 1월", "1월"
-        month_match = re.match(r"[-\s]*(\d{1,2})월\s*$", clean)
+        month_match = re.search(r"[-\s]*(\d{1,2})월", clean)
         if month_match:
             current_month = int(month_match.group(1))
-            continue
 
         # 시간 감지
         time_match = re.search(r"(\d{1,2}:\d{2})\s*[-~]\s*(\d{1,2}:\d{2})", clean)
