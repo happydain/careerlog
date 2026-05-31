@@ -468,27 +468,18 @@ if menu == "📥 보건스케줄 입력":
         type=["xlsx"]
     )
 
-    col1 = st.columns(1)
+    col1, col2, col3 = st.columns(3)
 
     with col1:
         excel_agency = st.selectbox(
             "의뢰기관",
-            [
-                "대한협수원",
-                "대한협인천",
-                "대한협서울",
-                "중대협",
-                "한안협",
-                "잡그레이드"
-            ]
+            ["대한협수원", "대한협인천", "대한협서울", "중대협", "한안협", "잡그레이드"]
         )
     
-    col3, col4 = st.columns(2)
+    with col2:
+        excel_requester = st.text_input("의뢰자 이름")
     
     with col3:
-        excel_requester = st.text_input("의뢰자 이름", placeholder="예: 홍길동 과장")
-    
-    with col4:
         excel_request_date = st.date_input("의뢰일", value=datetime.now())
 
    
