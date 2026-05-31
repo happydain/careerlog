@@ -530,10 +530,10 @@ if menu == "📥 보건스케줄 입력":
             use_container_width=True,
             num_rows="dynamic",  # 이 옵션 덕분에 직접 행 추가/삭제가 가능합니다.
             column_config={
-                "강의일시": st.column_config.TextColumn("강의일시", placeholder="2026. 6. 1"),
+                "강의일시": st.column_config.TextColumn("강의일시"),
                 "요일": st.column_config.SelectboxColumn("요일", options=["월", "화", "수", "목", "금", "토", "일"]),
-                "시작": st.column_config.TextColumn("시작", placeholder="14:00"),
-                "종료": st.column_config.TextColumn("종료", placeholder="16:00"),
+                "시작": st.column_config.TextColumn("시작"),
+                "종료": st.column_config.TextColumn("종료"),
                 "의뢰기관": st.column_config.SelectboxColumn("의뢰기관", options=["대한협수원", "대한협인천", "대한협서울", "중대협", "한안협", "잡그레이드"]),
                 
                 # (기존에 작성하신 기존 column_config 내용들을 이어서 쭉 적어주세요)
