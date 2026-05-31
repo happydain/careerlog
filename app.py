@@ -418,21 +418,22 @@ def parse_incheon_excel(uploaded_file, agency, requester, request_date):
 # -----------------------------
 # column_config 공통
 # -----------------------------
-COLUMN_CONFIG = {
-    "강의일시": st.column_config.DateColumn("강의일시", format="YYYY-MM-DD"),
-    "요일": st.column_config.TextColumn("요일"),
-    "시작": st.column_config.TextColumn("시작"),
-    "종료": st.column_config.TextColumn("종료"),
-    "대상자": st.column_config.TextColumn("대상자"),
-    "의뢰기관": st.column_config.SelectboxColumn("의뢰기관", options=["대한협수원", "대한협인천", "대한협서울", "중대협", "한안협", "잡그레이드"]),
-    "강의료(1시간)": st.column_config.NumberColumn("강의료(1시간)", format="₩%d"),
-    "강의료(1일)": st.column_config.NumberColumn("강의료(1일)", format="₩%d"),
-    "시수": st.column_config.NumberColumn("시수", format="%d"),
-    "방식/위치": st.column_config.SelectboxColumn("방식/위치", options=["동시송출", "줌", "인천 1강의실", "인천 2강의실", "수원 1층", "수원 5층", "서울 교육장", "출강", "기타"]),
-    "특이사항": st.column_config.TextColumn("특이사항", width="large"),
-    "변경이력": st.column_config.TextColumn("변경이력", width="large"),
-    "내부메모": st.column_config.TextColumn("내부메모", width="large")
-}
+def get_column_config():
+    return {
+        "강의일시": st.column_config.DateColumn("강의일시", format="YYYY-MM-DD"),
+        "요일": st.column_config.TextColumn("요일"),
+        "시작": st.column_config.TextColumn("시작"),
+        "종료": st.column_config.TextColumn("종료"),
+        "대상자": st.column_config.TextColumn("대상자"),
+        "의뢰기관": st.column_config.SelectboxColumn("의뢰기관", options=["대한협수원", "대한협인천", "대한협서울", "중대협", "한안협", "잡그레이드"]),
+        "강의료(1시간)": st.column_config.NumberColumn("강의료(1시간)", format="₩%d"),
+        "강의료(1일)": st.column_config.NumberColumn("강의료(1일)", format="₩%d"),
+        "시수": st.column_config.NumberColumn("시수", format="%d"),
+        "방식/위치": st.column_config.SelectboxColumn("방식/위치", options=["동시송출", "줌", "인천 1강의실", "인천 2강의실", "수원 1층", "수원 5층", "서울 교육장", "출강", "기타"]),
+        "특이사항": st.column_config.TextColumn("특이사항", width="large"),
+        "변경이력": st.column_config.TextColumn("변경이력", width="large"),
+        "내부메모": st.column_config.TextColumn("내부메모", width="large")
+    }
 
 
 # -----------------------------
@@ -546,7 +547,7 @@ if menu == "📥 보건스케줄 입력":
             st.session_state["temp_df"],
             use_container_width=True,
             num_rows="dynamic",
-            column_config=COLUMN_CONFIG
+            column_config=get_column_config()
         )
 
         st.divider()
@@ -653,7 +654,7 @@ elif menu == "📅 최종 스케줄":
             use_container_width=True,
             height=700,
             num_rows="fixed",
-            column_config=COLUMN_CONFIG
+            column_config=get_column_config()
         )
 
         if st.button("💾 변경사항 저장"):
