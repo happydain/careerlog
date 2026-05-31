@@ -399,10 +399,11 @@ st.sidebar.title("📅 CareerLog")
 
 menu = st.sidebar.radio(
     "메뉴 선택",
-    [
-        "보건스케줄 입력",
-        "협회별 월별 스케줄",
-        "강사별 대시보드"
+     [
+        "📥 보건스케줄 입력",
+        "📋 보건스케줄 보기",
+        "📊 협회별 월별 스케줄",
+        "👨‍🏫 강사별 대시보드"
     ]
 )
 
@@ -604,3 +605,15 @@ if menu == "보건스케줄 입력":
                 del st.session_state["temp_df"]
 
                 st.rerun()
+elif menu == "📋 보건스케줄 보기":
+
+    st.header("📋 보건스케줄 보기")
+
+    try:
+
+        df = load_gsheet()
+
+        st.dataframe(
+            df,
+            use_container_width=True,
+            height=
