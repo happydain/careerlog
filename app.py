@@ -353,12 +353,14 @@ def parse_incheon_excel(uploaded_file, agency, requester, request_date):
     header_row_idx = None
     for idx, row in raw.iterrows():
         values = [str(v).strip() for v in row.values]
+        st.write(f"{idx}번 줄:", values)  # ← 확인용
         if "강의일" in values and "강의시간" in values:
             header_row_idx = idx
             break
 
     if header_row_idx is None:
-        raise ValueError("엑셀에서 헤더를 찾지 못했습니다.")
+        st.write("전체 raw 데이터:", raw)  # ← 못 찾으면 전체 출력
+        raise ValueError("헤더를 찾지 못했습니다.")
 
     headers = raw.iloc[header_row_idx].tolist()
     df = raw.iloc[header_row_idx + 1:].copy()
