@@ -56,16 +56,17 @@ def get_gsheet_client():
 def append_to_gsheet(df):
     try:
         client = get_gsheet_client()
-        st.write("1. 인증 성공")
-
         sheet = client.open_by_key(SPREADSHEET_ID).sheet1
-        st.write("2. 시트 연결 성공")
 
-        # NaN/None → 빈 문자열로 변환 후 저장
+        existing = sheet.get_all_values()
+
+        # 헤더가 없거나 1행이 비어있으면 헤더 삽입
+        if not existing or existing[0] != COLUMNS:
+            sheet.insert_row(COLUMNS, index=1)  # 1행에 헤더 삽입 (기존 데이터 밀어냄)
+
         df_clean = df.fillna("").astype(str)
         values = df_clean.values.tolist()
         sheet.append_rows(values)
-        st.write("3. 저장 성공")
         return True
 
     except Exception as e:
