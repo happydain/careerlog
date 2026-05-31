@@ -397,6 +397,11 @@ def parse_daehan_excel(uploaded_file, agency, target):
 # 한안협 카톡 parser
 # -----------------------------
 def parse_hanahn_kakao(text, year, requester, request_date):
+    def get_hanahn_fee(instructor):
+        if instructor == "이다인":
+            return 120000
+        return 110000
+        
     rows = []
     lines = [line.strip() for line in text.splitlines() if line.strip()]
 
@@ -467,13 +472,13 @@ def parse_hanahn_kakao(text, year, requester, request_date):
                     s = f"{start_h + i * half:02d}:00"
                     e = f"{start_h + (i + 1) * half:02d}:00"
                     final_subject = detect_subject(subj) or subj
-                    row = make_row(current_date, s, e, "한안협", final_subject, current_target, current_industry, current_location, "", DEFAULT_HOURLY_FEE)
+                    row = make_row(current_date, s, e, "한안협", final_subject, current_target, current_industry, current_location, "", get_hanahn_fee(""))
                     row["의뢰자"] = requester
                     row["의뢰일"] = request_date
                     rows.append(row)
             else:
                 final_subject = detect_subject(subject_part) or subject_part
-                row = make_row(current_date, start, end, "한안협", final_subject, current_target, current_industry, current_location, "", DEFAULT_HOURLY_FEE)
+                row = make_row(current_date, start, end, "한안협", final_subject, current_target, current_industry, current_location, "", get_hanahn_fee(""))
                 row["의뢰자"] = requester
                 row["의뢰일"] = request_date
                 rows.append(row)
