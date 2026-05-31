@@ -273,7 +273,7 @@ def parse_kakao_text(text, year):
     rows = []
 
     instructor = extract_instructor(text)
-    agency = "중대협"
+    agency = ""
     target = ""
     subject = ""
     location = DEFAULT_LOCATION
@@ -315,7 +315,10 @@ def parse_kakao_text(text, year):
         dates = parse_dates_from_text(clean, year)
 
         if dates:
-            start, end = parse_time_range(clean, start_default, end_default)
+            start, end = parse_time_range(clean)
+            # 시간 못 찾으면 동일 기본값 사용
+            if start is None:
+                start, end = start_default, end_default
             detected_subject = detect_subject(clean)
             # ✅ 수정: 줄별 과목 감지 → 없으면 헤더 과목 → 없으면 기본값
             final_subject = detected_subject or subject or "응급처치"
