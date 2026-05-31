@@ -558,31 +558,26 @@ if menu == "📥 보건스케줄 입력":
             except Exception:
                 pass
     
-        st.divider()
-        
-        col1, col2, col3 = st.columns(3)
+        col1, col2, col3, col4 = st.columns(4)
 
         with col1:
-            if st.button("💾 구글시트 저장"):
-                if append_to_gsheet(edited_df):
-                    st.success("구글시트 저장 완료")
-                    del st.session_state["temp_df"]
+            if st.button("🔄 요일/시수 자동계산"):
+                try:
+                    def auto_weekday(r):
+                        try:
+                            d = pd.to_datetime(r["강의일시"])
+                            return ["월", "화", "수", "목", "금", "토", "일"][d.weekday()]
+                        except:
+                            return r["요일"]
+        
+                    edited_df["요일"] = edited_df.apply(auto_weekday, axis=1)
+                    edited_df["시수"] = edited_df.apply(lambda r: calc_hours(r["시작"], r["종료"]) if pd.notna(r["시작"]) and pd.notna(r["종료"]) else 0, axis=1)
+                    edited_df["강의료(1일)"] = edited_df.apply(lambda r: calc_fee(r["시수"], r["강의료(1시간)"]) if pd.notna(r["시수"]) and pd.notna(r["강의료(1시간)"]) else 0, axis=1)
+                    st.session_state["temp_df"] = edited_df
                     st.rerun()
-    
-        with col2:
-            buffer = io.BytesIO()
-            edited_df.to_excel(buffer, index=False, engine="xlsxwriter")
-            st.download_button(
-                label="📥 엑셀 다운로드",
-                data=buffer.getvalue(),
-                file_name=f"보건스케줄_{datetime.now().strftime('%Y%m%d')}.xlsx",
-                mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
-            )
-    
-        with col3:
-            if st.button("🧹 초기화"):
-                del st.session_state["temp_df"]
-                st.rerun()
+                except Exception as e:
+                    st.error(f"계산 오류: {e}")
+
 
 
 # =====================
