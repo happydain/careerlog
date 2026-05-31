@@ -339,20 +339,21 @@ def parse_kakao_text(text, year):
 
 
 # -----------------------------
-# 대한산안협 Excel parser
+# 대한산안협 수 Excel parser
 # -----------------------------
-def parse_daehan_excel(uploaded_file, agency, target):
+def parse_incheon_excel(uploaded_file, agency, requester, request_date):
     raw = pd.read_excel(uploaded_file, sheet_name=0, header=None)
 
+    # 헤더 찾기 (강의일, 주강사, 강의시간, 과목 등)
     header_row_idx = None
     for idx, row in raw.iterrows():
         values = [str(v).strip() for v in row.values]
-        if "강의일" in values and "강의시간" in values:
+        if "강의일" in values and "주강사" in values:
             header_row_idx = idx
             break
 
     if header_row_idx is None:
-        raise ValueError("엑셀에서 '강의일', '강의시간' 헤더를 찾지 못했습니다.")
+        raise ValueError("엑셀에서 헤더를 찾지 못했습니다.")
 
     headers = raw.iloc[header_row_idx].tolist()
     df = raw.iloc[header_row_idx + 1:].copy()
@@ -361,13 +362,11 @@ def parse_daehan_excel(uploaded_file, agency, target):
     rows = []
 
     for _, row in df.iterrows():
-        if "강의일" not in df.columns:
-            continue
-
         lecture_date_raw = row.get("강의일")
         if pd.isna(lecture_date_raw):
             continue
 
+        # 2026년 01월 14일 (수) 형식 파싱
         lecture_date_str = re.sub(r"년\s*", "-", str(lecture_date_raw))
         lecture_date_str = re.sub(r"월\s*", "-", lecture_date_str)
         lecture_date_str = re.sub(r"일.*", "", lecture_date_str).strip()
@@ -379,6 +378,7 @@ def parse_daehan_excel(uploaded_file, agency, target):
         start, end = parse_time_range(time_text)
 
         instructor = str(row.get("주강사", "")) if pd.notna(row.get("주강사")) else ""
+
         subject_raw = str(row.get("과목", "")) if pd.notna(row.get("과목")) else ""
         subject = detect_subject(subject_raw) or subject_raw
 
@@ -387,30 +387,27 @@ def parse_daehan_excel(uploaded_file, agency, target):
 
         room_raw = row.get("지역")
         room = str(room_raw).strip() if pd.notna(room_raw) else ""
-        
-        if "인천" in agency:
-            room_map = {
-                "제1강의실": "인천 1강의실",
-                "제2강의실": "인천 2강의실",
-            }
-            location = room_map.get(room, room) if room else "오프"
-        else:
-            location = f"오프 ({room})" if room else "오프"
+        room_map = {
+            "제1강의실": "인천 1강의실",
+            "제2강의실": "인천 2강의실",
+        }
+        location = room_map.get(room, room) if room else "오프"
 
-        rows.append(
-            make_row(
-                date_obj=lecture_date,
-                start=start,
-                end=end,
-                agency=agency,
-                subject=subject,
-                target=target,
-                industry=industry,
-                location=location,
-                instructor=instructor,
-                hourly_fee=DEFAULT_HOURLY_FEE
-            )
+        row_data = make_row(
+            date_obj=lecture_date,
+            start=start,
+            end=end,
+            agency=agency,
+            subject=subject,
+            target="관리감독자",
+            industry=industry,
+            location=location,
+            instructor=instructor,
+            hourly_fee=DEFAULT_HOURLY_FEE
         )
+        row_data["의뢰자"] = requester
+        row_data["의뢰일"] = request_date
+        rows.append(row_data)
 
     return pd.DataFrame(rows, columns=COLUMNS)
 
