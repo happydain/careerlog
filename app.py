@@ -411,7 +411,6 @@ def parse_incheon_excel(uploaded_file, agency, requester, request_date):
         row_data = make_row(lecture_date, start, end, agency, subject, "관리감독자", industry, location, instructor, DEFAULT_HOURLY_FEE)
         row_data["의뢰자"] = requester
         row_data["의뢰일"] = request_date
-        st.write("대상자:", row_data["대상자"], "/ 방식/위치:", row_data["방식/위치"])
         rows.append(row_data)
     return pd.DataFrame(rows, columns=COLUMNS)
 
@@ -469,16 +468,23 @@ if menu == "📥 보건스케줄 입력":
     • 입력된 내용은 표준 형식으로 정리되어 구글시트에 저장됩니다.  
     """)  
     st.markdown("### ⚙️ 기본 정보 설정")
-    col1, col2, col3, col4 = st.columns(4)
+    # 의뢰기관을 크게 강조
+    common_agency = st.selectbox(
+        "🏢 의뢰기관 (필수 확인!)",
+        ["대한협수원", "대한협인천", "대한협서울", "중대협", "한안협", "잡그레이드"],
+        help="카톡/엑셀 모두 이 기관으로 처리됩니다. 반드시 먼저 확인하세요!"
+    )
+    
+    st.info(f"📌 현재 선택된 의뢰기관: **{common_agency}**")
+    
+    col1, col2, col3 = st.columns(3)
     with col1:
-        common_agency = st.selectbox("의뢰기관", ["대한협수원", "대한협인천", "대한협서울", "중대협", "한안협", "잡그레이드"])
-    with col2:
         common_requester = st.text_input("담당자 이름")
-    with col3:
+    with col2:
         common_date = st.date_input("의뢰일", value=datetime.now())
-    with col4:
+    with col3:
         year = st.number_input("기준 연도", min_value=2024, max_value=2035, value=datetime.now().year, step=1)
-
+    
     st.divider()
 
     # --- 카톡 입력 ---
