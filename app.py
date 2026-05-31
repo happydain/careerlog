@@ -53,25 +53,39 @@ def append_to_gsheet(df):
     try:
         client = get_gsheet_client()
 
-        # Sheet1 - 의뢰일별
         sheet1 = get_or_create_sheet(client, "의뢰일별")
         ensure_header(sheet1)
-
-        # Sheet2 - 최종
         sheet2 = get_or_create_sheet(client, "최종")
         ensure_header(sheet2)
 
+        # 중복 체크
+        existing_data = sheet2.get_all_records()
+        if existing_data:
+            existing_df = pd.DataFrame(existing_data)
+            duplicates = []
+            for _, row in df.iterrows():
+                mask = (
+                    (existing_df["강의일시"].astype(str) == str(row["강의일시"])) &
+                    (existing_df["의뢰기관"].astype(str) == str(row["의뢰기관"])) &
+                    (existing_df["강사님"].astype(str) == str(row["강사님"]))
+                )
+                if mask.any():
+                    duplicates.append(f"{row['강의일시']} / {row['의뢰기관']} / {row['강사님']}")
+
+            if duplicates:
+                st.warning(f"⚠️ 중복 데이터 {len(duplicates)}건 발견:\n" + "\n".join(duplicates))
+                if not st.checkbox("중복 포함하여 저장하시겠습니까?"):
+                    return False
+
         df_clean = df.fillna("").astype(str)
         values = df_clean.values.tolist()
-
         sheet1.append_rows(values)
         sheet2.append_rows(values)
-
         return True
+
     except Exception as e:
         st.exception(e)
         return False
-
 
 def load_gsheet_raw():
     try:
