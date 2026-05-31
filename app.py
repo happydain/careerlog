@@ -427,9 +427,9 @@ def parse_hanahn_kakao(text, year, requester, request_date):
 
             # 대면/비대면
             if "비대면" in clean: current_location = "줌"
-            elif "대면" in clean: current_location = "오프"
+            elif "대면" in clean: current_location = "서울"
             else:
-                current_location = "오프"  
+                current_location = "서울"  
 
             continue
 
@@ -495,7 +495,7 @@ def parse_incheon_excel(uploaded_file, agency, requester, request_date):
         raise ValueError("엑셀에서 헤더를 찾지 못했습니다.")
     df = raw.iloc[header_row_idx + 1:].copy()
     df.columns = raw.iloc[header_row_idx].tolist()
-    room_map = {"제1강의실": "인천 1강의실", "제2강의실": "인천 2강의실"}
+    room_map = {"제1강의실": "인천1강의실", "제2강의실": "인천2강의실"}
     rows = []
     for _, row in df.iterrows():
         if pd.isna(row.get("강의일")): continue
@@ -529,8 +529,7 @@ def get_column_config():
         "강의료(1시간)": st.column_config.NumberColumn("강의료(1시간)", format="₩%d"),
         "강의료(1일)": st.column_config.NumberColumn("강의료(1일)", format="₩%d"),
         "시수": st.column_config.NumberColumn("시수", format="%d"),
-        "방식/위치": st.column_config.SelectboxColumn("방식/위치", options=["동시송출", "줌", "인천 1강의실", "인천 2강의실", "수원 1층", "수원 5층", "서울 교육장", "출강", "기타"]),
-        "특이사항": st.column_config.TextColumn("특이사항", width="large"),
+        "방식/위치": st.column_config.SelectboxColumn("방식/위치", options=["동시송출", "줌", "인천1강의실", "인천2강의실", "수원1층", "수원5층", "서울", "외부출강", "기타"]),        "특이사항": st.column_config.TextColumn("특이사항", width="large"),
         "변경이력": st.column_config.TextColumn("변경이력", width="large"),
         "내부메모": st.column_config.TextColumn("내부메모", width="large")
     }
