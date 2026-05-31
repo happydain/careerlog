@@ -468,7 +468,7 @@ if menu == "📥 보건스케줄 입력":
         type=["xlsx"]
     )
 
-    col1, col2 = st.columns(2)
+    col1 = st.columns(1)
 
     with col1:
         excel_agency = st.selectbox(
@@ -482,6 +482,14 @@ if menu == "📥 보건스케줄 입력":
                 "잡그레이드"
             ]
         )
+    
+    col3, col4 = st.columns(2)
+    
+    with col3:
+        excel_requester = st.text_input("의뢰자 이름", placeholder="예: 홍길동 과장")
+    
+    with col4:
+        excel_request_date = st.date_input("의뢰일", value=datetime.now())
 
    
     if uploaded_file:
