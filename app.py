@@ -15,9 +15,24 @@ st.set_page_config(
 SPREADSHEET_ID = "1AUnbvyn1Nx9JDUv-0MhhbYf3oziJ3CR_0ZgINq-G59M"
 
 COLUMNS = [
-    "강의일시", "요일", "시작", "종료", "의뢰기관", "과정명",
-    "대상자", "업종", "방식/위치", "강사님", "시수",
-    "강의료(1시간)", "강의료(1일)"
+    "강의일시",
+    "요일",
+    "시작",
+    "종료",
+    "의뢰기관",
+    "과정명",
+    "대상자",
+    "업종",
+    "방식/위치",
+    "강사님",
+    "시수",
+    "강의료(1시간)",
+    "강의료(1일)",
+    "의뢰자",
+    "의뢰일",
+    "특이사항",
+    "변경이력",
+    "내부메모"
 ]
 
 DEFAULT_HOURLY_FEE = 100000
@@ -399,18 +414,65 @@ with tabs[2]:
     st.markdown("### 최종 확인 및 수정")
 
     if "temp_df" not in st.session_state:
-        st.info("먼저 카톡/이메일 또는 엑셀을 분석하세요.")
+        st.info("먼저 카톡 또는 엑셀을 분석하세요.")
     else:
         edited_df = st.data_editor(
-            st.session_state["temp_df"],
-            use_container_width=True,
-            num_rows="dynamic",
-            column_config={
-                "강의료(1시간)": st.column_config.NumberColumn(format="₩%d"),
-                "강의료(1일)": st.column_config.NumberColumn(format="₩%d"),
-                "시수": st.column_config.NumberColumn(format="%d"),
-            }
+    st.session_state["master_df"],
+    use_container_width=True,
+    num_rows="dynamic",
+    column_config={
+
+        # 기존 유지
+        "강의료(1시간)": st.column_config.NumberColumn(
+            "강의료(1시간)",
+            format="₩%d"
+        ),
+
+        "강의료(1일)": st.column_config.NumberColumn(
+            "강의료(1일)",
+            format="₩%d"
+        ),
+
+        "시수": st.column_config.NumberColumn(
+            "시수",
+            format="%d"
+        ),
+
+        # 추가
+        "방식/위치": st.column_config.SelectboxColumn(
+            "방식/위치",
+            options=[
+                "",
+                "줌",
+                "수원 1강의실",
+                "수원 2강의실",
+                "수원 3강의실",
+                "인천 교육장",
+                "서울 교육장"
+            ]
+        ),
+
+        "의뢰일": st.column_config.DateColumn(
+            "의뢰일",
+            format="YYYY-MM-DD"
+        ),
+
+        "특이사항": st.column_config.TextColumn(
+            "특이사항",
+            width="large"
+        ),
+
+        "변경이력": st.column_config.TextColumn(
+            "변경이력",
+            width="large"
+        ),
+
+        "내부메모": st.column_config.TextColumn(
+            "내부메모",
+            width="large"
         )
+    }
+)
 
         st.session_state["temp_df"] = edited_df
 
