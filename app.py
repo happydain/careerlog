@@ -110,17 +110,28 @@ def normalize_time(hour):
     return f"{hour:02d}:00"
 
 
-# 이 함수 전체를 찾아서
 def parse_time_range(text, default_start="14:00", default_end="16:00"):
     text = str(text)
 
-    match = re.search(r"(\d{1,2})\s*시?\s*[-~]\s*(\d{1,2})\s*시?", text)
-    if match:
-        return normalize_time(match.group(1)), normalize_time(match.group(2))
+    # 날짜 패턴 제거 (월일이 시간 파싱에 간섭하지 않도록)
+    text = re.sub(r"\d{1,2}월\s*\d{1,2}일?", "", text)
+    # 괄호 안 내용 제거 (3시간) 같은 것 제거
+    text = re.sub(r"\([^)]*\)", "", text)
 
+    # 13:00~15:00 형태
     match = re.search(r"(\d{1,2}:\d{2})\s*[-~]\s*(\d{1,2}:\d{2})", text)
     if match:
         return match.group(1), match.group(2)
+
+    # 13시-15시 / 13-15시 / 13시-15 형태
+    match = re.search(r"(\d{1,2})\s*시?\s*[-~]\s*(\d{1,2})\s*시", text)
+    if match:
+        return normalize_time(match.group(1)), normalize_time(match.group(2))
+
+    # 13-15 형태
+    match = re.search(r"(\d{1,2})\s*[-~]\s*(\d{1,2})(?!\d)", text)
+    if match:
+        return normalize_time(match.group(1)), normalize_time(match.group(2))
 
     return default_start, default_end
 
