@@ -492,8 +492,13 @@ if menu == "📥 보건스케줄 입력":
     raw_text = st.text_area("강의 요청 메시지를 붙여넣으세요.", height=250)
 
     if st.button("🪄 카톡 일정 분석"):
-        if raw_text.strip():
-            if common_agency == "대한협서울":
+        if st.button("🪄 카톡 일정 분석"):
+            if not common_requester.strip():
+                st.error("담당자 이름을 입력해주세요.")
+            elif not raw_text.strip():
+                st.warning("텍스트를 입력해주세요.")
+            else:
+                if common_agency == "대한협서울":
                 df_text = parse_seoul_kakao(raw_text, year, common_requester, common_date.strftime("%Y-%m-%d"))
             else:
                 df_text = parse_kakao_text(raw_text, year)
@@ -516,8 +521,11 @@ if menu == "📥 보건스케줄 입력":
 
     if uploaded_file:
         if st.button("📄 엑셀 일정 변환"):
-            try:
-                if common_agency == "대한협인천":
+            if not common_requester.strip():
+                st.error("담당자 이름을 입력해주세요.")
+            else:
+                try:
+                    if common_agency == "대한협인천":
                     df_excel = parse_incheon_excel(uploaded_file, common_agency, common_requester, common_date.strftime("%Y-%m-%d"))
                 else:
                     df_excel = parse_daehan_excel(uploaded_file, common_agency, "")
