@@ -346,7 +346,7 @@ def parse_seoul_kakao(text, year, requester, request_date):
                         start, end = start_default, end_default
                     instructor_match = re.search(r"([가-힣]{2,3})\s*(?:$|\+)", clean)
                     instructor = instructor_match.group(1) if instructor_match else ""
-                    row = make_row(date_obj, start, end, "대한협서울", subject, "관리감독자", DEFAULT_INDUSTRY, "출강", instructor, DEFAULT_HOURLY_FEE)
+                    row = make_row(date_obj, start, end, "대한협서울", subject, "관리감독자", DEFAULT_INDUSTRY, "서울", instructor, DEFAULT_HOURLY_FEE)
                     row["의뢰자"] = requester
                     row["의뢰일"] = request_date
                     rows.append(row)
