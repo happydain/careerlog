@@ -437,11 +437,59 @@ elif menu == "📋 보건스케줄 보기":
             instructor_filter = st.selectbox("강사님", ["전체"] + sorted(df["강사님"].dropna().unique().tolist()) if "강사님" in df.columns else ["전체"])
         with col3:
             subject_filter = st.selectbox("과정명", ["전체"] + sorted(df["과정명"].dropna().unique().tolist()) if "과정명" in df.columns else ["전체"])
+
         filtered_df = df.copy()
         if agency_filter != "전체": filtered_df = filtered_df[filtered_df["의뢰기관"] == agency_filter]
         if instructor_filter != "전체": filtered_df = filtered_df[filtered_df["강사님"] == instructor_filter]
         if subject_filter != "전체": filtered_df = filtered_df[filtered_df["과정명"] == subject_filter]
-        st.dataframe(filtered_df, use_container_width=True, height=700)
+
+        original_df = filtered_df.copy()
+
+        edited_gsheet_df = st.data_editor(
+            filtered_df,
+            use_container_width=True,
+            height=700,
+            num_rows="fixed",
+            column_config={
+                "강의일시": st.column_config.DateColumn("강의일시", format="YYYY-MM-DD"),
+                "요일": st.column_config.TextColumn("요일"),
+                "방식/위치": st.column_config.SelectboxColumn("방식/위치", options=["동시송출", "줌", "인천 1강의실", "인천 2강의실", "수원 1층", "수원 5층", "서울 교육장", "출강", "기타"]),
+                "변경이력": st.column_config.TextColumn("변경이력", width="large"),
+                "특이사항": st.column_config.TextColumn("특이사항", width="large"),
+                "내부메모": st.column_config.TextColumn("내부메모", width="large"),
+            }
+        )
+
+        if st.button("💾 변경사항 저장"):
+            try:
+                today = datetime.now().strftime("%Y-%m-%d")
+                for idx in edited_gsheet_df.index:
+                    changes = []
+                    for col in COLUMNS:
+                        if col == "변경이력":
+                            continue
+                        orig = str(original_df.loc[idx, col]) if idx in original_df.index else ""
+                        new = str(edited_gsheet_df.loc[idx, col])
+                        if orig != new:
+                            changes.append(f"{col} {orig}→{new}")
+                    if changes:
+                        existing = str(edited_gsheet_df.loc[idx, "변경이력"]).strip()
+                        new_history = f"[{today}] " + ", ".join(changes)
+                        edited_gsheet_df.loc[idx, "변경이력"] = f"{existing} / {new_history}".strip(" /")
+
+                # 구글시트 전체 업데이트
+                client = get_gsheet_client()
+                sheet = client.open_by_key(SPREADSHEET_ID).sheet1
+                sheet.clear()
+                sheet.append_row(COLUMNS)
+                updated = df.copy()
+                updated.update(edited_gsheet_df)
+                df_clean = updated.fillna("").astype(str)
+                sheet.append_rows(df_clean.values.tolist())
+                st.success("변경사항 저장 완료!")
+                st.rerun()
+            except Exception as e:
+                st.error(f"저장 오류: {e}")
 
 
 elif menu == "📊 협회별 월별 스케줄":
