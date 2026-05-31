@@ -242,6 +242,7 @@ def parse_daehan_excel(uploaded_file, agency, target):
         subject = detect_subject(subject_raw) or subject_raw
         industry = str(row.get("업종")) if pd.notna(row.get("업종")) else DEFAULT_INDUSTRY
         room = str(row.get("지역", "")).strip() if pd.notna(row.get("지역")) else ""
+        st.write("지역 값:", repr(room))
         location = f"오프 ({room})" if room else "오프"
         rows.append(make_row(lecture_date, start, end, agency, subject, target, industry, location, instructor, DEFAULT_HOURLY_FEE))
     return pd.DataFrame(rows, columns=COLUMNS)
