@@ -110,7 +110,7 @@ def normalize_time(hour):
     return f"{hour:02d}:00"
 
 
-def parse_time_range(text, default_start="14:00", default_end="16:00"):
+def parse_time_range(text):
     text = str(text)
 
     # 월일 패턴만 제거 (반드시 "월"이 있는 경우만)
