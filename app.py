@@ -345,6 +345,11 @@ def parse_incheon_excel(uploaded_file, agency, requester, request_date):
     raw = pd.read_excel(uploaded_file, sheet_name=0, header=None)
 
     # 헤더 찾기 (강의일, 주강사, 강의시간, 과목 등)
+    headers = raw.iloc[header_row_idx].tolist()
+    df = raw.iloc[header_row_idx + 1:].copy()
+    df.columns = headers
+    
+    st.write("컬럼 목록:", df.columns.tolist())  # ← 임시 확인용
     header_row_idx = None
     for idx, row in raw.iterrows():
         values = [str(v).strip() for v in row.values]
