@@ -12,7 +12,7 @@ st.set_page_config(page_title="CareerLog AI (Gemini)", page_icon="🚀", layout=
 
 # Gemini 설정
 genai.configure(api_key=st.secrets["GEMINI_API_KEY"])
-model = genai.GenerativeModel('gemini-2.0-flash') # 속도가 빠른 flash 모델 사용
+model = genai.GenerativeModel("gemini-2.0-flash-lite") # 속도가 빠른 flash 모델 사용
 
 # --- 2. 구글 시트 연결 함수 ---
 def get_gsheet_client():
