@@ -353,7 +353,7 @@ def parse_incheon_excel(uploaded_file, agency, requester, request_date):
     header_row_idx = None
     for idx, row in raw.iterrows():
         values = [str(v).strip() for v in row.values]
-        if "강의일" in values and "주강사" in values:
+        if "강의일" in values and "강의시간" in values:
             header_row_idx = idx
             break
 
