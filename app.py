@@ -451,9 +451,10 @@ def parse_hanahn_kakao(text, year, requester, request_date):
             start, end = parse_time_range(converted)
 
             # 과목 분리 ("및"으로 구분)
-            subject_part = re.sub(r"\d{1,2}시.*?[-~].*?\d{1,2}시", "", clean).strip()
+            subject_part = re.sub(r"\d{1,2}시.*?[-~].*?\d{1,2}시", "", converted).strip()
             subject_part = re.sub(r"오전|오후|산업현장", "", subject_part).strip()
-            subjects = [s.strip() for s in re.split(r"및|,", subject_part) if s.strip()]
+            subject_part = re.sub(r"^[-\s]+", "", subject_part).strip()  # ← 앞의 - 제거
+            subjects = [s.strip().lstrip("-").strip() for s in re.split(r"및|,", subject_part) if s.strip()]
 
             if len(subjects) >= 2:
                 # 시간 균등 분배
