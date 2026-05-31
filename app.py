@@ -12,7 +12,7 @@ st.set_page_config(
     layout="wide"
 )
 
-SHEET_NAME = "보건스케쥴"
+SPREADSHEET_ID = "1AUnbvyn1Nx9JDUv-0MhhbYf3oziJ3CR_0ZgINq-G59M"
 
 COLUMNS = [
     "강의일시", "요일", "시작", "종료", "의뢰기관", "과정명",
@@ -44,7 +44,9 @@ def append_to_gsheet(df):
 
         st.write("1. 인증 성공")
 
-        sheet = client.open(SHEET_NAME).sheet1
+        sheet = client.open_by_key(
+            SPREADSHEET_ID
+        ).sheet1
 
         st.write("2. 시트 연결 성공")
 
@@ -63,7 +65,7 @@ def append_to_gsheet(df):
 
 def load_gsheet():
     client = get_gsheet_client()
-    sheet = client.open(SHEET_NAME).sheet1
+    sheet = client.open_by_key(SPREADSHEET_ID).sheet1
     return pd.DataFrame(sheet.get_all_records())
 
 
