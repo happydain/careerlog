@@ -489,7 +489,7 @@ if menu == "📥 보건스케줄 입력":
                 df_excel = parse_daehan_excel(
                     uploaded_file,
                     excel_agency,
-                    excel_target   # ✅ 수정: "" → excel_target
+                    ""   
                 )
                 if df_excel.empty:
                     st.warning("변환된 일정이 없습니다. 엑셀 형식을 확인해주세요.")
