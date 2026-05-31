@@ -519,6 +519,14 @@ if menu == "📥 보건스케줄 입력":
     st.header("📋 최종 확인 및 저장")
 
     if "temp_df" in st.session_state:
+        # 강의일시 날짜 형식 변환
+        try:
+            st.session_state["temp_df"]["강의일시"] = pd.to_datetime(
+                st.session_state["temp_df"]["강의일시"], errors="coerce"
+            ).dt.date
+        except Exception:
+            pass
+            
         # 데이터 편집기 호출
         edited_df = st.data_editor(
             st.session_state["temp_df"],
