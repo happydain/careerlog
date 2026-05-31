@@ -111,29 +111,13 @@ def normalize_time(hour):
 
 
 def parse_time_range(text):
-    text = str(text)
+    text = re.sub(r"\([^)]*\)", "", str(text))  # (3시간) 제거
 
-    # 월일 패턴만 제거 (반드시 "월"이 있는 경우만)
-    text = re.sub(r"\d{1,2}월\s*\d{1,2}일", "", text)
-    # 괄호 안 내용 제거
-    text = re.sub(r"\([^)]*\)", "", text)
-
-    # 13:00~15:00 형태
-    match = re.search(r"(\d{1,2}:\d{2})\s*[-~]\s*(\d{1,2}:\d{2})", text)
-    if match:
-        return match.group(1), match.group(2)
-
-    # 15시-18시 / 13-15시 / 13시-15 형태
-    match = re.search(r"(\d{1,2})\s*시?\s*[-~]\s*(\d{1,2})\s*시", text)
+    match = re.search(r"(\d{1,2})\s*시\s*[-~]\s*(\d{1,2})\s*시?", text)
     if match:
         return normalize_time(match.group(1)), normalize_time(match.group(2))
 
-    # 13-15 형태
-    match = re.search(r"(\d{1,2})\s*[-~]\s*(\d{1,2})(?!\d)", text)
-    if match:
-        return normalize_time(match.group(1)), normalize_time(match.group(2))
-
-    return default_start, default_end
+    return None, None  # 시간 정보 없으면 빈값
 
 
 def calc_hours(start, end):
@@ -294,8 +278,8 @@ def parse_kakao_text(text, year):
     subject = ""
     location = DEFAULT_LOCATION
     industry = DEFAULT_INDUSTRY
-    start_default = "14:00"
-    end_default = "16:00"
+    start_default = None
+    end_default = None
 
     lines = [line.strip() for line in text.splitlines() if line.strip()]
 
