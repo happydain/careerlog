@@ -395,7 +395,7 @@ def parse_incheon_excel(uploaded_file, agency, requester, request_date):
         raise ValueError("엑셀에서 헤더를 찾지 못했습니다.")
     df = raw.iloc[header_row_idx + 1:].copy()
     df.columns = raw.iloc[header_row_idx].tolist()
-    room_map = {"제1강의실": "인천 1강의실", "제2강의실": "인천 2강의실"}
+    room_map = {"제1강의실": "인천1강의실", "제2강의실": "인천2강의실"}
     rows = []
     for _, row in df.iterrows():
         if pd.isna(row.get("강의일")): continue
@@ -411,6 +411,7 @@ def parse_incheon_excel(uploaded_file, agency, requester, request_date):
         row_data = make_row(lecture_date, start, end, agency, subject, "관리감독자", industry, location, instructor, DEFAULT_HOURLY_FEE)
         row_data["의뢰자"] = requester
         row_data["의뢰일"] = request_date
+        st.write("대상자:", row_data["대상자"], "/ 방식/위치:", row_data["방식/위치"])
         rows.append(row_data)
     return pd.DataFrame(rows, columns=COLUMNS)
 
