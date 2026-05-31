@@ -393,7 +393,79 @@ def parse_daehan_excel(uploaded_file, agency, target):
         rows.append(make_row(lecture_date, start, end, agency, subject, target, industry, location, instructor, DEFAULT_HOURLY_FEE))
     return pd.DataFrame(rows, columns=COLUMNS)
 
+# -----------------------------
+# 한안협 카톡 parser
+# -----------------------------
+def parse_hanahn_kakao(text, year, requester, request_date):
+    rows = []
+    lines = [line.strip() for line in text.splitlines() if line.strip()]
 
+    current_date = None
+    current_target = ""
+    current_industry = DEFAULT_INDUSTRY
+    current_location = "줌"
+
+    for line in lines:
+        clean = line.replace("*", "").strip()
+
+        # 날짜+대상+업종+대면/비대면 줄 감지
+        date_match = re.search(r"(\d{1,2})월\s*(\d{1,2})일", clean)
+        if date_match:
+            try:
+                current_date = datetime(year, int(date_match.group(1)), int(date_match.group(2)))
+            except ValueError:
+                continue
+
+            # 대상자
+            current_target = detect_target(clean) or "안전관리자"
+
+            # 업종
+            if "건설" in clean: current_industry = "건설업"
+            elif "제조" in clean: current_industry = "제조업"
+            elif "기타" in clean: current_industry = "기타업"
+            else: current_industry = DEFAULT_INDUSTRY
+
+            # 대면/비대면
+            if "비대면" in clean: current_location = "줌"
+            elif "대면" in clean: current_location = "오프"
+
+            continue
+
+        # 시간+과목 줄 감지
+        if current_date and re.search(r"\d{1,2}시", clean):
+            start, end = parse_time_range(clean)
+            if start is None:
+                continue
+
+            # 과목 분리 ("및"으로 구분)
+            subject_part = re.sub(r"\d{1,2}시.*?[-~].*?\d{1,2}시", "", clean).strip()
+            subject_part = re.sub(r"오전|오후|산업현장", "", subject_part).strip()
+            subjects = [s.strip() for s in re.split(r"및|,", subject_part) if s.strip()]
+
+            if len(subjects) >= 2:
+                # 시간 균등 분배
+                start_h = int(start.split(":")[0])
+                end_h = int(end.split(":")[0])
+                total = end_h - start_h
+                half = total // len(subjects)
+
+                for i, subj in enumerate(subjects):
+                    s = f"{start_h + i * half:02d}:00"
+                    e = f"{start_h + (i + 1) * half:02d}:00"
+                    final_subject = detect_subject(subj) or subj
+                    row = make_row(current_date, s, e, "한안협", final_subject, current_target, current_industry, current_location, "", DEFAULT_HOURLY_FEE)
+                    row["의뢰자"] = requester
+                    row["의뢰일"] = request_date
+                    rows.append(row)
+            else:
+                final_subject = detect_subject(subject_part) or subject_part
+                row = make_row(current_date, start, end, "한안협", final_subject, current_target, current_industry, current_location, "", DEFAULT_HOURLY_FEE)
+                row["의뢰자"] = requester
+                row["의뢰일"] = request_date
+                rows.append(row)
+
+    return pd.DataFrame(rows, columns=COLUMNS)
+    
 # -----------------------------
 # 대한산안협 인천 Excel parser
 # -----------------------------
@@ -511,8 +583,10 @@ if menu == "📥 보건스케줄 입력":
         elif not raw_text.strip():
             st.warning("텍스트를 입력해주세요.")
         else:
-            if common_agency == "대한협서울":
+            iif common_agency == "대한협서울":
                 df_text = parse_seoul_kakao(raw_text, year, common_requester, common_date.strftime("%Y-%m-%d"))
+            elif common_agency == "한안협":
+                df_text = parse_hanahn_kakao(raw_text, year, common_requester, common_date.strftime("%Y-%m-%d"))
             else:
                 df_text = parse_kakao_text(raw_text, year)
                 df_text["의뢰기관"] = common_agency
