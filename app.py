@@ -245,7 +245,7 @@ def make_row(
     hours = calc_hours(start, end)
 
     return {
-        "강의일시": f"{date_obj.year}. {date_obj.month}. {date_obj.day}",
+        "강의일시": date_obj.strftime("%Y-%m-%d"),
         "요일": get_weekday(date_obj),
         "시작": start,
         "종료": end,    
@@ -525,7 +525,7 @@ if menu == "📥 보건스케줄 입력":
             use_container_width=True,
             num_rows="dynamic",  # 이 옵션 덕분에 직접 행 추가/삭제가 가능합니다.
             column_config={
-                "강의일시": st.column_config.TextColumn("강의일시"),
+                "강의일시": st.column_config.DateColumn("강의일시", format="YYYY-MM-DD"),
                 "요일": st.column_config.TextColumn("요일"),
                 "시작": st.column_config.TextColumn("시작"),
                 "종료": st.column_config.TextColumn("종료"),
