@@ -365,129 +365,195 @@ st.title("📅 보건스케줄 자동정리")
 st.info("카톡 텍스트와 협회별 엑셀 파일을 같은 포맷으로 정리해 구글시트에 저장합니다.")
 
 
-tabs = st.tabs(["📥 카톡/이메일 입력", "📄 엑셀 업로드", "📊 최종 확인/저장", "🔎 구글시트 조회"])
 
-with tabs[0]:
+if menu == "보건스케줄 입력":
+
+    st.header("📥 보건스케줄 입력")
+
+    # =====================
+    # 카톡 입력
+    # =====================
+
     st.markdown("### 카톡/이메일 강의 의뢰 텍스트")
 
-    year = st.number_input("기준 연도", min_value=2024, max_value=2035, value=2026, step=1)
+    year = st.number_input(
+        "기준 연도",
+        min_value=2024,
+        max_value=2035,
+        value=2026,
+        step=1
+    )
 
-    raw_text = st.text_area("강의 요청 메시지를 붙여넣으세요.", height=320)
+    raw_text = st.text_area(
+         "강의 요청 메시지를 붙여넣으세요.",
+        height=250
+    )
 
-    if st.button("카톡/이메일 일정 분석"):
-        if not raw_text.strip():
-            st.warning("분석할 텍스트를 입력하세요.")
-        else:
-            df = parse_kakao_text(raw_text, year)
+    if st.button("🪄 카톡 일정 분석"):
+        if raw_text.strip():
 
-            if df.empty:
-                st.warning("추출된 일정이 없습니다. 날짜 형식을 확인하세요.")
-            else:
-                st.session_state["temp_df"] = df
-                st.success("텍스트 일정 분석 완료!")
+            df_text = parse_kakao_text(
+                raw_text,
+                year
+            )
 
-with tabs[1]:
+            st.session_state["temp_df"] = df_text
+
+            st.success(
+                f"{len(df_text)}건 일정 생성 완료"
+            )
+
+    st.divider()
+
+    # =====================
+    # 엑셀 업로드
+    # =====================
+
     st.markdown("### 대한산안협 엑셀 업로드")
 
-    uploaded_file = st.file_uploader("대한산안협 엑셀 파일을 업로드하세요.", type=["xlsx"])
+    uploaded_file = st.file_uploader(
+        "대한산안협 엑셀 업로드",
+        type=["xlsx"]
+    )
 
     col1, col2 = st.columns(2)
+
     with col1:
-        excel_agency = st.selectbox("의뢰기관", ["수원", "인천", "중대협", "서울", "기타"], index=1)
-    with col2:
-        excel_target = st.selectbox("대상자", ["관리감독자", "안전관리자", "보건관리자", "근로자"], index=0)
-
-    if uploaded_file and st.button("엑셀 일정 변환"):
-        try:
-            df_excel = parse_daehan_excel(uploaded_file, excel_agency, excel_target)
-
-            if df_excel.empty:
-                st.warning("엑셀에서 변환된 일정이 없습니다.")
-            else:
-                st.session_state["temp_df"] = df_excel
-                st.success("엑셀 일정 변환 완료!")
-
-        except Exception as e:
-            st.error(f"엑셀 변환 오류: {e}")
-
-with tabs[2]:
-    st.markdown("### 최종 확인 및 수정")
-
-    if "temp_df" not in st.session_state:
-        st.info("먼저 카톡 또는 엑셀을 분석하세요.")
-    else:
-        edited_df = st.data_editor(
-    st.session_state["master_df"],
-    use_container_width=True,
-    num_rows="dynamic",
-    column_config={
-
-        # 기존 유지
-        "강의료(1시간)": st.column_config.NumberColumn(
-            "강의료(1시간)",
-            format="₩%d"
-        ),
-
-        "강의료(1일)": st.column_config.NumberColumn(
-            "강의료(1일)",
-            format="₩%d"
-        ),
-
-        "시수": st.column_config.NumberColumn(
-            "시수",
-            format="%d"
-        ),
-
-        # 추가
-        "방식/위치": st.column_config.SelectboxColumn(
-            "방식/위치",
-            options=[
-                "",
-                "줌",
-                "수원 1강의실",
-                "수원 2강의실",
-                "수원 3강의실",
-                "인천 교육장",
-                "서울 교육장"
+        excel_agency = st.selectbox(
+            "의뢰기관",
+            [
+                "대한협수원",
+                "대한협인천",
+                "대한협서울",
+                "중대협",
+                "한안협",
+                "잡그레이드"
             ]
-        ),
-
-        "의뢰일": st.column_config.DateColumn(
-            "의뢰일",
-            format="YYYY-MM-DD"
-        ),
-
-        "특이사항": st.column_config.TextColumn(
-            "특이사항",
-            width="large"
-        ),
-
-        "변경이력": st.column_config.TextColumn(
-            "변경이력",
-            width="large"
-        ),
-
-        "내부메모": st.column_config.TextColumn(
-            "내부메모",
-            width="large"
         )
-    }
-)
 
-        st.session_state["temp_df"] = edited_df
+    with col2:
+        excel_target = st.selectbox(
+            "대상자",
+            [
+                "관리감독자",
+                "안전관리자",
+                "보건관리자",
+                "안전보건관리책임자",
+                "근로자"
+            ]
+        )
+
+    if uploaded_file:
+
+        if st.button("📄 엑셀 일정 변환"):
+
+            try:
+
+                df_excel = parse_daehan_excel(
+                    uploaded_file,
+                    excel_agency,
+                    excel_target
+                )
+
+                st.session_state["temp_df"] = df_excel
+
+                st.success(
+                    f"{len(df_excel)}건 일정 생성 완료"
+                )
+
+            except Exception as e:
+
+                st.error(
+                    f"엑셀 변환 오류: {e}"
+                )
+
+    st.divider()
+
+    # =====================
+    # 최종 확인
+    # =====================
+
+    st.header("📋 최종 확인 및 저장")
+
+    if "temp_df" in st.session_state:
+
+        edited_df = st.data_editor(
+            st.session_state["temp_df"],
+            use_container_width=True,
+            num_rows="dynamic",
+            column_config={
+
+                "강의료(1시간)": st.column_config.NumberColumn(
+                    "강의료(1시간)",
+                    format="₩%d"
+                ),
+
+                "강의료(1일)": st.column_config.NumberColumn(
+                    "강의료(1일)",
+                    format="₩%d"
+                ),
+
+                "시수": st.column_config.NumberColumn(
+                    "시수",
+                    format="%d"
+                ),
+
+                "방식/위치": st.column_config.SelectboxColumn(
+                    "방식/위치",
+                    options=[
+                        "동시송출",
+                        "줌",
+                        "인천 1강의실",
+                        "인천 2강의실",
+                        "수원 1층",
+                        "수원 5층",
+                        "서울 교육장",
+                        "기타"
+                        
+                    ]
+                ),
+
+                "특이사항": st.column_config.TextColumn(
+                    "특이사항",
+                    width="large"
+                ),
+
+                "변경이력": st.column_config.TextColumn(
+                    "변경이력",
+                    width="large"
+                ),
+
+                "내부메모": st.column_config.TextColumn(
+                    "내부메모",
+                    width="large"
+                )
+            }
+        )
 
         col1, col2, col3 = st.columns(3)
 
         with col1:
-            if st.button("💾 구글 스프레드시트로 전송"):
-                if append_to_gsheet(edited_df):
-                    st.balloons()
-                    st.success("구글 시트에 저장되었습니다.")
-                    del st.session_state["temp_df"]
+
+            if st.button("💾 구글시트 저장"):
+
+                if append_to_gsheet(
+                    edited_df
+                ):
+
+                    st.success(
+                        "구글시트 저장 완료"
+                    )
 
         with col2:
+
             buffer = io.BytesIO()
-            edited_df.to_excel(buffer, index=False, engine="xlsxwriter")
+
+            edited_df.to_excel(
+                buffer,
+                index=False,
+                engine="xlsxwriter"
+            )
+
             st.download_button(
                 label="📥 엑셀 다운로드",
                 data=buffer.getvalue(),
@@ -496,20 +562,11 @@ with tabs[2]:
             )
 
         with col3:
-            if st.button("🗑️ 현재 작업 초기화"):
+
+            if st.button(
+                "🧹 초기화"
+            ):
+
                 del st.session_state["temp_df"]
+
                 st.rerun()
-
-with tabs[3]:
-    st.markdown("### 구글시트 데이터 조회")
-
-    if st.button("🔄 시트 데이터 불러오기"):
-        try:
-            df_view = load_gsheet()
-            st.session_state["view_df"] = df_view
-            st.success("구글시트 데이터를 불러왔습니다.")
-        except Exception as e:
-            st.error(f"불러오기 오류: {e}")
-
-    if "view_df" in st.session_state:
-        st.dataframe(st.session_state["view_df"], use_container_width=True)
