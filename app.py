@@ -487,17 +487,17 @@ if menu == "📥 보건스케줄 입력":
     
     st.divider()
 
-    # --- 카톡 입력 ---
+   # --- 카톡 입력 ---
     st.markdown("### 카톡/이메일 강의 의뢰 텍스트")
     raw_text = st.text_area("강의 요청 메시지를 붙여넣으세요.", height=250)
 
-        if st.button("🪄 카톡 일정 분석"):
-            if not common_requester.strip():
-                st.error("담당자 이름을 입력해주세요.")
-            elif not raw_text.strip():
-                st.warning("텍스트를 입력해주세요.")
-            else:
-                if common_agency == "대한협서울":
+    if st.button("🪄 카톡 일정 분석"):
+        if not common_requester.strip():
+            st.error("담당자 이름을 입력해주세요.")
+        elif not raw_text.strip():
+            st.warning("텍스트를 입력해주세요.")
+        else:
+            if common_agency == "대한협서울":
                 df_text = parse_seoul_kakao(raw_text, year, common_requester, common_date.strftime("%Y-%m-%d"))
             else:
                 df_text = parse_kakao_text(raw_text, year)
@@ -509,8 +509,6 @@ if menu == "📥 보건스케줄 입력":
             else:
                 st.session_state["temp_df"] = df_text
                 st.success(f"{len(df_text)}건 일정 생성 완료")
-        else:
-            st.warning("텍스트를 입력해주세요.")
 
     st.divider()
 
