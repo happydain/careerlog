@@ -326,23 +326,16 @@ if menu == "📥 보건스케줄 입력":
 
     uploaded_file = st.file_uploader("강의의뢰 엑셀 업로드", type=["xlsx"])
 
-    col1, col2, col3 = st.columns(3)
-    with col1:
-        excel_agency = st.selectbox("의뢰기관", ["대한협수원", "대한협인천", "대한협서울", "중대협", "한안협", "잡그레이드"])
-    with col2:
-        excel_requester = st.text_input("의뢰자 이름")
-    with col3:
-        excel_request_date = st.date_input("의뢰일", value=datetime.now())
-
+    
     if uploaded_file:
         if st.button("📄 엑셀 일정 변환"):
             try:
-                if excel_agency == "대한협인천":
-                    df_excel = parse_incheon_excel(uploaded_file, excel_agency, excel_requester, excel_request_date.strftime("%Y-%m-%d"))
+                if common_agency == "대한협인천":
+                    df_excel = parse_incheon_excel(uploaded_file, common_agency, common_requester, common_date.strftime("%Y-%m-%d"))
                 else:
-                    df_excel = parse_daehan_excel(uploaded_file, excel_agency, "")
-                    df_excel["의뢰자"] = excel_requester
-                    df_excel["의뢰일"] = excel_request_date.strftime("%Y-%m-%d")
+                    df_excel = parse_daehan_excel(uploaded_file, common_agency, "")
+                    df_excel["의뢰자"] = common_requester
+                    df_excel["의뢰일"] = common_date.strftime("%Y-%m-%d")
                 if df_excel.empty:
                     st.warning("변환된 일정이 없습니다.")
                 else:
