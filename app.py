@@ -271,17 +271,14 @@ def make_row(
 # -----------------------------
 def parse_kakao_text(text, year):
     rows = []
-
     instructor = extract_instructor(text)
     agency = ""
     target = ""
     subject = ""
     location = DEFAULT_LOCATION
     industry = DEFAULT_INDUSTRY
-    s, e = parse_time_range(clean_for_time)
-    if s is not None:
-        start_default, end_default = s, e
-
+    start_default = None  # ← 이렇게
+    end_default = None    # ← 이렇게
 
     lines = [line.strip() for line in text.splitlines() if line.strip()]
 
@@ -306,8 +303,10 @@ def parse_kakao_text(text, year):
 
         # 시간 기본값 업데이트
         if "동일" in clean and re.search(r"\d{1,2}시", clean):
-            clean_for_time = re.sub(r"\([^)]*\)", "", clean)  # (3시간) 제거
-            start_default, end_default = parse_time_range(clean_for_time, start_default, end_default)
+            clean_for_time = re.sub(r"\([^)]*\)", "", clean)  # ← 여기 루프 안에 있어야 함
+            s, e = parse_time_range(clean_for_time)
+            if s is not None:
+                start_default, end_default = s, e
             continue
 
         # 담당자 줄 스킵
