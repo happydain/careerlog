@@ -41,11 +41,23 @@ def get_gsheet_client():
 def append_to_gsheet(df):
     try:
         client = get_gsheet_client()
+
+        st.write("1. 인증 성공")
+
         sheet = client.open(SHEET_NAME).sheet1
-        sheet.append_rows(df[COLUMNS].values.tolist(), value_input_option="USER_ENTERED")
+
+        st.write("2. 시트 연결 성공")
+
+        values = df.values.tolist()
+
+        sheet.append_rows(values)
+
+        st.write("3. 저장 성공")
+
         return True
+
     except Exception as e:
-        st.error(f"구글 시트 저장 오류: {e}")
+        st.exception(e)
         return False
 
 
