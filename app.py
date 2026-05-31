@@ -523,18 +523,18 @@ if menu == "📥 보건스케줄 입력":
             else:
                 try:
                     if common_agency == "대한협인천":
-                    df_excel = parse_incheon_excel(uploaded_file, common_agency, common_requester, common_date.strftime("%Y-%m-%d"))
-                else:
-                    df_excel = parse_daehan_excel(uploaded_file, common_agency, "")
-                    df_excel["의뢰자"] = common_requester
-                    df_excel["의뢰일"] = common_date.strftime("%Y-%m-%d")
-                if df_excel.empty:
-                    st.warning("변환된 일정이 없습니다.")
-                else:
-                    st.session_state["temp_df"] = df_excel
-                    st.success(f"{len(df_excel)}건 일정 생성 완료")
-            except Exception as e:
-                st.error(f"엑셀 변환 오류: {e}")
+                        df_excel = parse_incheon_excel(uploaded_file, common_agency, common_requester, common_date.strftime("%Y-%m-%d"))
+                    else:
+                        df_excel = parse_daehan_excel(uploaded_file, common_agency, "")
+                        df_excel["의뢰자"] = common_requester
+                        df_excel["의뢰일"] = common_date.strftime("%Y-%m-%d")
+                    if df_excel.empty:
+                        st.warning("변환된 일정이 없습니다.")
+                    else:
+                        st.session_state["temp_df"] = df_excel
+                        st.success(f"{len(df_excel)}건 일정 생성 완료")
+                except Exception as e:
+                    st.error(f"엑셀 변환 오류: {e}")
 
     st.divider()
 
