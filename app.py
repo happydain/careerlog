@@ -605,3 +605,36 @@ if menu == "보건스케줄 입력":
                 del st.session_state["temp_df"]
 
                 st.rerun()
+
+elif menu == "📋 보건스케줄 보기":
+
+    st.header("📋 보건스케줄 보기")
+
+    try:
+
+        df = load_gsheet()
+
+        col1, col2, col3 = st.columns(3)
+
+        with col1:
+            agency_filter = st.selectbox(
+                "의뢰기관",
+                ["전체"] + sorted(df["의뢰기관"].dropna().unique().tolist())
+            )
+
+        with col2:
+            instructor_filter = st.selectbox(
+                "강사님",
+                ["전체"] + sorted(df["강사님"].dropna().unique().tolist())
+            )
+
+        with col3:
+            subject_filter = st.selectbox(
+                "과정명",
+                ["전체"] + sorted(df["과정명"].dropna().unique().tolist())
+            )
+
+        filtered_df = df.copy()
+
+        if agency_filter != "전체":
+           
