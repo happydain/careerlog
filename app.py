@@ -277,38 +277,64 @@ def parse_kakao_text(text, year):
     subject = ""
     location = DEFAULT_LOCATION
     industry = DEFAULT_INDUSTRY
-    start_default = None  # ← 이렇게
-    end_default = None    # ← 이렇게
+    start_default = None
+    end_default = None
 
     lines = [line.strip() for line in text.splitlines() if line.strip()]
 
+    # 1차 순회: 헤더 정보(기관/대상/과목/시간)만 먼저 수집
     for line in lines:
         clean = line.replace("*", "").strip()
 
-        # 교육 정보 헤더 줄 (날짜 없는 줄)
         if "교육" in clean and not re.search(r"\d{1,2}월", clean):
             detected_agency = detect_agency(clean)
             if detected_agency:
                 agency = detected_agency
-
             detected_target = detect_target(clean)
             if detected_target:
                 target = detected_target
-
             detected_subject = detect_subject(clean)
             if detected_subject:
                 subject = detected_subject
 
-            continue
-
-        # 시간 기본값 업데이트
         if "동일" in clean and re.search(r"\d{1,2}시", clean):
-            clean_for_time = re.sub(r"\([^)]*\)", "", clean)  # ← 여기 루프 안에 있어야 함
+            clean_for_time = re.sub(r"\([^)]*\)", "", clean)
             s, e = parse_time_range(clean_for_time)
             if s is not None:
                 start_default, end_default = s, e
+
+    # 2차 순회: 날짜 줄 처리
+    for line in lines:
+        clean = line.replace("*", "").strip()
+
+        if "담당자" in clean:
             continue
 
+        dates = parse_dates_from_text(clean, year)
+        if dates:
+            start, end = parse_time_range(clean)
+            if start is None:
+                start, end = start_default, end_default
+            detected_subject = detect_subject(clean)
+            final_subject = detected_subject or subject or "응급처치"
+            for date_obj in dates:
+                rows.append(
+                    make_row(
+                        date_obj=date_obj,
+                        start=start,
+                        end=end,
+                        agency=agency,
+                        subject=final_subject,
+                        target=target,
+                        industry=industry,
+                        location=location,
+                        instructor=instructor,
+                        hourly_fee=DEFAULT_HOURLY_FEE
+                    )
+                )
+
+    return pd.DataFrame(rows, columns=COLUMNS)
+    
         # 담당자 줄 스킵
         if "담당자" in clean:
             continue
