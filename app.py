@@ -431,11 +431,22 @@ def parse_hanahn_kakao(text, year, requester, request_date):
 
             continue
 
-        # 시간+과목 줄 감지
+        # 오전/오후 변환 함수 추가
+        def convert_ampm(text):
+            def replace(m):
+                ampm = m.group(1)
+                hour = int(m.group(2))
+                if ampm == "오후" and hour != 12:
+                    hour += 12
+                elif ampm == "오전" and hour == 12:
+                    hour = 0
+                return f"{hour}시"
+            return re.sub(r"(오전|오후)\s*(\d{1,2})시", replace, text)
+        
+        # 시간+과목 줄 감지 부분에서
         if current_date and re.search(r"\d{1,2}시", clean):
-            start, end = parse_time_range(clean)
-            if start is None:
-                continue
+            converted = convert_ampm(clean)  # ← 오전/오후 변환 먼저
+            start, end = parse_time_range(converted)
 
             # 과목 분리 ("및"으로 구분)
             subject_part = re.sub(r"\d{1,2}시.*?[-~].*?\d{1,2}시", "", clean).strip()
