@@ -583,7 +583,7 @@ if menu == "📥 보건스케줄 입력":
         elif not raw_text.strip():
             st.warning("텍스트를 입력해주세요.")
         else:
-            iif common_agency == "대한협서울":
+            if common_agency == "대한협서울":
                 df_text = parse_seoul_kakao(raw_text, year, common_requester, common_date.strftime("%Y-%m-%d"))
             elif common_agency == "한안협":
                 df_text = parse_hanahn_kakao(raw_text, year, common_requester, common_date.strftime("%Y-%m-%d"))
