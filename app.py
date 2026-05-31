@@ -556,31 +556,31 @@ if menu == "📥 보건스케줄 입력":
             except Exception:
                 pass
     
-    st.divider()
-    
-    col1, col2, col3 = st.columns(3)
+        st.divider()
+        
+        col1, col2, col3 = st.columns(3)
 
-    with col1:
-        if st.button("💾 구글시트 저장"):
-            if append_to_gsheet(edited_df):
-                st.success("구글시트 저장 완료")
+        with col1:
+            if st.button("💾 구글시트 저장"):
+                if append_to_gsheet(edited_df):
+                    st.success("구글시트 저장 완료")
+                    del st.session_state["temp_df"]
+                    st.rerun()
+    
+        with col2:
+            buffer = io.BytesIO()
+            edited_df.to_excel(buffer, index=False, engine="xlsxwriter")
+            st.download_button(
+                label="📥 엑셀 다운로드",
+                data=buffer.getvalue(),
+                file_name=f"보건스케줄_{datetime.now().strftime('%Y%m%d')}.xlsx",
+                mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+            )
+    
+        with col3:
+            if st.button("🧹 초기화"):
                 del st.session_state["temp_df"]
                 st.rerun()
-
-    with col2:
-        buffer = io.BytesIO()
-        edited_df.to_excel(buffer, index=False, engine="xlsxwriter")
-        st.download_button(
-            label="📥 엑셀 다운로드",
-            data=buffer.getvalue(),
-            file_name=f"보건스케줄_{datetime.now().strftime('%Y%m%d')}.xlsx",
-            mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
-        )
-
-    with col3:
-        if st.button("🧹 초기화"):
-            del st.session_state["temp_df"]
-            st.rerun()
 
 
 # =====================
