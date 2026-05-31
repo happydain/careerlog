@@ -272,7 +272,8 @@ def parse_incheon_excel(uploaded_file, agency, requester, request_date):
         subject = detect_subject(subject_raw) or subject_raw
         industry = str(row.get("업종")) if pd.notna(row.get("업종")) else DEFAULT_INDUSTRY
         room = str(row.get("지역", "")).strip() if pd.notna(row.get("지역")) else ""
-        location = room_map.get(room, room) if room else "오프"
+        room_map = {"제1강의실": "인천 1강의실", "제2강의실": "인천 2강의실"}  # ← 루프 안으로
+        location = room_map.get(room, room) if room else "오프"               # ← room 읽은 후에
         row_data = make_row(lecture_date, start, end, agency, subject, "관리감독자", industry, location, instructor, DEFAULT_HOURLY_FEE)
         row_data["의뢰자"] = requester
         row_data["의뢰일"] = request_date
