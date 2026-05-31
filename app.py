@@ -197,8 +197,21 @@ def parse_dates_from_text(text, year):
     return dates
 
 
-def make_row(date_obj, start, end, agency, subject, target, industry, location, instructor, hourly_fee):
+def make_row(
+    date_obj,
+    start,
+    end,
+    agency,
+    subject,
+    target,
+    industry,
+    location,
+    instructor,
+    hourly_fee
+):
+
     hours = calc_hours(start, end)
+
     return {
         "강의일시": f"{date_obj.year}. {date_obj.month}. {date_obj.day}",
         "요일": get_weekday(date_obj),
@@ -212,7 +225,14 @@ def make_row(date_obj, start, end, agency, subject, target, industry, location, 
         "강사님": instructor,
         "시수": hours,
         "강의료(1시간)": hourly_fee,
-        "강의료(1일)": calc_fee(hours, hourly_fee)
+        "강의료(1일)": calc_fee(hours, hourly_fee),
+
+        # 신규 컬럼
+        "의뢰자": "",
+        "의뢰일": None,
+        "특이사항": "",
+        "변경이력": "",
+        "내부메모": ""
     }
 
 
