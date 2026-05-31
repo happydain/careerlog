@@ -403,7 +403,7 @@ def parse_hanahn_kakao(text, year, requester, request_date):
     current_date = None
     current_target = ""
     current_industry = DEFAULT_INDUSTRY
-    current_location = "줌"
+    current_location = ""
 
     for line in lines:
         clean = line.replace("*", "").strip()
