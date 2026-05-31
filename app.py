@@ -319,8 +319,9 @@ def parse_kakao_text(text, year):
             continue
 
         # 시간 기본값 업데이트
-        if "시간" in clean and "동일" in clean:
-            start_default, end_default = parse_time_range(clean, start_default, end_default)
+        if "동일" in clean and re.search(r"\d{1,2}시", clean):
+            clean_for_time = re.sub(r"\([^)]*\)", "", clean)  # (3시간) 제거
+            start_default, end_default = parse_time_range(clean_for_time, start_default, end_default)
             continue
 
         # 담당자 줄 스킵
