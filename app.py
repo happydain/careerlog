@@ -452,19 +452,27 @@ def parse_jungdae_excel(uploaded_file, requester, request_date, year):
         industry = str(row.get("업태", "")).strip() if pd.notna(row.get("업태")) else DEFAULT_INDUSTRY
         location = str(row.get("방식", "")).strip() if pd.notna(row.get("방식")) else DEFAULT_LOCATION
 
+        # 방식별 강의료
+        if "동시송출" in location:
+            hourly_fee = 100000
+        elif "줌" in location:
+            hourly_fee = 80000
+        else:
+            hourly_fee = DEFAULT_HOURLY_FEE
+        
         row_data = make_row(
-            lecture_date,
-            start,
-            end,
-            "중대협",
-            subject,
-            "",
-            industry,
-            location,
-            "",
-            DEFAULT_HOURLY_FEE
+            date_obj=lecture_date,
+            start=start,
+            end=end,
+            agency="중대협",
+            subject=subject,
+            target="",
+            industry=industry,
+            location=location,
+            instructor="",
+            hourly_fee=hourly_fee
         )
-
+        
         row_data["의뢰자"] = requester
         row_data["의뢰일"] = request_date
 
