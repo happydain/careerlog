@@ -437,68 +437,68 @@ def parse_jungdae_excel(uploaded_file, requester, request_date, year):
 
     for _, row in df.iterrows():
 
-    lecture_date = parse_jungdae_date(row.get("날짜"), year)
-
-    if pd.isna(lecture_date):
-        continue
-
-    start, end = parse_time_range(str(row.get("시간", "")))
-
-    if not start or not end:
-        continue
-
-    subject_raw = str(row.get("과정명", "")).strip()
-    subject = detect_subject(subject_raw) or subject_raw
-
-    # 업태
-    industry = (
-        str(row.get("업태", "")).strip()
-        if pd.notna(row.get("업태"))
-        else DEFAULT_INDUSTRY
-    )
-
-    # 대상자 자동분류
-    if "책임자" in industry:
-        target = "관리책임자"
-    elif "보건" in industry:
-        target = "보건관리자"
-    elif "관리감독자" in industry:
-        target = "관리감독자"
-    else:
-        target = "안전관리자"
-
-    # 방식
-    location = (
-        str(row.get("방식", "")).strip()
-        if pd.notna(row.get("방식"))
-        else DEFAULT_LOCATION
-    )
-
-    # 중대협 강의료
-    if "동시송출" in location:
-        hourly_fee = 100000
-    elif "줌" in location:
-        hourly_fee = 80000
-    else:
-        hourly_fee = 80000
-
-    row_data = make_row(
-        date_obj=lecture_date,
-        start=start,
-        end=end,
-        agency="중대협",
-        subject=subject,
-        target=target,
-        industry=industry,
-        location=location,
-        instructor="",
-        hourly_fee=hourly_fee
-    )
-
-    row_data["의뢰자"] = requester
-    row_data["의뢰일"] = request_date
-
-    rows.append(row_data)
+        lecture_date = parse_jungdae_date(row.get("날짜"), year)
+    
+        if pd.isna(lecture_date):
+            continue
+    
+        start, end = parse_time_range(str(row.get("시간", "")))
+    
+        if not start or not end:
+            continue
+    
+        subject_raw = str(row.get("과정명", "")).strip()
+        subject = detect_subject(subject_raw) or subject_raw
+    
+        # 업태
+        industry = (
+            str(row.get("업태", "")).strip()
+            if pd.notna(row.get("업태"))
+            else DEFAULT_INDUSTRY
+        )
+    
+        # 대상자 자동분류
+        if "책임자" in industry:
+            target = "관리책임자"
+        elif "보건" in industry:
+            target = "보건관리자"
+        elif "관리감독자" in industry:
+            target = "관리감독자"
+        else:
+            target = "안전관리자"
+    
+        # 방식
+        location = (
+            str(row.get("방식", "")).strip()
+            if pd.notna(row.get("방식"))
+            else DEFAULT_LOCATION
+        )
+    
+        # 중대협 강의료
+        if "동시송출" in location:
+            hourly_fee = 100000
+        elif "줌" in location:
+            hourly_fee = 80000
+        else:
+            hourly_fee = 80000
+    
+        row_data = make_row(
+            date_obj=lecture_date,
+            start=start,
+            end=end,
+            agency="중대협",
+            subject=subject,
+            target=target,
+            industry=industry,
+            location=location,
+            instructor="",
+            hourly_fee=hourly_fee
+        )
+    
+        row_data["의뢰자"] = requester
+        row_data["의뢰일"] = request_date
+    
+        rows.append(row_data)
 
     return pd.DataFrame(rows, columns=COLUMNS)
 
