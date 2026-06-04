@@ -395,20 +395,40 @@ def parse_daehan_excel(uploaded_file, agency, target):
 # -----------------------------
 # 중대협 Excel parser
 # -----------------------------
-def parse_jungdae_excel(uploaded_file, requester, request_date):
+
+def parse_jungdae_date(raw, year):
+    s = str(raw).strip()
+
+    # 엑셀 날짜형이면 바로 처리
+    dt = pd.to_datetime(raw, errors="coerce")
+    if pd.notna(dt):
+        return dt
+
+    # 06.29(월), 06.29, 6.29 형식
+    m = re.search(r"(\d{1,2})\s*[./]\s*(\d{1,2})", s)
+    if m:
+        return pd.to_datetime(f"{year}-{int(m.group(1)):02d}-{int(m.group(2)):02d}", errors="coerce")
+
+    # 6월 29일 형식
+    m = re.search(r"(\d{1,2})월\s*(\d{1,2})일", s)
+    if m:
+        return pd.to_datetime(f"{year}-{int(m.group(1)):02d}-{int(m.group(2)):02d}", errors="coerce")
+
+    return pd.NaT
+    
+def parse_jungdae_excel(uploaded_file, requester, request_date, year):
     raw = pd.read_excel(uploaded_file, sheet_name=0, header=None)
 
     header_row_idx = None
-    required = ["날짜", "시간", "과정명", "업태", "방식"]
 
     for idx, row in raw.iterrows():
         values = [str(v).strip() for v in row.values]
-        if all(col in values for col in required):
+        if "날짜" in values and "시간" in values and "과정명" in values:
             header_row_idx = idx
             break
 
     if header_row_idx is None:
-        raise ValueError("엑셀에서 '날짜, 시간, 과정명, 업태, 방식' 헤더를 찾지 못했습니다.")
+        raise ValueError("엑셀에서 '날짜, 시간, 과정명' 헤더를 찾지 못했습니다.")
 
     df = raw.iloc[header_row_idx + 1:].copy()
     df.columns = [str(c).strip() for c in raw.iloc[header_row_idx].tolist()]
@@ -416,16 +436,17 @@ def parse_jungdae_excel(uploaded_file, requester, request_date):
     rows = []
 
     for _, row in df.iterrows():
-        if pd.isna(row.get("날짜")):
-            continue
+        lecture_date = parse_jungdae_date(row.get("날짜"), year)
 
-        lecture_date = parse_lecture_date(row.get("날짜"))
         if pd.isna(lecture_date):
             continue
 
         start, end = parse_time_range(str(row.get("시간", "")))
 
-        subject_raw = str(row.get("과정명", "")).strip() if pd.notna(row.get("과정명")) else ""
+        if not start or not end:
+            continue
+
+        subject_raw = str(row.get("과정명", "")).strip()
         subject = detect_subject(subject_raw) or subject_raw
 
         industry = str(row.get("업태", "")).strip() if pd.notna(row.get("업태")) else DEFAULT_INDUSTRY
@@ -699,7 +720,8 @@ if menu == "📥 보건스케줄 입력":
                         df_excel = parse_jungdae_excel(
                             uploaded_file,
                             common_requester,
-                            common_date.strftime("%Y-%m-%d")
+                            common_date.strftime("%Y-%m-%d"),
+                            year
                         )
                     
                     else:
