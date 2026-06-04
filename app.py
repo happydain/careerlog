@@ -393,6 +393,66 @@ def parse_daehan_excel(uploaded_file, agency, target):
     return pd.DataFrame(rows, columns=COLUMNS)
 
 # -----------------------------
+# 중대협 Excel parser
+# -----------------------------
+def parse_jungdae_excel(uploaded_file, requester, request_date):
+    raw = pd.read_excel(uploaded_file, sheet_name=0, header=None)
+
+    header_row_idx = None
+    required = ["날짜", "시간", "과정명", "업태", "방식"]
+
+    for idx, row in raw.iterrows():
+        values = [str(v).strip() for v in row.values]
+        if all(col in values for col in required):
+            header_row_idx = idx
+            break
+
+    if header_row_idx is None:
+        raise ValueError("엑셀에서 '날짜, 시간, 과정명, 업태, 방식' 헤더를 찾지 못했습니다.")
+
+    df = raw.iloc[header_row_idx + 1:].copy()
+    df.columns = [str(c).strip() for c in raw.iloc[header_row_idx].tolist()]
+
+    rows = []
+
+    for _, row in df.iterrows():
+        if pd.isna(row.get("날짜")):
+            continue
+
+        lecture_date = parse_lecture_date(row.get("날짜"))
+        if pd.isna(lecture_date):
+            continue
+
+        start, end = parse_time_range(str(row.get("시간", "")))
+
+        subject_raw = str(row.get("과정명", "")).strip() if pd.notna(row.get("과정명")) else ""
+        subject = detect_subject(subject_raw) or subject_raw
+
+        industry = str(row.get("업태", "")).strip() if pd.notna(row.get("업태")) else DEFAULT_INDUSTRY
+        location = str(row.get("방식", "")).strip() if pd.notna(row.get("방식")) else DEFAULT_LOCATION
+
+        row_data = make_row(
+            lecture_date,
+            start,
+            end,
+            "중대협",
+            subject,
+            "",
+            industry,
+            location,
+            "",
+            DEFAULT_HOURLY_FEE
+        )
+
+        row_data["의뢰자"] = requester
+        row_data["의뢰일"] = request_date
+
+        rows.append(row_data)
+
+    return pd.DataFrame(rows, columns=COLUMNS)
+
+
+# -----------------------------
 # 한안협 카톡 parser
 # -----------------------------
 def parse_hanahn_kakao(text, year, requester, request_date):
@@ -628,16 +688,31 @@ if menu == "📥 보건스케줄 입력":
             else:
                 try:
                     if common_agency == "대한협인천":
-                        df_excel = parse_incheon_excel(uploaded_file, common_agency, common_requester, common_date.strftime("%Y-%m-%d"))
+                        df_excel = parse_incheon_excel(
+                            uploaded_file,
+                            common_agency,
+                            common_requester,
+                            common_date.strftime("%Y-%m-%d")
+                        )
+                    
+                    elif common_agency == "중대협":
+                        df_excel = parse_jungdae_excel(
+                            uploaded_file,
+                            common_requester,
+                            common_date.strftime("%Y-%m-%d")
+                        )
+                    
                     else:
                         df_excel = parse_daehan_excel(uploaded_file, common_agency, "")
                         df_excel["의뢰자"] = common_requester
                         df_excel["의뢰일"] = common_date.strftime("%Y-%m-%d")
+                    
                     if df_excel.empty:
                         st.warning("변환된 일정이 없습니다.")
                     else:
                         st.session_state["temp_df"] = df_excel
                         st.success(f"{len(df_excel)}건 일정 생성 완료")
+                        
                 except Exception as e:
                     st.error(f"엑셀 변환 오류: {e}")
 
