@@ -179,3 +179,33 @@ def append_change_log(folder_id: str, change_summary: str, modifier: str):
         f"{change_summary}"
     )
     _upload_text(service, filename, content, sub_id)
+
+def create_careerlog_structure(
+    year,
+    agency,
+    lecture_date,
+    subject
+):
+
+    lecture_folder_id = get_lecture_folder_id(
+        year,
+        agency,
+        lecture_date,
+        subject
+    )
+
+    service = get_drive_service()
+
+    for folder_name in [
+        "01_원본의뢰",
+        "02_의뢰서",
+        "03_변경이력",
+        "04_정산"
+    ]:
+        _get_or_create_folder(
+            service,
+            folder_name,
+            lecture_folder_id
+        )
+
+    return lecture_folder_id
