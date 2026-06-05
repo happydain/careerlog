@@ -263,12 +263,15 @@ if menu == "📥 보건스케줄 입력":
                         if drive_errors:
                             st.warning("⚠️ 드라이브 저장 일부 실패:\n" + "\n".join(drive_errors))
 
-                        if append_to_gsheet(edited_df):
+                        result = append_to_gsheet(edited_df)
+                        if result:
                             st.success("✅ 구글시트 + 드라이브 저장 완료!")
                             del st.session_state["temp_df"]
                             st.session_state.pop("raw_text_for_drive", None)
                             st.session_state.pop("excel_file_for_drive", None)
                             st.rerun()
+                        else:
+                            st.error("❌ 구글시트 저장 실패 - 아래 로그 확인")
 
         # ── 엑셀 다운로드 ──
         with col2:
