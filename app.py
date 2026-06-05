@@ -744,8 +744,7 @@ if menu == "📥 보건스케줄 입력":
         help="카톡/엑셀 모두 이 기관으로 처리됩니다. 반드시 먼저 확인하세요!"
     )
     
-    st.info(f"📌 현재 선택된 의뢰기관: **{common_agency}**")
-    
+  
     col1, col2, col3, col4 = st.columns(4)
     with col1:
         common_date = st.date_input("의뢰일", value=datetime.now())
@@ -764,6 +763,10 @@ if menu == "📥 보건스케줄 입력":
 
    # --- 카톡 입력 ---
     st.markdown("### 카톡/이메일 강의 의뢰 텍스트")
+    st.warning(
+        f"⚠️ 현재 선택된 의뢰기관 : {common_agency}"
+    )
+
     raw_text = st.text_area("강의 요청 메시지를 붙여넣으세요.", height=250)
 
     if st.button("🪄 카톡 일정 분석"):
@@ -792,6 +795,9 @@ if menu == "📥 보건스케줄 입력":
 
     # --- 엑셀 업로드 ---
     st.markdown("### 강의의뢰 엑셀 업로드")
+    st.warning(
+        f"⚠️ 현재 선택된 의뢰기관 : {common_agency}"
+    )
     uploaded_file = st.file_uploader("강의의뢰 엑셀 업로드", type=["xlsx"])
 
     if uploaded_file:
