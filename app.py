@@ -11,9 +11,10 @@ from parsers import (
     parse_suwon_excel, parse_jungdae_excel, parse_incheon_excel,
 )
 from gdrive import (
-    get_lecture_folder_id, get_folder_url,
+    create_careerlog_structure, get_folder_url,
     save_original_text, save_evidence_files, save_docx_to_drive, append_change_log,
 )
+
 from doc_generator import generate_request_docx, make_docx_filename
 
 # ─────────────────────────────────────────────
@@ -233,7 +234,8 @@ if menu == "📥 보건스케줄 입력":
                                 subject  = str(row.get("과정명", "")).replace(" ", "")
                                 yr       = int(date_str[:4]) if len(date_str) >= 4 else year
 
-                                folder_id  = get_lecture_folder_id(yr, agency, date_str, subject)
+                                folder_id = create_careerlog_structure(yr, agency, date_str, subject)
+
                                 folder_url = get_folder_url(folder_id)
                                 edited_df.loc[idx, "증빙폴더"] = folder_url
 
