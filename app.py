@@ -132,13 +132,16 @@ if menu == "📥 보건스케줄 입력":
                     else:
                         st.session_state["temp_df"] = df_excel
                         st.session_state["raw_text_for_drive"] = ""
-                        st.success(f"✅ {len(df_excel)}건 일정 생성 완료")
+                        st.session_state["excel_file_for_drive"] = uploaded_file 
+                        st.success(f"✅ {len(df_excel)}건 일정 생성 완료")        
+                        
                 except Exception as e:
                     st.error(f"엑셀 변환 오류: {e}")
 
     st.divider()
 
     # ── 증빙 파일 업로드 ────────────────────────
+    excel_file = st.session_state.get("excel_file_for_drive")
     st.markdown("### 📎 증빙 파일 업로드 (카톡 캡처, PDF 등)")
     evidence_files = st.file_uploader(
         "증빙자료를 함께 올리면 드라이브 폴더에 자동 저장됩니다.",
@@ -273,6 +276,7 @@ if menu == "📥 보건스케줄 입력":
             if st.button("🧹 초기화"):
                 del st.session_state["temp_df"]
                 st.session_state.pop("raw_text_for_drive", None)
+                st.session_state.pop("excel_file_for_drive", None)
                 st.rerun()
 
 
