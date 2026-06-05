@@ -18,7 +18,7 @@ from gdrive import (
 from doc_generator import generate_request_docx, make_docx_filename
 
 # ─────────────────────────────────────────────
-st.set_page_config(page_title="보건스케줄 자동정리", page_icon="📅", layout="wide")
+st.set_page_config(page_title="보건스케줄", page_icon="📅", layout="wide")
 # ─────────────────────────────────────────────
 
 st.sidebar.title("📅 CareerLog")
@@ -51,10 +51,11 @@ if menu == "📥 보건스케줄 입력":
         AGENCY_OPTIONS,
         help="카톡/엑셀 모두 이 기관으로 처리됩니다."
     )
-    st.info(f"📌 현재 선택된 의뢰기관: **{common_agency}**")
     
     st.divider()
     
+    st.info(f"📌 현재 선택된 의뢰기관: **{common_agency}**")
+
     col1, col2, col3, col4 = st.columns(4)
     with col1:
         year = st.number_input("기준 연도", min_value=2024, max_value=2035,
@@ -72,6 +73,7 @@ if menu == "📥 보건스케줄 입력":
 
     # ── 카톡 입력 ──────────────────────────────
     st.markdown("### 💬 카톡 / 이메일 텍스트 입력")
+    st.info(f"📌 현재 의뢰기관: **{common_agency}** · 의뢰인: **{common_requester or '미입력'}** · {request_date_str}")
     raw_text = st.text_area("강의 요청 메시지를 붙여넣으세요.", height=220,
                              key="raw_text_input")
 
@@ -104,6 +106,7 @@ if menu == "📥 보건스케줄 입력":
 
     # ── 엑셀 업로드 ────────────────────────────
     st.markdown("### 📄 강의의뢰 엑셀 업로드")
+    st.info(f"📌 현재 의뢰기관: **{common_agency}** · 의뢰인: **{common_requester or '미입력'}** · {request_date_str}")
     uploaded_file = st.file_uploader("엑셀 파일 (.xlsx)", type=["xlsx"])
 
     if uploaded_file:
