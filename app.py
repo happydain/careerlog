@@ -111,7 +111,7 @@ if menu == "📥 보건스케줄 입력":
                         df_excel = parse_jungdae_excel(uploaded_file, common_requester,
                                                         request_date_str, year)
                     else:
-                        df_excel = parse_daehan_excel(uploaded_file, common_agency, "")
+                        df_excel = parse_suwon_excel(uploaded_file, common_agency, "")
                         df_excel["의뢰인"] = common_requester
                         df_excel["의뢰일"] = request_date_str
 
