@@ -10,12 +10,9 @@ from parsers import (
     parse_kakao_text, parse_seoul_kakao, parse_hanahn_kakao,
     parse_suwon_excel, parse_jungdae_excel, parse_incheon_excel,
 )
-
 from gdrive import (
     create_careerlog_structure, get_folder_url, append_change_log,
 )
-
-from doc_generator import generate_request_docx, make_docx_filename
 
 # ─────────────────────────────────────────────
 st.set_page_config(page_title="보건스케줄", page_icon="📅", layout="wide")
@@ -40,7 +37,7 @@ if menu == "📥 보건스케줄 입력":
     st.header("📥 보건스케줄 입력")
     st.info(
         "카카오톡·이메일·엑셀로 받은 강의 의뢰를 붙여넣거나 업로드하세요.\n"
-        "저장 시 구글시트 + 구글드라이브 폴더 + 의뢰서 DOCX가 자동 생성됩니다."
+        "저장 시 구글시트 + 구글드라이브 폴더가 자동 생성됩니다."
     )
 
     # ── 기본 정보 ──────────────────────────────
@@ -170,7 +167,7 @@ if menu == "📥 보건스케줄 입력":
 
     st.divider()
 
-   # ── 최종 확인 및 저장 ──────────────────────
+    # ── 최종 확인 및 저장 ──────────────────────
     st.header("📋 최종 확인 및 저장")
 
     if "temp_df" in st.session_state:
@@ -199,7 +196,6 @@ if menu == "📥 보건스케줄 입력":
                 else:
                     with st.spinner("저장 중..."):
 
-                        # 저장 전 자동계산
                         def auto_weekday(r):
                             try:
                                 return ["월","화","수","목","금","토","일"][pd.to_datetime(r["강의일시"]).weekday()]
@@ -222,8 +218,6 @@ if menu == "📥 보건스케줄 입력":
                             if pd.notna(r.get("시수")) and pd.notna(r.get("강의료(1시간)")) else 0, axis=1
                         )
 
-                        raw_text_to_save = st.session_state.get("raw_text_for_drive", "")
-                        excel_file = st.session_state.get("excel_file_for_drive")
                         drive_errors = []
 
                         for idx in edited_df.index:
@@ -233,31 +227,10 @@ if menu == "📥 보건스케줄 입력":
                                 agency   = str(row.get("의뢰기관", common_agency))
                                 subject  = str(row.get("과정명", "")).replace(" ", "")
                                 yr       = int(date_str[:4]) if len(date_str) >= 4 else year
-                        
+
                                 folder_id  = create_careerlog_structure(yr, agency, date_str, subject)
                                 folder_url = get_folder_url(folder_id)
                                 edited_df.loc[idx, "증빙폴더"] = folder_url
-                        
-                            except Exception as e:
-                                drive_errors.append(f"행 {idx}: {e}")
-
-                                # 원본 카톡 텍스트 저장
-                                if raw_text_to_save.strip():
-                                    save_original_text(folder_id, raw_text_to_save,
-                                                       common_requester, request_date_str)
-
-                                # 엑셀 파일 증빙 저장
-                                if excel_file:
-                                    save_evidence_files(folder_id, [excel_file])
-
-                                # 추가 증빙 파일 저장
-                                if evidence_files:
-                                    save_evidence_files(folder_id, evidence_files)
-
-                                # DOCX 의뢰서 생성 + 드라이브 저장
-                                docx_bytes = generate_request_docx(row, raw_text_to_save)
-                                docx_name  = make_docx_filename(row)
-                                save_docx_to_drive(folder_id, docx_bytes, docx_name)
 
                             except Exception as e:
                                 drive_errors.append(f"행 {idx}: {e}")
@@ -266,7 +239,7 @@ if menu == "📥 보건스케줄 입력":
                         result = append_to_gsheet(edited_df)
                         if result:
                             if drive_errors:
-                                st.warning("⚠️ 드라이브 저장 일부 실패 (시트는 저장됨):\n" + "\n".join(drive_errors))
+                                st.warning("⚠️ 드라이브 폴더 생성 실패 (시트는 저장됨):\n" + "\n".join(drive_errors))
                             else:
                                 st.success("✅ 구글시트 + 드라이브 저장 완료!")
                             del st.session_state["temp_df"]
@@ -287,17 +260,8 @@ if menu == "📥 보건스케줄 입력":
                 data=buffer.getvalue(),
                 file_name=f"보건스케줄_{datetime.now().strftime('%Y%m%d')}.xlsx",
                 mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+                key="download_btn",
             )
-
-        # ── 초기화 ──
-        with col3:
-            if st.button("🧹 초기화", key="reset_btn"):
-                del st.session_state["temp_df"]
-                st.session_state.pop("raw_text_for_drive", None)
-                st.session_state.pop("excel_file_for_drive", None)
-                st.rerun()
-
-
 
         # ── 초기화 ──
         with col3:
