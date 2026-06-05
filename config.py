@@ -1,7 +1,7 @@
-SPREADSHEET_ID = "1AUnbvyn1Nx9JDUv-0MhhbYf3oziJ3CR_0ZgINq-G59M"
+SPREADSHEET_ID = "1A5e_Z31lSQHGJkUPocwBYOca-CAQs-ItnAHqnz-q1Qw"
 
 # 구글 드라이브 CareerLog 루트 폴더 ID (본인 폴더 ID로 교체)
-DRIVE_ROOT_FOLDER_ID = "여기에_CareerLog_폴더ID"
+DRIVE_ROOT_FOLDER_ID = "1AtxUFhHDixQzKss5mWs6yIfiTZ78Z7M-"
 
 COLUMNS = [
     "강의일시", "요일", "시작", "종료", "의뢰기관", "과정명", "대상자", "업종",
