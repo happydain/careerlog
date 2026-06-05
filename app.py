@@ -58,12 +58,25 @@ if menu == "📥 보건스케줄 입력":
 
     col1, col2, col3, col4 = st.columns(4)
     with col1:
-        year = st.number_input("기준 연도", min_value=2024, max_value=2035,
-                               value=datetime.now().year, step=1)
+        year = st.selectbox("기준 연도", list(range(2024, 2036)),
+                    index=list(range(2024, 2036)).index(datetime.now().year))
     with col2:
         common_date = st.date_input("의뢰일", value=datetime.now())
     with col3:
-        common_requester = st.text_input("의뢰인")
+        @st.cache_data(ttl=300)
+        def get_requester_list():
+            df = load_gsheet_raw()
+            names = df["의뢰인"].dropna().unique().tolist()
+            return sorted([n for n in names if n.strip()])
+        
+        existing_requesters = get_requester_list()
+        requester_options = ["직접 입력"] + existing_requesters
+        
+        selected_requester = st.selectbox("의뢰인", requester_options)
+        if selected_requester == "직접 입력":
+            common_requester = st.text_input("이름 입력")
+        else:
+            common_requester = selected_requester
     with col4:
         common_method = st.selectbox("의뢰방법", ["카카오톡", "이메일", "전화", "문자", "기타"])
 
