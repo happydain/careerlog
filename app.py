@@ -19,6 +19,17 @@ from sheets import (
     append_to_gsheet
 )
 
+from parsers.parser_utils import (
+    calc_hours,
+    calc_fee
+)
+
+from parsers.kakao_parser import parse_kakao_text
+from parsers.seoul_parser import parse_seoul_kakao
+from parsers.hanahn_parser import parse_hanahn_kakao
+from parsers.jungdae_parser import parse_jungdae_excel
+from parsers.incheon_parser import parse_incheon_excel
+
 st.set_page_config(
     page_title="보건스케줄 자동정리",
     page_icon="📅",
