@@ -3,7 +3,7 @@ import pandas as pd
 from config import COLUMNS, DEFAULT_HOURLY_FEE, DEFAULT_INDUSTRY
 from utils import detect_subject, parse_time_range, make_row
 
-_ROOM_MAP = {"제1강의실": "인천1강의실", "제2강의실": "인천2강의실"}
+_ROOM_MAP = {"제1강의실": "인천1", "제2강의실": "인천2"}
 
 
 def _parse_lecture_date(raw):
