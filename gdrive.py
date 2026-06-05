@@ -17,7 +17,6 @@ from config import DRIVE_ROOT_FOLDER_ID
 
 SCOPES = ["https://www.googleapis.com/auth/drive"]
 
-# 드라이브 서비스 캐시 (매번 재생성 방지)
 _drive_service = None
 
 
@@ -37,31 +36,37 @@ def get_drive_service():
 # ─────────────────────────────────────────────
 
 def _find_folder(service, name, parent_id):
-    """같은 이름의 폴더가 이미 있으면 ID 반환, 없으면 None"""
     q = (
         f"name='{name}' "
         f"and '{parent_id}' in parents "
         f"and mimeType='application/vnd.google-apps.folder' "
         f"and trashed=false"
     )
-    result = service.files().list(q=q, fields="files(id,name)").execute()
+    result = service.files().list(
+        q=q,
+        fields="files(id,name)",
+        supportsAllDrives=True,
+        includeItemsFromAllDrives=True
+    ).execute()
     files = result.get("files", [])
     return files[0]["id"] if files else None
 
 
 def _create_folder(service, name, parent_id):
-    """폴더 생성 후 ID 반환"""
     meta = {
         "name": name,
         "mimeType": "application/vnd.google-apps.folder",
-        "parents": [parent_id],
+        "parents": [parent_id]
     }
-    folder = service.files().create(body=meta, fields="id").execute()
+    folder = service.files().create(
+        body=meta,
+        fields="id",
+        supportsAllDrives=True
+    ).execute()
     return folder["id"]
 
 
 def _get_or_create_folder(service, name, parent_id):
-    """폴더 찾거나 없으면 생성"""
     fid = _find_folder(service, name, parent_id)
     if not fid:
         fid = _create_folder(service, name, parent_id)
@@ -69,13 +74,9 @@ def _get_or_create_folder(service, name, parent_id):
 
 
 def get_lecture_folder_id(year: int, agency: str, lecture_date: str, subject: str) -> str:
-    """
-    CareerLog / 연도 / 기관 / 날짜_과정 폴더를 찾거나 생성 후 ID 반환
-    예) CareerLog/2026/대한협수원/2026-06-05_응급처치대한1
-    """
     service = get_drive_service()
-    year_id    = _get_or_create_folder(service, str(year), DRIVE_ROOT_FOLDER_ID)
-    agency_id  = _get_or_create_folder(service, agency, year_id)
+    year_id     = _get_or_create_folder(service, str(year), DRIVE_ROOT_FOLDER_ID)
+    agency_id   = _get_or_create_folder(service, agency, year_id)
     folder_name = f"{lecture_date}_{subject}"
     lecture_id  = _get_or_create_folder(service, folder_name, agency_id)
     return lecture_id
@@ -90,29 +91,33 @@ def get_folder_url(folder_id: str) -> str:
 # ─────────────────────────────────────────────
 
 def _upload_text(service, filename: str, content: str, parent_id: str) -> str:
-    """텍스트 내용을 .txt 파일로 드라이브에 업로드"""
     media = MediaIoBaseUpload(
         io.BytesIO(content.encode("utf-8")),
         mimetype="text/plain"
     )
     meta = {"name": filename, "parents": [parent_id]}
-    f = service.files().create(body=meta, media_body=media, fields="id").execute()
+    f = service.files().create(
+        body=meta,
+        media_body=media,
+        fields="id",
+        supportsAllDrives=True
+    ).execute()
     return f["id"]
 
 
 def _upload_bytes(service, filename: str, data: bytes, mimetype: str, parent_id: str) -> str:
-    """바이트 데이터를 드라이브에 업로드"""
     media = MediaIoBaseUpload(io.BytesIO(data), mimetype=mimetype)
     meta = {"name": filename, "parents": [parent_id]}
-    f = service.files().create(body=meta, media_body=media, fields="id").execute()
+    f = service.files().create(
+        body=meta,
+        media_body=media,
+        fields="id",
+        supportsAllDrives=True
+    ).execute()
     return f["id"]
 
 
 def save_original_text(folder_id: str, text: str, requester: str, request_date: str):
-    """
-    01_원본의뢰/ 서브폴더에 카톡 원문 저장
-    파일명: 원본의뢰_20260605_홍길동.txt
-    """
     service = get_drive_service()
     sub_id = _get_or_create_folder(service, "01_원본의뢰", folder_id)
     safe_date = str(request_date).replace("-", "")
@@ -122,23 +127,17 @@ def save_original_text(folder_id: str, text: str, requester: str, request_date: 
 
 
 def save_evidence_files(folder_id: str, uploaded_files):
-    """
-    01_원본의뢰/ 에 증빙 파일들 업로드 (이미지, PDF, DOCX 등)
-    uploaded_files: st.file_uploader 결과 리스트
-    """
     if not uploaded_files:
         return
     service = get_drive_service()
     sub_id = _get_or_create_folder(service, "01_원본의뢰", folder_id)
     for uf in uploaded_files:
+        uf.seek(0)
         data = uf.read()
         _upload_bytes(service, uf.name, data, uf.type or "application/octet-stream", sub_id)
 
 
 def save_docx_to_drive(folder_id: str, docx_bytes: bytes, filename: str):
-    """
-    02_의뢰서/ 에 DOCX 파일 저장
-    """
     service = get_drive_service()
     sub_id = _get_or_create_folder(service, "02_의뢰서", folder_id)
     mimetype = "application/vnd.openxmlformats-officedocument.wordprocessingml.document"
@@ -146,13 +145,15 @@ def save_docx_to_drive(folder_id: str, docx_bytes: bytes, filename: str):
 
 
 def append_change_log(folder_id: str, change_summary: str, modifier: str):
-    """
-    03_변경이력/ 에 변경내역 텍스트 파일 저장
-    파일명: 변경이력_20260607_김과장.txt
-    """
     service = get_drive_service()
     sub_id = _get_or_create_folder(service, "03_변경이력", folder_id)
     today = datetime.now().strftime("%Y%m%d_%H%M")
     filename = f"변경이력_{today}_{modifier}.txt"
-    content = f"[변경 내역]\n변경일시: {datetime.now().strftime('%Y-%m-%d %H:%M')}\n변경의뢰인: {modifier}\n{'='*40}\n\n{change_summary}"
+    content = (
+        f"[변경 내역]\n"
+        f"변경일시: {datetime.now().strftime('%Y-%m-%d %H:%M')}\n"
+        f"변경의뢰인: {modifier}\n"
+        f"{'='*40}\n\n"
+        f"{change_summary}"
+    )
     _upload_text(service, filename, content, sub_id)
