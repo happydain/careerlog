@@ -141,7 +141,7 @@ def get_column_config():
         "강의료(1일)": st.column_config.NumberColumn("강의료(1일)", format="₩%d"),
         "시수": st.column_config.NumberColumn("시수", format="%d시간"),
         "방식/위치": st.column_config.SelectboxColumn("방식/위치", options=LOCATION_OPTIONS),
-        "의뢰업체메모": st.column_config.TextColumn("의뢰업체메모", width="large"),
+        "요청사항": st.column_config.TextColumn("의뢰업체메모", width="large"),
         "내부메모": st.column_config.TextColumn("내부메모", width="large"),
         "변경이력": st.column_config.TextColumn("변경이력", width="large"),
         "증빙폴더": st.column_config.LinkColumn("증빙폴더", display_text="📂 열기"),
