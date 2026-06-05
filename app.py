@@ -15,9 +15,27 @@ st.set_page_config(
 SPREADSHEET_ID = "1AUnbvyn1Nx9JDUv-0MhhbYf3oziJ3CR_0ZgINq-G59M"
 
 COLUMNS = [
-    "강의일시", "요일", "시작", "종료", "의뢰기관", "과정명", "대상자", "업종",
-    "방식/위치", "강사님", "시수", "강의료(1시간)", "강의료(1일)",
-    "의뢰자", "의뢰일", "특이사항", "변경이력", "내부메모"
+    "강의일시",
+    "요일",
+    "시작",
+    "종료",
+    "의뢰기관",
+    "과정명",
+    "대상자",
+    "업종",
+    "방식/위치",
+    "강사님",
+    "시수",
+    "강의료(1시간)",
+    "강의료(1일)",
+    "요청사항",
+    "내부메모",
+    "의뢰일",
+    "의뢰인",
+    "의뢰방법",
+    "변경일자",
+    "변경이력",
+    "변경의뢰인"
 ]
 
 DEFAULT_HOURLY_FEE = 100000
@@ -230,19 +248,40 @@ def parse_dates_from_text(text, year):
     return dates
 
 
-def make_row(date_obj, start, end, agency, subject, target, industry, location, instructor, hourly_fee):
+def make_row(date_obj, start, end, agency, subject, target,
+             industry, location, instructor, hourly_fee):
+
     hours = calc_hours(start, end)
+
     return {
         "강의일시": date_obj.strftime("%Y-%m-%d"),
         "요일": get_weekday(date_obj),
-        "시작": start, "종료": end,
-        "의뢰기관": agency, "과정명": subject, "대상자": target,
-        "업종": industry, "방식/위치": location, "강사님": instructor,
-        "시수": hours, "강의료(1시간)": hourly_fee,
-        "강의료(1일)": calc_fee(hours, hourly_fee),
-        "의뢰자": "", "의뢰일": "", "특이사항": "", "변경이력": "", "내부메모": ""
-    }
 
+        "시작": start,
+        "종료": end,
+
+        "의뢰기관": agency,
+        "과정명": subject,
+        "대상자": target,
+        "업종": industry,
+        "방식/위치": location,
+        "강사님": instructor,
+
+        "시수": hours,
+        "강의료(1시간)": hourly_fee,
+        "강의료(1일)": calc_fee(hours, hourly_fee),
+
+        "요청사항": "",
+        "내부메모": "",
+        
+        "의뢰일": "",
+        "의뢰인": "",
+        "의뢰방법": "",
+        
+        "변경일자": "",
+        "변경이력": "",
+        "변경의뢰인": ""
+    }
 
 # -----------------------------
 # Kakao/Text parser (일반)
@@ -328,7 +367,7 @@ def parse_seoul_kakao(text, year, requester, request_date):
                 instructor_match = re.search(r"([가-힣]{2,3})\s*$", clean)
                 instructor = instructor_match.group(1) if instructor_match else ""
                 row = make_row(date_obj, start, end, "대한협서울", subject, "관리감독자", DEFAULT_INDUSTRY, "출강", instructor, DEFAULT_HOURLY_FEE)
-                row["의뢰자"] = requester
+                row["의뢰인"] = requester
                 row["의뢰일"] = request_date
                 rows.append(row)
             except ValueError:
@@ -346,7 +385,7 @@ def parse_seoul_kakao(text, year, requester, request_date):
                     instructor_match = re.search(r"([가-힣]{2,3})\s*(?:$|\+)", clean)
                     instructor = instructor_match.group(1) if instructor_match else ""
                     row = make_row(date_obj, start, end, "대한협서울", subject, "관리감독자", DEFAULT_INDUSTRY, "서울", instructor, DEFAULT_HOURLY_FEE)
-                    row["의뢰자"] = requester
+                    row["의뢰인"] = requester
                     row["의뢰일"] = request_date
                     rows.append(row)
                 except ValueError:
@@ -495,7 +534,7 @@ def parse_jungdae_excel(uploaded_file, requester, request_date, year):
             hourly_fee=hourly_fee
         )
     
-        row_data["의뢰자"] = requester
+        row_data["의뢰인"] = requester
         row_data["의뢰일"] = request_date
     
         rows.append(row_data)
@@ -598,13 +637,13 @@ def parse_hanahn_kakao(text, year, requester, request_date):
                     e = f"{start_h + (i + 1) * half:02d}:00"
                     final_subject = detect_subject(subj) or subj
                     row = make_row(current_date, s, e, "한안협", final_subject, current_target, current_industry, current_location, "", get_hanahn_fee(""))
-                    row["의뢰자"] = requester
+                    row["의뢰인"] = requester
                     row["의뢰일"] = request_date
                     rows.append(row)
             else:
                 final_subject = detect_subject(subject_part) or subject_part
                 row = make_row(current_date, start, end, "한안협", final_subject, current_target, current_industry, current_location, "", get_hanahn_fee(""))
-                row["의뢰자"] = requester
+                row["의뢰인"] = requester
                 row["의뢰일"] = request_date
                 rows.append(row)
 
@@ -639,7 +678,7 @@ def parse_incheon_excel(uploaded_file, agency, requester, request_date):
         room = str(row.get("지역", "")).strip() if pd.notna(row.get("지역")) else ""
         location = room_map.get(room, room) if room else "오프"
         row_data = make_row(lecture_date, start, end, agency, subject, "관리감독자", industry, location, instructor, DEFAULT_HOURLY_FEE)
-        row_data["의뢰자"] = requester
+        row_data["의뢰인"] = requester
         row_data["의뢰일"] = request_date
         rows.append(row_data)
     return pd.DataFrame(rows, columns=COLUMNS)
@@ -659,7 +698,8 @@ def get_column_config():
         "강의료(1시간)": st.column_config.NumberColumn("강의료(1시간)", format="₩%d"),
         "강의료(1일)": st.column_config.NumberColumn("강의료(1일)", format="₩%d"),
         "시수": st.column_config.NumberColumn("시수", format="%d"),
-        "방식/위치": st.column_config.SelectboxColumn("방식/위치", options=["동시송출", "줌", "인천1강의실", "인천2강의실", "수원1층", "수원5층", "서울", "외부출강", "기타"]),        "특이사항": st.column_config.TextColumn("특이사항", width="large"),
+        "방식/위치": st.column_config.SelectboxColumn("방식/위치", options=["동시송출", "줌", "인천1강의실", "인천2강의실", "수원1층", "수원5층", "서울", "외부출강", "기타"]),      
+        "요청사항": st.column_config.TextColumn("요청사항", width="large"),
         "변경이력": st.column_config.TextColumn("변경이력", width="large"),
         "내부메모": st.column_config.TextColumn("내부메모", width="large")
     }
@@ -706,13 +746,18 @@ if menu == "📥 보건스케줄 입력":
     
     st.info(f"📌 현재 선택된 의뢰기관: **{common_agency}**")
     
-    col1, col2, col3 = st.columns(3)
+    col1, col2, col3, col4 = st.columns(4)
     with col1:
         common_requester = st.text_input("담당자 이름")
     with col2:
         common_date = st.date_input("의뢰일", value=datetime.now())
     with col3:
         year = st.number_input("기준 연도", min_value=2024, max_value=2035, value=datetime.now().year, step=1)
+    with col4:
+        common_method = st.selectbox(
+            "의뢰방법",
+            ["카카오톡", "이메일", "전화", "문자", "기타"]
+        )
     
     st.divider()
 
@@ -733,8 +778,9 @@ if menu == "📥 보건스케줄 입력":
             else:
                 df_text = parse_kakao_text(raw_text, year)
                 df_text["의뢰기관"] = common_agency
-                df_text["의뢰자"] = common_requester
+                df_text["의뢰인"] = common_requester
                 df_text["의뢰일"] = common_date.strftime("%Y-%m-%d")
+                df_text["의뢰방법"] = common_method
             if df_text.empty:
                 st.warning("날짜 정보를 찾지 못했습니다.")
             else:
@@ -771,8 +817,9 @@ if menu == "📥 보건스케줄 입력":
                     
                     else:
                         df_excel = parse_daehan_excel(uploaded_file, common_agency, "")
-                        df_excel["의뢰자"] = common_requester
-                        df_excel["의뢰일"] = common_date.strftime("%Y-%m-%d")
+                        df_excel["의뢰인"]   = common_requester
+                        df_excel["의뢰일"]   = common_date.strftime("%Y-%m-%d")
+                        df_excel["의뢰방법"] = common_method
                     
                     if df_excel.empty:
                         st.warning("변환된 일정이 없습니다.")
@@ -889,7 +936,7 @@ elif menu == "📋 의뢰일별":
 # =====================
 # 📅 최종 스케줄 (Sheet2 - 편집 가능)
 # =====================
-elif menu == "📅 최종 스케줄":
+elif menu == "📅 최종 스케줄(취소,변경반영)":
     st.header("📅 최종 스케줄")
     df = load_gsheet_final()
 
@@ -939,6 +986,7 @@ elif menu == "📅 최종 스케줄":
                             changes.append(f"{col} {orig}→{new}")
                     if changes:
                         existing = str(edited_gsheet_df.loc[idx, "변경이력"]).strip()
+                        edited_gsheet_df.loc[idx, "변경의뢰인"] = common_requester
                         new_history = f"[{today}] " + ", ".join(changes)
                         edited_gsheet_df.loc[idx, "변경이력"] = f"{existing} / {new_history}".strip(" /")
 
