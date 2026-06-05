@@ -11,7 +11,7 @@ def _parse_lecture_date(raw):
     return pd.to_datetime(s, errors="coerce")
 
 
-def parse_daehan_excel(uploaded_file, agency, target):
+def parse_suwon_excel(uploaded_file, agency, target):
     raw = pd.read_excel(uploaded_file, sheet_name=0, header=None)
     header_row_idx = None
     for idx, row in raw.iterrows():
