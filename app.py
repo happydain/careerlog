@@ -45,6 +45,27 @@ st.set_page_config(
 )
 
 
+st.divider()
+
+if st.button("📂 드라이브 테스트"):
+
+    agency_folder_id = create_agency_folder(
+        2025,
+        "대한협수원"
+    )
+
+    lecture_folder_id = create_lecture_folder(
+        agency_folder_id,
+        "2025-06-20",
+        "응급처치대한1"
+    )
+
+    st.success(
+        get_folder_url(
+            lecture_folder_id
+        )
+    )
+
 # -----------------------------
 # Common utils
 # -----------------------------
