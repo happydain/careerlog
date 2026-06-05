@@ -111,9 +111,10 @@ if menu == "📥 보건스케줄 입력":
             if df_text.empty:
                 st.warning("날짜 정보를 찾지 못했습니다.")
             else:
-                st.session_state["temp_df"] = df_text
-                st.session_state["raw_text_for_drive"] = raw_text
-                st.success(f"✅ {len(df_text)}건 일정 생성 완료")
+                st.session_state["temp_df"] = df_excel
+                st.session_state["raw_text_for_drive"] = ""
+                st.session_state["excel_file_for_drive"] = uploaded_file  # 이미 있으면 OK
+                st.success(f"✅ {len(df_excel)}건 일정 생성 완료")
 
     st.divider()
 
@@ -156,13 +157,17 @@ if menu == "📥 보건스케줄 입력":
     # ── 증빙 파일 업로드 ────────────────────────
     excel_file = st.session_state.get("excel_file_for_drive")
     st.markdown("### 📎 증빙 파일 업로드 (카톡 캡처, PDF 등)")
+    
+    # 엑셀 자동반영 안내
+    if st.session_state.get("excel_file_for_drive"):
+        st.success(f"📎 엑셀 파일 자동 포함: **{st.session_state['excel_file_for_drive'].name}**")
+    
     evidence_files = st.file_uploader(
-        "증빙자료를 함께 올리면 드라이브 폴더에 자동 저장됩니다.",
+        "추가 증빙자료 (캡처, PDF 등)",
         type=["png", "jpg", "jpeg", "pdf", "docx", "xlsx"],
         accept_multiple_files=True,
         key="evidence_uploader"
     )
-    
    
 
     st.divider()
