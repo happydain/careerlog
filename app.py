@@ -162,6 +162,13 @@ if menu == "📥 보건스케줄 입력":
         accept_multiple_files=True,
         key="evidence_uploader"
     )
+    
+    # 카메라 캡처 추가
+    st.markdown("##### 📷 또는 카메라로 바로 찍기")
+    camera_photo = st.camera_input("카메라 촬영")
+    
+    if camera_photo:
+        st.session_state["camera_photo"] = camera_photo
 
     st.divider()
 
@@ -254,6 +261,11 @@ if menu == "📥 보건스케줄 입력":
                                 # 증빙 파일 업로드
                                 if evidence_files:
                                     save_evidence_files(folder_id, evidence_files)
+                                # 카메라 사진 추가
+                                camera = st.session_state.get("camera_photo")
+                                if camera:
+                                    camera.name = f"캡처_{datetime.now().strftime('%Y%m%d_%H%M%S')}.png"
+                                    save_evidence_files(folder_id, [camera])
 
                                 # DOCX 의뢰서 생성 + 드라이브 저장
                                 docx_bytes = generate_request_docx(row, raw_text_to_save)
