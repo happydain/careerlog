@@ -1,22 +1,34 @@
-from googleapiclient.discovery import build
 from google.oauth2.service_account import Credentials
+from googleapiclient.discovery import build
 import streamlit as st
 
-SCOPES = ["https://www.googleapis.com/auth/drive"]
 
-ROOT_FOLDER_ID = "1AtxUFhHDixQzKss5mWs6yIfiTZ78Z7M-"
+SCOPES = [
+    "https://www.googleapis.com/auth/drive"
+]
+
+ROOT_FOLDER_ID = "여기에_CareerLog_폴더ID"
 
 
 def get_drive_service():
+
     credentials = Credentials.from_service_account_info(
         dict(st.secrets["google_gsheets"]),
         scopes=SCOPES
     )
 
-    return build("drive", "v3", credentials=credentials)
+    return build(
+        "drive",
+        "v3",
+        credentials=credentials
+    )
 
 
-def find_folder(service, folder_name, parent_id):
+def find_folder(
+    service,
+    folder_name,
+    parent_id
+):
 
     query = (
         f"name='{folder_name}' "
@@ -37,7 +49,12 @@ def find_folder(service, folder_name, parent_id):
 
     return None
 
-def create_folder(service, folder_name, parent_id):
+
+def create_folder(
+    service,
+    folder_name,
+    parent_id
+):
 
     metadata = {
         "name": folder_name,
@@ -52,7 +69,11 @@ def create_folder(service, folder_name, parent_id):
 
     return folder["id"]
 
-def create_agency_folder(year, agency):
+
+def create_agency_folder(
+    year,
+    agency
+):
 
     service = get_drive_service()
 
@@ -84,6 +105,7 @@ def create_agency_folder(year, agency):
 
     return agency_folder_id
 
+
 def create_lecture_folder(
     agency_folder_id,
     lecture_date,
@@ -92,7 +114,9 @@ def create_lecture_folder(
 
     service = get_drive_service()
 
-    folder_name = f"{lecture_date}_{subject}"
+    folder_name = (
+        f"{lecture_date}_{subject}"
+    )
 
     lecture_folder_id = find_folder(
         service,
@@ -108,6 +132,7 @@ def create_lecture_folder(
         )
 
     return lecture_folder_id
+
 
 def get_folder_url(folder_id):
 
