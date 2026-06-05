@@ -12,6 +12,12 @@ from google_drive import (
     get_folder_url
 )
 
+from sheets import (
+    load_gsheet_raw,
+    load_gsheet_final,
+    save_gsheet_final,
+    append_to_gsheet
+)
 
 st.set_page_config(
     page_title="보건스케줄 자동정리",
