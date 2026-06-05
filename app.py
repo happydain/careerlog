@@ -748,14 +748,14 @@ if menu == "📥 보건스케줄 입력":
     
     col1, col2, col3, col4 = st.columns(4)
     with col1:
-        common_requester = st.text_input("담당자 이름")
-    with col2:
         common_date = st.date_input("의뢰일", value=datetime.now())
+    with col2:
+        common_requester = st.text_input("담당자 이름")
     with col3:
-    common_method = st.selectbox(
-        "의뢰방법",
-        ["카카오톡", "이메일", "전화", "문자", "기타"]
-    )
+        common_method = st.selectbox(
+            "의뢰방법",
+            ["카카오톡", "이메일", "전화", "문자", "기타"]
+        )
     with col4:
         year = st.number_input("기준 연도", min_value=2024, max_value=2035, value=datetime.now().year, step=1)
     
