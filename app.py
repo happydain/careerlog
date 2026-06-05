@@ -297,16 +297,7 @@ if menu == "📥 보건스케줄 입력":
                 st.session_state.pop("excel_file_for_drive", None)
                 st.rerun()
 
-        # ── 엑셀 다운로드 ──
-        with col2:
-            buffer = io.BytesIO()
-            edited_df.to_excel(buffer, index=False, engine="xlsxwriter")
-            st.download_button(
-                label="📥 엑셀 다운로드",
-                data=buffer.getvalue(),
-                file_name=f"보건스케줄_{datetime.now().strftime('%Y%m%d')}.xlsx",
-                mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
-            )
+
 
         # ── 초기화 ──
         with col3:
