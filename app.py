@@ -44,6 +44,7 @@ if menu == "📥 보건스케줄 입력":
     )
 
     # ── 기본 정보 ──────────────────────────────
+    # 이렇게
     st.markdown("### ⚙️ 기본 정보")
     common_agency = st.selectbox(
         "🏢 의뢰기관 (필수)",
@@ -51,15 +52,19 @@ if menu == "📥 보건스케줄 입력":
         help="카톡/엑셀 모두 이 기관으로 처리됩니다."
     )
     st.info(f"📌 현재 선택된 의뢰기관: **{common_agency}**")
-
-    col1, col2, col3 = st.columns(3)
+    
+    st.divider()
+    
+    col1, col2, col3, col4 = st.columns(4)
     with col1:
-        common_requester = st.text_input("담당자 이름")
+        year = st.number_input("기준 연도", min_value=2024, max_value=2035,
+                               value=datetime.now().year, step=1)
     with col2:
         common_date = st.date_input("의뢰일", value=datetime.now())
     with col3:
-        year = st.number_input("기준 연도", min_value=2024, max_value=2035,
-                               value=datetime.now().year, step=1)
+        common_requester = st.text_input("의뢰인")
+    with col4:
+        common_method = st.selectbox("의뢰방법", ["카카오톡", "이메일", "전화", "문자", "기타"])
 
     request_date_str = common_date.strftime("%Y-%m-%d")
 
@@ -85,6 +90,8 @@ if menu == "📥 보건스케줄 입력":
                 df_text["의뢰기관"] = common_agency
                 df_text["의뢰인"] = common_requester
                 df_text["의뢰일"] = request_date_str
+                df_text["의뢰방법"] = common_method
+
 
             if df_text.empty:
                 st.warning("날짜 정보를 찾지 못했습니다.")
@@ -115,6 +122,7 @@ if menu == "📥 보건스케줄 입력":
                         df_excel = parse_suwon_excel(uploaded_file, common_agency, "")
                         df_excel["의뢰인"] = common_requester
                         df_excel["의뢰일"] = request_date_str
+                        df_excel["의뢰방법"] = common_method
 
                     if df_excel.empty:
                         st.warning("변환된 일정이 없습니다.")
