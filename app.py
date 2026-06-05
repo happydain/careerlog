@@ -10,9 +10,9 @@ from parsers import (
     parse_kakao_text, parse_seoul_kakao, parse_hanahn_kakao,
     parse_suwon_excel, parse_jungdae_excel, parse_incheon_excel,
 )
+
 from gdrive import (
-    create_careerlog_structure, get_folder_url,
-    save_original_text, save_evidence_files, save_docx_to_drive, append_change_log,
+    create_careerlog_structure, get_folder_url, append_change_log,
 )
 
 from doc_generator import generate_request_docx, make_docx_filename
@@ -233,10 +233,13 @@ if menu == "📥 보건스케줄 입력":
                                 agency   = str(row.get("의뢰기관", common_agency))
                                 subject  = str(row.get("과정명", "")).replace(" ", "")
                                 yr       = int(date_str[:4]) if len(date_str) >= 4 else year
-
+                        
                                 folder_id  = create_careerlog_structure(yr, agency, date_str, subject)
                                 folder_url = get_folder_url(folder_id)
                                 edited_df.loc[idx, "증빙폴더"] = folder_url
+                        
+                            except Exception as e:
+                                drive_errors.append(f"행 {idx}: {e}")
 
                                 # 원본 카톡 텍스트 저장
                                 if raw_text_to_save.strip():
