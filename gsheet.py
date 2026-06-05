@@ -30,13 +30,16 @@ def ensure_header(sheet):
 
 def append_to_gsheet(df):
     try:
+        st.write("🔍 시트 연결 시도 중...")
         client = get_gsheet_client()
+        st.write("✅ 클라이언트 연결 성공")
         sheet1 = get_or_create_sheet(client, "의뢰일별")
+        st.write("✅ 의뢰일별 시트 접근 성공")
         ensure_header(sheet1)
         sheet2 = get_or_create_sheet(client, "최종")
+        st.write("✅ 최종 시트 접근 성공")
         ensure_header(sheet2)
 
-        # 중복 체크 (강의일시 + 의뢰기관 + 과정명 + 시작 기준)
         existing_data = sheet2.get_all_records()
         if existing_data:
             existing_df = pd.DataFrame(existing_data)
@@ -51,9 +54,7 @@ def append_to_gsheet(df):
                 if mask.any():
                     duplicates.append(f"{row.get('강의일시','')} / {row.get('의뢰기관','')} / {row.get('과정명','')} / {row.get('강사님','')}")
             if duplicates:
-                if duplicates:
-                    st.warning(f"⚠️ 중복 데이터 {len(duplicates)}건 발견 - 포함하여 저장합니다:\n" + "\n".join(duplicates))
-                    
+                st.warning(f"⚠️ 중복 데이터 {len(duplicates)}건 발견 - 포함하여 저장합니다:\n" + "\n".join(duplicates))
 
         for col in COLUMNS:
             if col not in df.columns:
@@ -61,8 +62,11 @@ def append_to_gsheet(df):
         df = df[COLUMNS]
         df_clean = df.fillna("").astype(str)
         values = df_clean.values.tolist()
+        st.write("✅ 데이터 준비 완료, 저장 시도 중...")
         sheet1.append_rows(values)
+        st.write("✅ 의뢰일별 저장 완료")
         sheet2.append_rows(values)
+        st.write("✅ 최종 저장 완료")
         return True
     except Exception as e:
         st.exception(e)
