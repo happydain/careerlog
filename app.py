@@ -204,30 +204,27 @@ if menu == "📥 보건스케줄 입력":
         col1, col2, col3, col4 = st.columns(4)
 
         # 자동계산
+        col1, col2, col3 = st.columns(3)
+
         with col1:
-            if st.button("🔄 요일/시수/강의료 자동계산"):
-                def auto_weekday(r):
-                    try:
-                        return ["월","화","수","목","금","토","일"][pd.to_datetime(r["강의일시"]).weekday()]
-                    except:
-                        return r.get("요일", "")
-
-                def auto_fee(r):
-                    if str(r.get("의뢰기관","")) == "한안협":
-                        return 120000 if str(r.get("강사님","")) == "이다인" else 110000
-                    return r.get("강의료(1시간)", 100000)
-
-                edited_df["요일"] = edited_df.apply(auto_weekday, axis=1)
-                edited_df["시수"] = edited_df.apply(
-                    lambda r: calc_hours(r["시작"], r["종료"])
-                    if pd.notna(r.get("시작")) and pd.notna(r.get("종료")) else 0, axis=1
-                )
-                edited_df["강의료(1시간)"] = edited_df.apply(auto_fee, axis=1)
-                edited_df["강의료(1일)"] = edited_df.apply(
-                    lambda r: calc_fee(r["시수"], r["강의료(1시간)"])
-                    if pd.notna(r.get("시수")) and pd.notna(r.get("강의료(1시간)")) else 0, axis=1
-                )
-                st.session_state["temp_df"] = edited_df
+            if st.button("💾 저장 (시트 + 드라이브)"):
+                ...
+        
+        with col2:
+            buffer = io.BytesIO()
+            edited_df.to_excel(buffer, index=False, engine="xlsxwriter")
+            st.download_button(
+                label="📥 엑셀 다운로드",
+                data=buffer.getvalue(),
+                file_name=f"보건스케줄_{datetime.now().strftime('%Y%m%d')}.xlsx",
+                mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+            )
+        
+        with col3:
+            if st.button("🧹 초기화"):
+                del st.session_state["temp_df"]
+                st.session_state.pop("raw_text_for_drive", None)
+                st.session_state.pop("excel_file_for_drive", None)
                 st.rerun()
 
         # 구글시트 + 드라이브 저장
