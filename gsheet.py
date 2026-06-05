@@ -54,7 +54,8 @@ def append_to_gsheet(df):
                 if mask.any():
                     duplicates.append(f"{row.get('강의일시','')} / {row.get('의뢰기관','')} / {row.get('과정명','')} / {row.get('강사님','')}")
             if duplicates:
-                st.warning(f"⚠️ 중복 데이터 {len(duplicates)}건 발견 - 포함하여 저장합니다:\n" + "\n".join(duplicates))
+                st.warning(f"⚠️ 중복 데이터 {len(duplicates)}건 - 저장하지 않습니다:\n" + "\n".join(duplicates))
+                return False
 
         for col in COLUMNS:
             if col not in df.columns:
