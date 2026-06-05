@@ -6,7 +6,6 @@ from datetime import datetime
 from config import COLUMNS, AGENCY_OPTIONS
 from utils import calc_hours, calc_fee, get_column_config
 from gsheet import append_to_gsheet, load_gsheet_raw, load_gsheet_final, save_gsheet_final
-
 from parsers import (
     parse_kakao_text, parse_seoul_kakao, parse_hanahn_kakao,
     parse_suwon_excel, parse_jungdae_excel, parse_incheon_excel,
@@ -44,34 +43,30 @@ if menu == "📥 보건스케줄 입력":
     )
 
     # ── 기본 정보 ──────────────────────────────
-    # 이렇게
     st.markdown("### ⚙️ 기본 정보")
     common_agency = st.selectbox(
         "🏢 의뢰기관 (필수)",
         AGENCY_OPTIONS,
         help="카톡/엑셀 모두 이 기관으로 처리됩니다."
     )
-    
-    st.divider()
-    
     st.info(f"📌 현재 선택된 의뢰기관: **{common_agency}**")
+    st.divider()
 
     col1, col2, col3, col4 = st.columns(4)
     with col1:
         year = st.selectbox("기준 연도", list(range(2024, 2036)),
-                    index=list(range(2024, 2036)).index(datetime.now().year))
+                            index=list(range(2024, 2036)).index(datetime.now().year))
     with col2:
-        common_date = st.date_input("의뢰일", value=datetime.now())
+        common_date = st.date_input("의뢰일", value=datetime.now(), format="YYYY/MM/DD")
     with col3:
         @st.cache_data(ttl=300)
         def get_requester_list():
             df = load_gsheet_raw()
             names = df["의뢰인"].dropna().unique().tolist()
             return sorted([n for n in names if n.strip()])
-        
+
         existing_requesters = get_requester_list()
         requester_options = ["직접 입력"] + existing_requesters
-        
         selected_requester = st.selectbox("의뢰인", requester_options)
         if selected_requester == "직접 입력":
             common_requester = st.text_input("이름 입력")
@@ -87,8 +82,7 @@ if menu == "📥 보건스케줄 입력":
     # ── 카톡 입력 ──────────────────────────────
     st.markdown("### 💬 카톡 / 이메일 텍스트 입력")
     st.info(f"📌 현재 의뢰기관: **{common_agency}** · 의뢰인: **{common_requester or '미입력'}** · {request_date_str}")
-    raw_text = st.text_area("강의 요청 메시지를 붙여넣으세요.", height=220,
-                             key="raw_text_input")
+    raw_text = st.text_area("강의 요청 메시지를 붙여넣으세요.", height=220, key="raw_text_input")
 
     if st.button("🪄 카톡 일정 분석"):
         if not common_requester.strip():
@@ -107,14 +101,13 @@ if menu == "📥 보건스케줄 입력":
                 df_text["의뢰일"] = request_date_str
                 df_text["의뢰방법"] = common_method
 
-
             if df_text.empty:
                 st.warning("날짜 정보를 찾지 못했습니다.")
             else:
-                st.session_state["temp_df"] = df_excel
-                st.session_state["raw_text_for_drive"] = ""
-                st.session_state["excel_file_for_drive"] = uploaded_file  # 이미 있으면 OK
-                st.success(f"✅ {len(df_excel)}건 일정 생성 완료")
+                st.session_state["temp_df"] = df_text
+                st.session_state["raw_text_for_drive"] = raw_text
+                st.session_state.pop("excel_file_for_drive", None)
+                st.success(f"✅ {len(df_text)}건 일정 생성 완료")
 
     st.divider()
 
@@ -131,10 +124,10 @@ if menu == "📥 보건스케줄 입력":
                 try:
                     if common_agency == "대한협인천":
                         df_excel = parse_incheon_excel(uploaded_file, common_agency,
-                                                        common_requester, request_date_str)
+                                                       common_requester, request_date_str)
                     elif common_agency == "중대협":
                         df_excel = parse_jungdae_excel(uploaded_file, common_requester,
-                                                        request_date_str, year)
+                                                       request_date_str, year)
                     else:
                         df_excel = parse_suwon_excel(uploaded_file, common_agency)
                         df_excel["의뢰인"] = common_requester
@@ -146,29 +139,24 @@ if menu == "📥 보건스케줄 입력":
                     else:
                         st.session_state["temp_df"] = df_excel
                         st.session_state["raw_text_for_drive"] = ""
-                        st.session_state["excel_file_for_drive"] = uploaded_file 
-                        st.success(f"✅ {len(df_excel)}건 일정 생성 완료")        
-                        
+                        st.session_state["excel_file_for_drive"] = uploaded_file
+                        st.success(f"✅ {len(df_excel)}건 일정 생성 완료")
                 except Exception as e:
                     st.error(f"엑셀 변환 오류: {e}")
 
     st.divider()
 
     # ── 증빙 파일 업로드 ────────────────────────
-    excel_file = st.session_state.get("excel_file_for_drive")
     st.markdown("### 📎 증빙 파일 업로드 (카톡 캡처, PDF 등)")
-    
-    # 엑셀 자동반영 안내
     if st.session_state.get("excel_file_for_drive"):
         st.success(f"📎 엑셀 파일 자동 포함: **{st.session_state['excel_file_for_drive'].name}**")
-    
+
     evidence_files = st.file_uploader(
         "추가 증빙자료 (캡처, PDF 등)",
         type=["png", "jpg", "jpeg", "pdf", "docx", "xlsx"],
         accept_multiple_files=True,
         key="evidence_uploader"
     )
-   
 
     st.divider()
 
@@ -185,7 +173,6 @@ if menu == "📥 보건스케줄 입력":
     st.header("📋 최종 확인 및 저장")
 
     if "temp_df" in st.session_state:
-        # 날짜 타입 정리
         try:
             st.session_state["temp_df"]["강의일시"] = pd.to_datetime(
                 st.session_state["temp_df"]["강의일시"], errors="coerce"
@@ -201,43 +188,43 @@ if menu == "📥 보건스케줄 입력":
         )
 
         st.divider()
-        col1, col2, col3, col4 = st.columns(4)
-
-        # 자동계산
         col1, col2, col3 = st.columns(3)
 
+        # ── 저장 ──
         with col1:
-            if st.button("💾 저장 (시트 + 드라이브)"):
-                ...
-        
-        with col2:
-            buffer = io.BytesIO()
-            edited_df.to_excel(buffer, index=False, engine="xlsxwriter")
-            st.download_button(
-                label="📥 엑셀 다운로드",
-                data=buffer.getvalue(),
-                file_name=f"보건스케줄_{datetime.now().strftime('%Y%m%d')}.xlsx",
-                mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
-            )
-        
-        with col3:
-            if st.button("🧹 초기화"):
-                del st.session_state["temp_df"]
-                st.session_state.pop("raw_text_for_drive", None)
-                st.session_state.pop("excel_file_for_drive", None)
-                st.rerun()
-
-        # 구글시트 + 드라이브 저장
-        with col2:
-            if st.button("💾 저장 (시트 + 드라이브)"):
+            if st.button("💾 저장", key="save_btn"):
                 if not common_requester.strip():
                     st.error("담당자 이름을 입력해주세요.")
                 else:
                     with st.spinner("저장 중..."):
+
+                        # 저장 전 자동계산
+                        def auto_weekday(r):
+                            try:
+                                return ["월","화","수","목","금","토","일"][pd.to_datetime(r["강의일시"]).weekday()]
+                            except:
+                                return r.get("요일", "")
+
+                        def auto_fee(r):
+                            if str(r.get("의뢰기관", "")) == "한안협":
+                                return 120000 if str(r.get("강사님", "")) == "이다인" else 110000
+                            return r.get("강의료(1시간)", 100000)
+
+                        edited_df["요일"] = edited_df.apply(auto_weekday, axis=1)
+                        edited_df["시수"] = edited_df.apply(
+                            lambda r: calc_hours(r["시작"], r["종료"])
+                            if pd.notna(r.get("시작")) and pd.notna(r.get("종료")) else 0, axis=1
+                        )
+                        edited_df["강의료(1시간)"] = edited_df.apply(auto_fee, axis=1)
+                        edited_df["강의료(1일)"] = edited_df.apply(
+                            lambda r: calc_fee(r["시수"], r["강의료(1시간)"])
+                            if pd.notna(r.get("시수")) and pd.notna(r.get("강의료(1시간)")) else 0, axis=1
+                        )
+
                         raw_text_to_save = st.session_state.get("raw_text_for_drive", "")
+                        excel_file = st.session_state.get("excel_file_for_drive")
                         drive_errors = []
 
-                        # 행별로 드라이브 폴더 생성 + DOCX 저장
                         for idx in edited_df.index:
                             row = edited_df.loc[idx].to_dict()
                             try:
@@ -250,17 +237,20 @@ if menu == "📥 보건스케줄 입력":
                                 folder_url = get_folder_url(folder_id)
                                 edited_df.loc[idx, "증빙폴더"] = folder_url
 
-                                # 원본 텍스트 저장 (카톡 입력인 경우)
+                                # 원본 카톡 텍스트 저장
                                 if raw_text_to_save.strip():
                                     save_original_text(folder_id, raw_text_to_save,
                                                        common_requester, request_date_str)
 
-                                # 증빙 파일 업로드
+                                # 엑셀 파일 증빙 저장
+                                if excel_file:
+                                    save_evidence_files(folder_id, [excel_file])
+
+                                # 추가 증빙 파일 저장
                                 if evidence_files:
                                     save_evidence_files(folder_id, evidence_files)
-                               
 
-                                # DOCX 의뢰서 생성 + 드라이브 저장
+                                # DOCX 의뢰서 생성 + 저장
                                 docx_bytes = generate_request_docx(row, raw_text_to_save)
                                 docx_name  = make_docx_filename(row)
                                 save_docx_to_drive(folder_id, docx_bytes, docx_name)
@@ -271,15 +261,15 @@ if menu == "📥 보건스케줄 입력":
                         if drive_errors:
                             st.warning("⚠️ 드라이브 저장 일부 실패:\n" + "\n".join(drive_errors))
 
-                        # 구글시트 저장
                         if append_to_gsheet(edited_df):
                             st.success("✅ 구글시트 + 드라이브 저장 완료!")
                             del st.session_state["temp_df"]
                             st.session_state.pop("raw_text_for_drive", None)
+                            st.session_state.pop("excel_file_for_drive", None)
                             st.rerun()
 
-        # 엑셀 다운로드
-        with col3:
+        # ── 엑셀 다운로드 ──
+        with col2:
             buffer = io.BytesIO()
             edited_df.to_excel(buffer, index=False, engine="xlsxwriter")
             st.download_button(
@@ -289,9 +279,9 @@ if menu == "📥 보건스케줄 입력":
                 mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
             )
 
-        # 초기화
-        with col4:
-            if st.button("🧹 초기화"):
+        # ── 초기화 ──
+        with col3:
+            if st.button("🧹 초기화", key="reset_btn"):
                 del st.session_state["temp_df"]
                 st.session_state.pop("raw_text_for_drive", None)
                 st.session_state.pop("excel_file_for_drive", None)
@@ -368,7 +358,7 @@ elif menu == "📅 최종 스케줄(취소,변경반영)":
             modifier = st.text_input("변경 담당자 이름", placeholder="변경 저장 시 입력")
 
         with col_save:
-            if st.button("💾 변경사항 저장"):
+            if st.button("💾 변경사항 저장", key="final_save_btn"):
                 today = datetime.now().strftime("%Y-%m-%d")
                 for idx in edited_gsheet_df.index:
                     changes = []
@@ -388,7 +378,6 @@ elif menu == "📅 최종 스케줄(취소,변경반영)":
                         edited_gsheet_df.loc[idx, "변경일자"] = today
                         edited_gsheet_df.loc[idx, "변경의뢰인"] = modifier
 
-                        # 드라이브에도 변경이력 기록
                         folder_url = str(edited_gsheet_df.loc[idx, "증빙폴더"])
                         if folder_url.startswith("https://drive.google.com"):
                             try:
