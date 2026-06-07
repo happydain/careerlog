@@ -196,7 +196,6 @@ if menu == "📥 보건스케줄 입력":
                 else:
                     with st.spinner("저장 중..."):
 
-                        # 🛠️ 수정한 문법 오류 해결 영역
                         def auto_weekday(r):
                             try:
                                 return ["월","화","수","목","금","토","일"][pd.to_datetime(r["강의일시"]).weekday()]
@@ -230,3 +229,200 @@ if menu == "📥 보건스케줄 입력":
                                 yr       = int(date_str[:4]) if len(date_str) >= 4 else year
 
                                 folder_id  = create_careerlog_structure(yr, agency, date_str, subject)
+                                folder_url = get_folder_url(folder_id)
+                                edited_df.loc[idx, "증빙폴더"] = folder_url
+
+                            except Exception as e:
+                                drive_errors.append(f"행 {idx}: {e}")
+
+                        # 드라이브 오류와 무관하게 시트는 항상 저장
+                        result = append_to_gsheet(edited_df)
+                        if result:
+                            if drive_errors:
+                                st.warning("⚠️ 드라이브 폴더 생성 실패 (시트는 저장됨):\n" + "\n".join(drive_errors))
+                            else:
+                                st.success("✅ 구글시트 + 드라이브 저장 완료!")
+                            del st.session_state["temp_df"]
+                            st.session_state.pop("raw_text_for_drive", None)
+                            st.session_state.pop("excel_file_for_drive", None)
+                            st.rerun()
+                        else:
+                            st.error("❌ 구글시트 저장 실패")
+                            if drive_errors:
+                                st.warning("드라이브 오류:\n" + "\n".join(drive_errors))
+
+        # ── 엑셀 다운로드 ──
+        with col2:
+            buffer = io.BytesIO()
+            edited_df.to_excel(buffer, index=False, engine="xlsxwriter")
+            st.download_button(
+                label="📥 엑셀 다운로드",
+                data=buffer.getvalue(),
+                file_name=f"보건스케줄_{datetime.now().strftime('%Y%m%d')}.xlsx",
+                mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+                key="download_btn",
+            )
+
+        # ── 초기화 ──
+        with col3:
+            if st.button("🧹 초기화", key="reset_btn"):
+                del st.session_state["temp_df"]
+                st.session_state.pop("raw_text_for_drive", None)
+                st.session_state.pop("excel_file_for_drive", None)
+                st.rerun()
+
+
+# ══════════════════════════════════════════════
+# 📋 의뢰일별
+# ══════════════════════════════════════════════
+elif menu == "📋 의뢰일별 스케줄":
+    st.header("📋 의뢰일별 (원본)")
+    df = load_gsheet_raw()
+
+    if df.empty:
+        st.info("저장된 데이터가 없습니다.")
+    else:
+        col1, col2, col3 = st.columns(3)
+        with col1:
+            agency_f = st.selectbox("의뢰기관", ["전체"] + sorted(df["의뢰기관"].dropna().unique().tolist()))
+        with col2:
+            instr_f = st.selectbox("강사님", ["전체"] + sorted(df["강사님"].dropna().unique().tolist()))
+        with col3:
+            subj_f = st.selectbox("과정명", ["전체"] + sorted(df["과정명"].dropna().unique().tolist()))
+
+        fdf = df.copy()
+        if agency_f != "전체": fdf = fdf[fdf["의뢰기관"] == agency_f]
+        if instr_f  != "전체": fdf = fdf[fdf["강사님"]   == instr_f]
+        if subj_f   != "전체": fdf = fdf[fdf["과정명"]   == subj_f]
+
+        st.dataframe(fdf, use_container_width=True, height=700,
+                     column_config=get_column_config())
+
+
+# ══════════════════════════════════════════════
+# 📅 최종 스케줄
+# ══════════════════════════════════════════════
+elif menu == "📅 최종 스케줄(취소,변경반영)":
+    st.header("📅 최종 스케줄")
+    df = load_gsheet_final()
+
+    if df.empty:
+        st.info("저장된 데이터가 없습니다.")
+    else:
+        col1, col2, col3 = st.columns(3)
+        with col1:
+            agency_f = st.selectbox("의뢰기관", ["전체"] + sorted(df["의뢰기관"].dropna().unique().tolist()))
+        with col2:
+            instr_f = st.selectbox("강사님", ["전체"] + sorted(df["강사님"].dropna().unique().tolist()))
+        with col3:
+            subj_f = st.selectbox("과정명", ["전체"] + sorted(df["과정명"].dropna().unique().tolist()))
+
+        fdf = df.copy()
+        if agency_f != "전체": fdf = fdf[fdf["의뢰기관"] == agency_f]
+        if instr_f  != "전체": fdf = fdf[fdf["강사님"]   == instr_f]
+        if subj_f   != "전체": fdf = fdf[fdf["과정명"]   == subj_f]
+
+        try:
+            fdf["강의일시"] = pd.to_datetime(fdf["강의일시"], errors="coerce").dt.date
+        except Exception:
+            pass
+
+        original_df = fdf.copy()
+
+        edited_gsheet_df = st.data_editor(
+            fdf,
+            use_container_width=True,
+            height=700,
+            num_rows="fixed",
+            column_config=get_column_config(),
+        )
+
+        col_save, col_modifier = st.columns([2, 2])
+        with col_modifier:
+            modifier = st.text_input("변경 담당자 이름", placeholder="변경 저장 시 입력")
+
+        with col_save:
+            if st.button("💾 변경사항 저장", key="final_save_btn"):
+                today = datetime.now().strftime("%Y-%m-%d")
+                for idx in edited_gsheet_df.index:
+                    changes = []
+                    for col in COLUMNS:
+                        if col in ("변경이력", "증빙폴더"):
+                            continue
+                        orig = str(original_df.loc[idx, col]) if idx in original_df.index else ""
+                        new  = str(edited_gsheet_df.loc[idx, col])
+                        if orig != new:
+                            changes.append(f"{col} {orig}→{new}")
+
+                    if changes:
+                        summary = ", ".join(changes)
+                        existing = str(edited_gsheet_df.loc[idx, "변경이력"]).strip()
+                        new_hist = f"[{today}] {summary}"
+                        edited_gsheet_df.loc[idx, "변경이력"] = f"{existing} / {new_hist}".strip(" /")
+                        edited_gsheet_df.loc[idx, "변경일자"] = today
+                        edited_gsheet_df.loc[idx, "변경의뢰인"] = modifier
+
+                        folder_url = str(edited_gsheet_df.loc[idx, "증빙폴더"])
+                        if folder_url.startswith("https://drive.google.com"):
+                            try:
+                                folder_id = folder_url.split("/")[-1]
+                                append_change_log(folder_id, summary, modifier or "미입력")
+                            except Exception:
+                                pass
+
+                df.update(edited_gsheet_df)
+                if save_gsheet_final(df):
+                    st.success("✅ 변경사항 저장 완료!")
+                    st.rerun()
+
+
+# ══════════════════════════════════════════════
+# 📊 협회별 월별 스케줄
+# ══════════════════════════════════════════════
+elif menu == "📊 협회별 월별 스케줄":
+    st.header("📊 협회별 월별 스케줄")
+    df = load_gsheet_final()
+    if df.empty:
+        st.info("저장된 데이터가 없습니다.")
+    else:
+        try:
+            df["_dt"] = pd.to_datetime(df["강의일시"], errors="coerce")
+            df["월"]  = df["_dt"].dt.month
+            df["시수"] = pd.to_numeric(df["시수"], errors="coerce").fillna(0)
+            pivot = df.pivot_table(index="의뢰기관", columns="월", values="시수",
+                                   aggfunc="sum", fill_value=0)
+            st.dataframe(pivot, use_container_width=True)
+
+            st.subheader("💰 협회별 월별 강의료 합계")
+            df["강의료(1일)"] = pd.to_numeric(df["강의료(1일)"], errors="coerce").fillna(0)
+            pivot_fee = df.pivot_table(index="의뢰기관", columns="월", values="강의료(1일)",
+                                       aggfunc="sum", fill_value=0)
+            st.dataframe(pivot_fee.style.format("₩{:,.0f}"), use_container_width=True)
+        except Exception as e:
+            st.error(f"집계 오류: {e}")
+
+
+# ══════════════════════════════════════════════
+# 👨‍🏫 강사별 대시보드
+# ══════════════════════════════════════════════
+elif menu == "👨‍🏫 강사별 대시보드":
+    st.header("👨‍🏫 강사별 대시보드")
+    df = load_gsheet_final()
+    if df.empty:
+        st.info("저장된 데이터가 없습니다.")
+    elif "강사님" not in df.columns:
+        st.warning("강사님 컬럼이 없습니다.")
+    else:
+        selected = st.selectbox("강사 선택", sorted(df["강사님"].dropna().unique().tolist()))
+        idf = df[df["강사님"] == selected].copy()
+        st.subheader(f"{selected} 강사 일정")
+        st.dataframe(idf, use_container_width=True, height=500,
+                     column_config=get_column_config())
+        try:
+            total_hours = pd.to_numeric(idf["시수"], errors="coerce").sum()
+            total_fee   = pd.to_numeric(idf["강의료(1일)"], errors="coerce").sum()
+            c1, c2 = st.columns(2)
+            c1.metric("총 시수", f"{total_hours:.0f}시간")
+            c2.metric("총 강의료", f"₩{total_fee:,.0f}")
+        except Exception as e:
+            st.error(f"집계 오류: {e}")
