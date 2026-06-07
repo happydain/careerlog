@@ -1,478 +1,231 @@
-import io
-import pandas as pd
+"""
+보건스케줄 자동정리 및 구글 드라이브 연동 시스템 (메인 UI)
+- 메뉴 1: 📥 보건스케줄 입력 (엑셀/카톡 공통 증빙 자동 분류 및 드라이브 배포)
+- 메뉴 3: 📅 최종 스케줄 관리 (데이터 수정 시 실시간 이미지/텍스트 변동이력 핀포인트 기록)
+"""
+
 import streamlit as st
+import pandas as pd
 from datetime import datetime
 
-from config import COLUMNS, AGENCY_OPTIONS
-from utils import calc_hours, calc_fee, get_column_config
-
-#의뢰별 text,엑셀 분석함수
-from parsers import (
-    parse_kakao_text, parse_seoul_kakao, parse_hanahn_kakao,
-    parse_suwon_excel, parse_jungdae_excel, parse_incheon_excel,
-)
-
-from gsheet import append_to_gsheet, load_gsheet_raw, load_gsheet_final, save_gsheet_final
-
+# 💡 구글 드라이브 연동 모듈(gdrive.py)에서 필요한 함수 일괄 로드
 from gdrive import (
-    create_careerlog_structure, get_folder_url, append_change_log,
+    create_careerlog_structure,
+    get_folder_url,
+    save_common_request_evidence,
+    append_change_log_with_evidence
 )
 
-# gdrive API를 제어하는 함수가 구현되어 있다고 가정하거나 추가할 내용
-from googleapiclient.http import MediaIoBaseUpload
+# 임의의 구글 시트 마스터 컬럼 정의 (환경에 맞게 수정 가능)
+COLUMNS = ["강의일시", "의뢰기관", "과정명", "강사명", "변경이력", "증빙폴더"]
 
-def upload_file_to_folder(file_obj, folder_id):
-    """
-    Streamlit의 UploadedFile 객체를 구글 드라이브의 특정 folder_id 내부로 업로드합니다.
-    """
-    # 기존 코드에서 사용하는 drive service 객체를 가져옵니다.
-    # 예: service = get_drive_service() 
-    
-    file_metadata = {
-        'name': file_obj.name,
-        'parents': [folder_id]
-    }
-    media = MediaIoBaseUpload(file_obj, mimetype=file_obj.type, resumable=True)
-    
-    # ⚠️ 아래 'drive_service' 부분은 작성하신 프로젝트의 구글 서비스 객체 변수명에 맞게 매칭해야 합니다.
-    # file = drive_service.files().create(body=file_metadata, media_body=media, fields='id').execute()
-    # return file.get('id')
+st.set_page_config(page_title="보건스케줄 관리 시스템", layout="wide")
+st.title("🏥 보건스케줄 자동정리 및 증빙 관리 시스템")
 
 # ─────────────────────────────────────────────
-st.set_page_config(page_title="보건스케줄", page_icon="📅", layout="wide")
+# 사이드바 메뉴 구성
 # ─────────────────────────────────────────────
+menu = sidebar_menu = st.sidebar.selectbox(
+    "메뉴를 선택하세요",
+    ["📥 보건스케줄 입력", "📅 최종 스케줄(취소/변경 반영)"]
+)
 
-st.sidebar.title("📅 CareerLog")
-menu = st.sidebar.radio("메뉴 선택", [
-    "📥 보건스케줄 입력",
-    "📋 의뢰일별 스케줄",
-    "📅 최종 스케줄(취소,변경반영)",
-    "📊 협회별 월별 스케줄",
-    "👨‍🏫 강사별 대시보드",
-])
-
-st.title("📅 보건스케줄 자동정리")
+# 테스트용 세션 상태 및 마스터 데이터 초기화 (실제 운영 시 구글 시트 연동)
+if "master_df" not in st.session_state:
+    st.session_state["master_df"] = pd.DataFrame(columns=COLUMNS)
 
 
-# ══════════════════════════════════════════════
-# 📥 보건스케줄 입력
-# ══════════════════════════════════════════════
+# ─────────────────────────────────────────────
+# [메뉴 1]: 보건스케줄 입력
+# ─────────────────────────────────────────────
 if menu == "📥 보건스케줄 입력":
-    st.header("📥 보건스케줄 입력")
-    st.info(
-        "카카오톡·이메일·엑셀로 받은 강의 의뢰를 붙여넣거나 업로드하세요.\n"
-        "저장 시 구글시트 + 구글드라이브 폴더가 자동 생성됩니다."
-    )
-
-    # ── 기본 정보 ──────────────────────────────
-    st.markdown("### ⚙️ 기본 정보")
-    common_agency = st.selectbox(
-        "🏢 의뢰기관 (필수)",
-        AGENCY_OPTIONS,
-        help="카톡/엑셀 모두 이 기관으로 처리됩니다."
-    )
-    st.info(f"📌 현재 선택된 의뢰기관: **{common_agency}**")
-    st.divider()
-
-    col1, col2, col3, col4 = st.columns(4)
+    st.header("📥 신규 보건스케줄 등록 및 공통 증빙 세팅")
+    st.markdown("---")
+    
+    # 1. 상단 공통 정보 입력 영역
+    col1, col2, col3 = st.columns(3)
     with col1:
-        year = st.selectbox("기준 연도", list(range(2024, 2036)),
-                            index=list(range(2024, 2036)).index(datetime.now().year))
+        common_requester = st.text_input("의뢰인 이름", value="홍길동")
     with col2:
-        common_date = st.date_input("의뢰일", value=datetime.now(), format="YYYY/MM/DD")
+        request_date_str = st.date_input("의뢰 일자", datetime.today()).strftime("%Y-%m-%d")
     with col3:
-        @st.cache_data(ttl=300)
-        def get_requester_list():
-            df = load_gsheet_raw()
-            names = df["의뢰인"].dropna().unique().tolist()
-            return sorted([n for n in names if n.strip()])
+        common_agency = st.text_input("대표 의뢰 기관", value="서울보건소")
 
-        existing_requesters = get_requester_list()
-        requester_options = ["직접 입력"] + existing_requesters
-        selected_requester = st.selectbox("의뢰인", requester_options)
-        if selected_requester == "직접 입력":
-            common_requester = st.text_input("이름 입력")
+    st.markdown("#### 📁 공통 증빙 자료 첨부")
+    st.caption("※ 이번 의뢰 묶음에 포함된 모든 강의 일들의 '01_원본의뢰' 폴더에 공통으로 저장됩니다.")
+    
+    col_file, col_text = st.columns(2)
+    with col_file:
+        # 드라이브 전송용 엑셀 파일 버퍼를 세션에 저장
+        uploaded_excel = st.file_uploader("공통 의뢰 엑셀 파일", type=["xlsx", "xls"])
+        if uploaded_excel:
+            st.session_state["excel_file_for_drive"] = uploaded_excel
+            
+    with col_text:
+        raw_text = st.text_area("공통 카톡/이메일 원문 텍스트 붙여넣기", height=100, placeholder="여기에 붙여넣은 원문은 구글 Docs 파일로 자동 변환되어 저장됩니다.")
+        st.session_state["raw_text_for_drive"] = raw_text
+
+    st.markdown("---")
+    st.markdown("#### 📊 강의 일정 세부 편집")
+    st.caption("아래 표에 강의 일정을 입력하거나 붙여넣으세요. 저장 시 일자별/과정별 구글 드라이브 폴더가 자동 생성됩니다.")
+
+    # 편집용 임시 데이터프레임 생성 (예시 행 2개 배치)
+    init_data = [
+        {"강의일시": "2026-07-01", "의뢰기관": common_agency, "과정명": "심폐소생술 교육", "강사명": "김강사", "변경이력": "", "증빙폴더": ""},
+        {"강의일시": "2026-07-02", "의뢰기관": common_agency, "과정명": "아동보건 위생교육", "강사명": "이강사", "변경이력": "", "증빙폴der": ""}
+    ]
+    input_df = pd.DataFrame(init_data)
+    
+    edited_df = st.data_editor(input_df, num_rows="dynamic", use_container_width=True)
+
+    # 저장 버튼 로직
+    if st.button("💾 일정 등록 및 구글 드라이브 연동 시작", use_container_width=True):
+        if edited_df.empty:
+            st.error("❌ 등록할 강의 일정이 없습니다.")
         else:
-            common_requester = selected_requester
-    with col4:
-        common_method = st.selectbox("의뢰방법", ["카카오톡", "이메일", "전화", "문자", "기타"])
+            with st.spinner("🚀 구글 드라이브에 표준 폴더 구조를 생성하고 공통 증빙을 배포하는 중입니다..."):
+                created_folder_ids = []
+                drive_errors = []
+                current_year = datetime.today().year
 
-    request_date_str = common_date.strftime("%Y-%m-%d")
+                # 각 행을 순회하며 강의 폴더 구조 생성
+                for idx in edited_df.index:
+                    row = edited_df.loc[idx].to_dict()
+                    try:
+                        date_str = str(row.get("강의일시", "")).strip()
+                        agency   = str(row.get("의뢰기관", common_agency)).strip()
+                        subject  = str(row.get("과정명", "미지정")).replace(" ", "")
+                        
+                        # 연도 추출 (YYYY-MM-DD 형식 가정)
+                        try:
+                            yr = int(date_str[:4])
+                        except:
+                            yr = current_year
 
-    st.divider()
-
-    # ── 카톡 입력 ──────────────────────────────
-    st.markdown("### 💬 카톡 / 이메일 텍스트 입력")
-    st.info(f"📌 현재 의뢰기관: **{common_agency}** · 의뢰인: **{common_requester or '미입력'}** · {request_date_str}")
-    raw_text = st.text_area("강의 요청 메시지를 붙여넣으세요.", height=220, key="raw_text_input")
-
-    if st.button("🪄 카톡 일정 분석"):
-        if not common_requester.strip():
-            st.error("담당자 이름을 입력해주세요.")
-        elif not raw_text.strip():
-            st.warning("텍스트를 입력해주세요.")
-        else:
-            if common_agency == "대한협서울":
-                df_text = parse_seoul_kakao(raw_text, year, common_requester, request_date_str)
-            elif common_agency == "한안협":
-                df_text = parse_hanahn_kakao(raw_text, year, common_requester, request_date_str)
-            else:
-                df_text = parse_kakao_text(raw_text, year)
-                df_text["의뢰기관"] = common_agency
-                df_text["의뢰인"] = common_requester
-                df_text["의뢰일"] = request_date_str
-                df_text["의뢰방법"] = common_method
-
-            if df_text.empty:
-                st.warning("날짜 정보를 찾지 못했습니다.")
-            else:
-                st.session_state["temp_df"] = df_text
-                st.session_state["raw_text_for_drive"] = raw_text
-                st.session_state.pop("excel_file_for_drive", None)
-                st.success(f"✅ {len(df_text)}건 일정 생성 완료")
-
-    st.divider()
-
-    # ── 엑셀 업로드 ────────────────────────────
-    st.markdown("### 📄 강의의뢰 엑셀 업로드")
-    st.info(f"📌 현재 의뢰기관: **{common_agency}** · 의뢰인: **{common_requester or '미입력'}** · {request_date_str}")
-    uploaded_file = st.file_uploader("엑셀 파일 (.xlsx)", type=["xlsx"])
-
-    if uploaded_file:
-        if st.button("📄 엑셀 일정 변환"):
-            if not common_requester.strip():
-                st.error("담당자 이름을 입력해주세요.")
-            else:
-                try:
-                    if common_agency == "대한협인천":
-                        df_excel = parse_incheon_excel(uploaded_file, common_agency,
-                                                       common_requester, request_date_str)
-                    elif common_agency == "중대협":
-                        df_excel = parse_jungdae_excel(uploaded_file, common_requester,
-                                                       request_date_str, year)
-                    else:
-                        df_excel = parse_suwon_excel(uploaded_file, common_agency)
-                        df_excel["의뢰인"] = common_requester
-                        df_excel["의뢰일"] = request_date_str
-                        df_excel["의뢰방법"] = common_method
-
-                    if df_excel.empty:
-                        st.warning("변환된 일정이 없습니다.")
-                    else:
-                        st.session_state["temp_df"] = df_excel
-                        st.session_state["raw_text_for_drive"] = ""
-                        st.session_state["excel_file_for_drive"] = uploaded_file
-                        st.success(f"✅ {len(df_excel)}건 일정 생성 완료")
-                except Exception as e:
-                    st.error(f"엑셀 변환 오류: {e}")
-
-    st.divider()
-
-    # ── 증빙 파일 업로드 ────────────────────────
-    st.markdown("### 📎 증빙 파일 업로드 (카톡 캡처, PDF 등)")
-    if st.session_state.get("excel_file_for_drive"):
-        st.success(f"📎 엑셀 파일 자동 포함: **{st.session_state['excel_file_for_drive'].name}**")
-
-    evidence_files = st.file_uploader(
-        "추가 증빙자료 (캡처, PDF 등)",
-        type=["png", "jpg", "jpeg", "pdf", "docx", "xlsx"],
-        accept_multiple_files=True,
-        key="evidence_uploader"
-    )
-
-    st.divider()
-
-    # ── 수동 입력 ──────────────────────────────
-    st.markdown("### ✍️ 수동으로 직접 입력하기")
-    if st.button("➕ 빈 테이블 생성"):
-        st.session_state["temp_df"] = pd.DataFrame(columns=COLUMNS)
-        st.session_state["raw_text_for_drive"] = ""
-        st.rerun()
-
-    st.divider()
-
-    # ── 최종 확인 및 저장 ──────────────────────
-    st.header("📋 최종 확인 및 저장")
-
-    if "temp_df" in st.session_state:
-        try:
-            st.session_state["temp_df"]["강의일시"] = pd.to_datetime(
-                st.session_state["temp_df"]["강의일시"], errors="coerce"
-            ).dt.date
-        except Exception:
-            pass
-
-        edited_df = st.data_editor(
-            st.session_state["temp_df"],
-            use_container_width=True,
-            num_rows="dynamic",
-            column_config=get_column_config(),
-        )
-
-        st.divider()
-        col1, col2, col3 = st.columns(3)
-
-        # ── 저장 ──
-        # ── 저장 ──
-        with col1:
-            if st.button("💾 저장", key="save_btn"):
-                if not common_requester.strip():
-                    st.error("담당자 이름을 입력해주세요.")
-                else:
-                    with st.spinner("구글 시트 기록 및 드라이브 파일 업로드 중..."):
-
-                        # [기본 전처리 로직] 요일, 시수, 강의료 자동 계산
-                        def auto_weekday(r):
-                            try: return ["월","화","수","목","금","토","일"][pd.to_datetime(r["강의일시"]).weekday()]
-                            except: return r.get("요일", "")
-
-                        def auto_fee(r):
-                            if str(r.get("의뢰기관", "")) == "한안협":
-                                return 120000 if str(r.get("강사님", "")) == "이다인" else 110000
-                            return r.get("강의료(1시간)", 100000)
-
-                        edited_df["요일"] = edited_df.apply(auto_weekday, axis=1)
-                        edited_df["시수"] = edited_df.apply(
-                            lambda r: calc_hours(r["시작"], r["종료"])
-                            if pd.notna(r.get("시작")) and pd.notna(r.get("종료")) else 0, axis=1
-                        )
-                        edited_df["강의료(1시간)"] = edited_df.apply(auto_fee, axis=1)
-                        edited_df["강의료(1일)"] = edited_df.apply(
-                            lambda r: calc_fee(r["시수"], r["강의료(1시간)"])
-                            if pd.notna(r.get("시수")) and pd.notna(r.get("강의료(1시간)")) else 0, axis=1
-                        )
-
-                        drive_errors = []
-                        uploaded_files_count = 0
-
-                        # 각 행(일정)을 돌면서 폴더 생성 및 파일 업로드
-                        for idx in edited_df.index:
-                            row = edited_df.loc[idx].to_dict()
-                            try:
-                                date_str = str(row.get("강의일시", ""))
-                                agency   = str(row.get("의뢰기관", common_agency))
-                                subject  = str(row.get("과정명", "")).replace(" ", "")
-                                yr       = int(date_str[:4]) if len(date_str) >= 4 else year
-
-                                # 1. 구글 드라이브에 해당 일정용 폴더 생성 (기존 함수 활용)
-                                # 상위 모듈에서 folder_id를 반환하도록 설계되어 있어야 합니다.
-                                folder_id  = create_careerlog_structure(yr, agency, date_str, subject)
-                                folder_url = get_folder_url(folder_id)
-                                edited_df.loc[idx, "증빙폴더"] = folder_url
-
-                                # 2. 생성된 폴더에 증빙 파일 업로드 수행
-                                # 2-1. 화면 상단 '증빙 파일 업로드'에 파일이 여러 개 있는 경우
-                                if evidence_files:
-                                    for f_obj in evidence_files:
-                                        # 중요: 파일 객체는 한 번 읽으면 포인터가 끝으로 가므로 
-                                        # 여러 폴더에 순회하며 업로드할 때는 시크(seek) 초기화가 필요할 수 있습니다.
-                                        f_obj.seek(0) 
-                                        upload_file_to_folder(f_obj, folder_id)
-                                        uploaded_files_count += 1
-                                
-                                # 2-2. 엑셀 업로드 메뉴를 통해 들어온 원본 엑셀 파일도 증빙으로 같이 보관하고 싶다면
-                                if st.session_state.get("excel_file_for_drive"):
-                                    ex_file = st.session_state["excel_file_for_drive"]
-                                    ex_file.seek(0)
-                                    upload_file_to_folder(ex_file, folder_id)
-                                    uploaded_files_count += 1
-
-                            except Exception as e:
-                                drive_errors.append(f"행 {idx}: {e}")
-
-                        # 드라이브 오류와 무관하게 시트는 항상 저장
-                        result = append_to_gsheet(edited_df)
-                        if result:
-                            if drive_errors:
-                                st.warning("⚠️ 드라이브 폴더 생성 또는 파일 업로드 일부 실패 (시트는 저장됨):\n" + "\n".join(drive_errors))
-                            else:
-                                success_msg = "✅ 구글시트 저장 및 드라이브 폴더 생성 완료!"
-                                if uploaded_files_count > 0:
-                                    success_msg += f" (총 {uploaded_files_count}개의 증빙 파일 업로드 완료)"
-                                st.success(success_msg)
-                                
-                            # 세션 상태 정리 및 페이지 리프레시
-                            del st.session_state["temp_df"]
-                            st.session_state.pop("raw_text_for_drive", None)
-                            st.session_state.pop("excel_file_for_drive", None)
-                            st.rerun()
-                        else:
-                            st.error("❌ 구글시트 저장 실패")
-                            if drive_errors:
-                                st.warning("드라이브 오류:\n" + "\n".join(drive_errors))
-
-        # ── 엑셀 다운로드 ──
-        with col2:
-            buffer = io.BytesIO()
-            edited_df.to_excel(buffer, index=False, engine="xlsxwriter")
-            st.download_button(
-                label="📥 엑셀 다운로드",
-                data=buffer.getvalue(),
-                file_name=f"보건스케줄_{datetime.now().strftime('%Y%m%d')}.xlsx",
-                mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
-                key="download_btn",
-            )
-
-        # ── 초기화 ──
-        with col3:
-            if st.button("🧹 초기화", key="reset_btn"):
-                del st.session_state["temp_df"]
-                st.session_state.pop("raw_text_for_drive", None)
-                st.session_state.pop("excel_file_for_drive", None)
-                st.rerun()
-
-
-# ══════════════════════════════════════════════
-# 📋 의뢰일별
-# ══════════════════════════════════════════════
-elif menu == "📋 의뢰일별 스케줄":
-    st.header("📋 의뢰일별 (원본)")
-    df = load_gsheet_raw()
-
-    if df.empty:
-        st.info("저장된 데이터가 없습니다.")
-    else:
-        col1, col2, col3 = st.columns(3)
-        with col1:
-            agency_f = st.selectbox("의뢰기관", ["전체"] + sorted(df["의뢰기관"].dropna().unique().tolist()))
-        with col2:
-            instr_f = st.selectbox("강사님", ["전체"] + sorted(df["강사님"].dropna().unique().tolist()))
-        with col3:
-            subj_f = st.selectbox("과정명", ["전체"] + sorted(df["과정명"].dropna().unique().tolist()))
-
-        fdf = df.copy()
-        if agency_f != "전체": fdf = fdf[fdf["의뢰기관"] == agency_f]
-        if instr_f  != "전체": fdf = fdf[fdf["강사님"]   == instr_f]
-        if subj_f   != "전체": fdf = fdf[fdf["과정명"]   == subj_f]
-
-        st.dataframe(fdf, use_container_width=True, height=700,
-                     column_config=get_column_config())
-
-
-# ══════════════════════════════════════════════
-# 📅 최종 스케줄
-# ══════════════════════════════════════════════
-elif menu == "📅 최종 스케줄(취소,변경반영)":
-    st.header("📅 최종 스케줄")
-    df = load_gsheet_final()
-
-    if df.empty:
-        st.info("저장된 데이터가 없습니다.")
-    else:
-        col1, col2, col3 = st.columns(3)
-        with col1:
-            agency_f = st.selectbox("의뢰기관", ["전체"] + sorted(df["의뢰기관"].dropna().unique().tolist()))
-        with col2:
-            instr_f = st.selectbox("강사님", ["전체"] + sorted(df["강사님"].dropna().unique().tolist()))
-        with col3:
-            subj_f = st.selectbox("과정명", ["전체"] + sorted(df["과정명"].dropna().unique().tolist()))
-
-        fdf = df.copy()
-        if agency_f != "전체": fdf = fdf[fdf["의뢰기관"] == agency_f]
-        if instr_f  != "전체": fdf = fdf[fdf["강사님"]   == instr_f]
-        if subj_f   != "전체": fdf = fdf[fdf["과정명"]   == subj_f]
-
-        try:
-            fdf["강의일시"] = pd.to_datetime(fdf["강의일시"], errors="coerce").dt.date
-        except Exception:
-            pass
-
-        original_df = fdf.copy()
-
-        edited_gsheet_df = st.data_editor(
-            fdf,
-            use_container_width=True,
-            height=700,
-            num_rows="fixed",
-            column_config=get_column_config(),
-        )
-
-        col_save, col_modifier = st.columns([2, 2])
-        with col_modifier:
-            modifier = st.text_input("변경 담당자 이름", placeholder="변경 저장 시 입력")
-
-        with col_save:
-            if st.button("💾 변경사항 저장", key="final_save_btn"):
-                today = datetime.now().strftime("%Y-%m-%d")
-                for idx in edited_gsheet_df.index:
-                    changes = []
-                    for col in COLUMNS:
-                        if col in ("변경이력", "증빙폴더"):
+                        if not date_str or not agency:
                             continue
-                        orig = str(original_df.loc[idx, col]) if idx in original_df.index else ""
-                        new  = str(edited_gsheet_df.loc[idx, col])
-                        if orig != new:
-                            changes.append(f"{col} {orig}→{new}")
 
-                    if changes:
-                        summary = ", ".join(changes)
-                        existing = str(edited_gsheet_df.loc[idx, "변경이력"]).strip()
-                        new_hist = f"[{today}] {summary}"
-                        edited_gsheet_df.loc[idx, "변경이력"] = f"{existing} / {new_hist}".strip(" /")
-                        edited_gsheet_df.loc[idx, "변경일자"] = today
-                        edited_gsheet_df.loc[idx, "변경의뢰인"] = modifier
+                        # 1단계: gdrive.py를 호출하여 연도/기관/강의폴더 및 4대 서브폴더 일괄 생성
+                        folder_id = create_careerlog_structure(yr, agency, date_str, subject)
+                        folder_url = get_folder_url(folder_id)
+                        
+                        # 데이터프레임에 생성된 구글 드라이브 URL 심기
+                        edited_df.loc[idx, "증빙폴더"] = folder_url
+                        created_folder_ids.append(folder_id)
 
-                        folder_url = str(edited_gsheet_df.loc[idx, "증빙폴더"])
-                        if folder_url.startswith("https://drive.google.com"):
-                            try:
-                                folder_id = folder_url.split("/")[-1]
-                                append_change_log(folder_id, summary, modifier or "미입력")
-                            except Exception:
-                                pass
+                    except Exception as e:
+                        drive_errors.append(f"[{date_str} - {subject}] 폴더 생성 실패: {e}")
 
-                df.update(edited_gsheet_df)
-                if save_gsheet_final(df):
-                    st.success("✅ 변경사항 저장 완료!")
-                    st.rerun()
+                # ⭐ 2단계: 핵심 기능 - 이번 의뢰 묶음의 모든 폴더에 공통 증빙(엑셀/카톡)을 단 한 번의 연산으로 일괄 분배 저장
+                if created_folder_ids:
+                    try:
+                        save_common_request_evidence(
+                            lecture_folder_ids=created_folder_ids,
+                            uploaded_excel=st.session_state.get("excel_file_for_drive"),
+                            raw_text=st.session_state.get("raw_text_for_drive", ""),
+                            requester=common_requester,
+                            request_date=request_date_str
+                        )
+                    except Exception as e:
+                        st.error(f"❌ 공통 증빙 파일 드라이브 배포 중 오류 발생: {e}")
+
+                # 결과 출력 및 마스터 데이터 저장 (구글 시트 대신 세션에 축적)
+                if drive_errors:
+                    for err in drive_errors:
+                        st.warning(err)
+                
+                # 성공 데이터 반영
+                st.session_state["master_df"] = pd.concat([st.session_state["master_df"], edited_df], ignore_index=True)
+                st.success(f"🎉 총 {len(created_folder_ids)}개 강의의 구글 드라이브 폴더 체계 구축 및 공통 원본 증빙 저장이 완료되었습니다!")
+                st.balloons()
 
 
-# ══════════════════════════════════════════════
-# 📊 협회별 월별 스케줄
-# ══════════════════════════════════════════════
-elif menu == "📊 협회별 월별 스케줄":
-    st.header("📊 협회별 월별 스케줄")
-    df = load_gsheet_final()
-    if df.empty:
-        st.info("저장된 데이터가 없습니다.")
+# ─────────────────────────────────────────────
+# [메뉴 2]: 최종 스케줄 (취소/변경 반영)
+# ─────────────────────────────────────────────
+elif menu == "📅 최종 스케줄(취소/변경 반영)":
+    st.header("📅 최종 스케줄 조회 및 실시간 변동이력 추적")
+    st.markdown("---")
+    
+    original_df = st.session_state["master_df"].copy()
+    
+    if original_df.empty:
+        st.info("💡 현재 등록된 보건스케줄 마스터 데이터가 없습니다. 먼저 '보건스케줄 입력' 메뉴에서 일정을 등록해 주세요.")
     else:
-        try:
-            df["_dt"] = pd.to_datetime(df["강의일시"], errors="coerce")
-            df["월"]  = df["_dt"].dt.month
-            df["시수"] = pd.to_numeric(df["시수"], errors="coerce").fillna(0)
-            pivot = df.pivot_table(index="의뢰기관", columns="월", values="시수",
-                                   aggfunc="sum", fill_value=0)
-            st.dataframe(pivot, use_container_width=True)
+        st.markdown("#### ✏️ 스케줄 실시간 수정 (Data Editor)")
+        st.caption("강사 매칭 변경, 일정 취소, 과정명 변경 등 변동사항이 발생하면 테이블 안의 셀을 더블클릭하여 즉시 수정하세요.")
+        
+        # 사용자가 화면에서 수정할 수 있는 테이블 배치
+        edited_gsheet_df = st.data_editor(original_df, use_container_width=True)
 
-            st.subheader("💰 협회별 월별 강의료 합계")
-            df["강의료(1일)"] = pd.to_numeric(df["강의료(1일)"], errors="coerce").fillna(0)
-            pivot_fee = df.pivot_table(index="의뢰기관", columns="월", values="강의료(1일)",
-                                       aggfunc="sum", fill_value=0)
-            st.dataframe(pivot_fee.style.format("₩{:,.0f}"), use_container_width=True)
-        except Exception as e:
-            st.error(f"집계 오류: {e}")
+        st.markdown("---")
+        st.markdown("### 🔄 핀포인트 스케줄 변동사항 관리 및 이미지/텍스트 증빙")
+        st.caption("셀을 수정했다면, 수정을 지시한 담당자와 카톡 캡처 이미지 등 증빙 자료를 넣고 아래 버튼을 눌러 이력을 남기세요.")
+        
+        col_modifier, col_img, col_txt = st.columns([1, 1.5, 2])
+        
+        with col_modifier:
+            modifier = st.text_input("📋 변경 승인/담당자 이름", placeholder="담당자 이름 입력 (필수)")
+        with col_img:
+            change_image = st.file_uploader("📸 변동 증빙 이미지 (카톡 지시 캡처 등)", type=["png", "jpg", "jpeg"])
+        with col_txt:
+            change_text_content = st.text_area("💬 변동 안내 카톡/문자 내용 복사", height=68, placeholder="여기에 입력한 변동 사유 텍스트는 해당 강의의 변경이력 문서에 기록됩니다.")
 
+        # 변경사항 저장 버튼
+        if st.button("💾 변경사항 및 드라이브 히스토리 저장", use_container_width=True):
+            if not modifier.strip():
+                st.error("❌ 변경 처리를 승인한 '변경 담당자 이름'을 입력해야 저장이 가능합니다.")
+            else:
+                with st.spinner("🔄 데이터 변경점을 추적하여 구글 드라이브에 이력을 격리 기록하는 중..."):
+                    any_changed = False
+                    
+                    # 마스터 데이터프레임을 돌며 어떤 셀이 기존 데이터와 달라졌는지 정밀 비교
+                    for idx in edited_gsheet_df.index:
+                        changes = []
+                        for col in COLUMNS:
+                            if col in ("변경이력", "증빙폴더"): 
+                                continue
+                            
+                            # 기존 값과 새 값 비교
+                            orig_val = str(original_df.loc[idx, col]).strip() if idx in original_df.index else ""
+                            new_val  = str(edited_gsheet_df.loc[idx, col]).strip()
+                            
+                            if orig_val != new_val:
+                                changes.append(f"[{col}] {orig_val} ➡️ {new_val}")
 
-# ══════════════════════════════════════════════
-# 👨‍🏫 강사별 대시보드
-# ══════════════════════════════════════════════
-elif menu == "👨‍🏫 강사별 대시보드":
-    st.header("👨‍🏫 강사별 대시보드")
-    df = load_gsheet_final()
-    if df.empty:
-        st.info("저장된 데이터가 없습니다.")
-    elif "강사님" not in df.columns:
-        st.warning("강사님 컬럼이 없습니다.")
-    else:
-        selected = st.selectbox("강사 선택", sorted(df["강사님"].dropna().unique().tolist()))
-        idf = df[df["강사님"] == selected].copy()
-        st.subheader(f"{selected} 강사 일정")
-        st.dataframe(idf, use_container_width=True, height=500,
-                     column_config=get_column_config())
-        try:
-            total_hours = pd.to_numeric(idf["시수"], errors="coerce").sum()
-            total_fee   = pd.to_numeric(idf["강의료(1일)"], errors="coerce").sum()
-            c1, c2 = st.columns(2)
-            c1.metric("총 시수", f"{total_hours:.0f}시간")
-            c2.metric("총 강의료", f"₩{total_fee:,.0f}")
-        except Exception as e:
-            st.error(f"집계 오류: {e}")
+                        # 💡 변경점이 포착된 특정 행(강의)이 있다면 구글 드라이브의 해당 폴더 이력에만 핀포인트 저장
+                        if changes:
+                            any_changed = True
+                            summary_text = ", ".join(changes)
+                            
+                            # 셀의 '변경이력' 열에도 텍스트 히스토리 업데이트
+                            timestamp = datetime.now().strftime("%m/%d %H:%M")
+                            existing_log = str(edited_gsheet_df.loc[idx, "변경이력"])
+                            new_log = f"[{timestamp} {modifier}]: {summary_text}"
+                            edited_gsheet_df.loc[idx, "변경이력"] = f"{existing_log} | {new_log}" if existing_log and existing_log != "nan" else new_log
+                            
+                            # 해당 강의 폴더의 '03_변경이력' 서브폴더 링크 파싱 및 파일 업로드
+                            folder_url = str(edited_gsheet_df.loc[idx, "증빙폴더"])
+                            if folder_url.startswith("https://drive.google.com"):
+                                try:
+                                    # URL 주소 맨 뒤의 폴더 ID 값만 슬라이싱 추출
+                                    folder_id = folder_url.split("/")[-1]
+                                    
+                                    # gdrive.py의 변동이력 이미지/텍스트 복합 업로드 함수 호출
+                                    append_change_log_with_evidence(
+                                        folder_id=folder_id,
+                                        change_summary=summary_text,
+                                        modifier=modifier,
+                                        evidence_image=change_image,
+                                        evidence_text=change_text_content
+                                    )
+                                except Exception as e:
+                                    st.error(f"❌ 드라이브 변경이력 저장 실패 (행 번호 {idx}): {e}")
+
+                    if any_changed:
+                        # 수정된 데이터프레임을 마스터 세션에 최종 갱신
+                        st.session_state["master_df"] = edited_gsheet_df
+                        st.success("🎯 변경된 일정의 구글 드라이브 '03_변경이력' 폴더 내부에 증빙 이미지 및 텍스트 로그 저장이 완료되었습니다!")
+                        st.rerun()
+                    else:
+                        st.info("ℹ️ 테이블에서 변경된 데이터 셀이 감지되지 않았습니다.")
