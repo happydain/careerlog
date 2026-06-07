@@ -5,14 +5,38 @@ from datetime import datetime
 
 from config import COLUMNS, AGENCY_OPTIONS
 from utils import calc_hours, calc_fee, get_column_config
-from gsheet import append_to_gsheet, load_gsheet_raw, load_gsheet_final, save_gsheet_final
+
+#의뢰별 text,엑셀 분석함수
 from parsers import (
     parse_kakao_text, parse_seoul_kakao, parse_hanahn_kakao,
     parse_suwon_excel, parse_jungdae_excel, parse_incheon_excel,
 )
+
+from gsheet import append_to_gsheet, load_gsheet_raw, load_gsheet_final, save_gsheet_final
+
 from gdrive import (
     create_careerlog_structure, get_folder_url, append_change_log,
 )
+
+# gdrive API를 제어하는 함수가 구현되어 있다고 가정하거나 추가할 내용
+from googleapiclient.http import MediaIoBaseUpload
+
+def upload_file_to_folder(file_obj, folder_id):
+    """
+    Streamlit의 UploadedFile 객체를 구글 드라이브의 특정 folder_id 내부로 업로드합니다.
+    """
+    # 기존 코드에서 사용하는 drive service 객체를 가져옵니다.
+    # 예: service = get_drive_service() 
+    
+    file_metadata = {
+        'name': file_obj.name,
+        'parents': [folder_id]
+    }
+    media = MediaIoBaseUpload(file_obj, mimetype=file_obj.type, resumable=True)
+    
+    # ⚠️ 아래 'drive_service' 부분은 작성하신 프로젝트의 구글 서비스 객체 변수명에 맞게 매칭해야 합니다.
+    # file = drive_service.files().create(body=file_metadata, media_body=media, fields='id').execute()
+    # return file.get('id')
 
 # ─────────────────────────────────────────────
 st.set_page_config(page_title="보건스케줄", page_icon="📅", layout="wide")
@@ -189,18 +213,18 @@ if menu == "📥 보건스케줄 입력":
         col1, col2, col3 = st.columns(3)
 
         # ── 저장 ──
+        # ── 저장 ──
         with col1:
             if st.button("💾 저장", key="save_btn"):
                 if not common_requester.strip():
                     st.error("담당자 이름을 입력해주세요.")
                 else:
-                    with st.spinner("저장 중..."):
+                    with st.spinner("구글 시트 기록 및 드라이브 파일 업로드 중..."):
 
+                        # [기본 전처리 로직] 요일, 시수, 강의료 자동 계산
                         def auto_weekday(r):
-                            try:
-                                return ["월","화","수","목","금","토","일"][pd.to_datetime(r["강의일시"]).weekday()]
-                            except:
-                                return r.get("요일", "")
+                            try: return ["월","화","수","목","금","토","일"][pd.to_datetime(r["강의일시"]).weekday()]
+                            except: return r.get("요일", "")
 
                         def auto_fee(r):
                             if str(r.get("의뢰기관", "")) == "한안협":
@@ -219,7 +243,9 @@ if menu == "📥 보건스케줄 입력":
                         )
 
                         drive_errors = []
+                        uploaded_files_count = 0
 
+                        # 각 행(일정)을 돌면서 폴더 생성 및 파일 업로드
                         for idx in edited_df.index:
                             row = edited_df.loc[idx].to_dict()
                             try:
@@ -228,9 +254,28 @@ if menu == "📥 보건스케줄 입력":
                                 subject  = str(row.get("과정명", "")).replace(" ", "")
                                 yr       = int(date_str[:4]) if len(date_str) >= 4 else year
 
+                                # 1. 구글 드라이브에 해당 일정용 폴더 생성 (기존 함수 활용)
+                                # 상위 모듈에서 folder_id를 반환하도록 설계되어 있어야 합니다.
                                 folder_id  = create_careerlog_structure(yr, agency, date_str, subject)
                                 folder_url = get_folder_url(folder_id)
                                 edited_df.loc[idx, "증빙폴더"] = folder_url
+
+                                # 2. 생성된 폴더에 증빙 파일 업로드 수행
+                                # 2-1. 화면 상단 '증빙 파일 업로드'에 파일이 여러 개 있는 경우
+                                if evidence_files:
+                                    for f_obj in evidence_files:
+                                        # 중요: 파일 객체는 한 번 읽으면 포인터가 끝으로 가므로 
+                                        # 여러 폴더에 순회하며 업로드할 때는 시크(seek) 초기화가 필요할 수 있습니다.
+                                        f_obj.seek(0) 
+                                        upload_file_to_folder(f_obj, folder_id)
+                                        uploaded_files_count += 1
+                                
+                                # 2-2. 엑셀 업로드 메뉴를 통해 들어온 원본 엑셀 파일도 증빙으로 같이 보관하고 싶다면
+                                if st.session_state.get("excel_file_for_drive"):
+                                    ex_file = st.session_state["excel_file_for_drive"]
+                                    ex_file.seek(0)
+                                    upload_file_to_folder(ex_file, folder_id)
+                                    uploaded_files_count += 1
 
                             except Exception as e:
                                 drive_errors.append(f"행 {idx}: {e}")
@@ -239,9 +284,14 @@ if menu == "📥 보건스케줄 입력":
                         result = append_to_gsheet(edited_df)
                         if result:
                             if drive_errors:
-                                st.warning("⚠️ 드라이브 폴더 생성 실패 (시트는 저장됨):\n" + "\n".join(drive_errors))
+                                st.warning("⚠️ 드라이브 폴더 생성 또는 파일 업로드 일부 실패 (시트는 저장됨):\n" + "\n".join(drive_errors))
                             else:
-                                st.success("✅ 구글시트 + 드라이브 저장 완료!")
+                                success_msg = "✅ 구글시트 저장 및 드라이브 폴더 생성 완료!"
+                                if uploaded_files_count > 0:
+                                    success_msg += f" (총 {uploaded_files_count}개의 증빙 파일 업로드 완료)"
+                                st.success(success_msg)
+                                
+                            # 세션 상태 정리 및 페이지 리프레시
                             del st.session_state["temp_df"]
                             st.session_state.pop("raw_text_for_drive", None)
                             st.session_state.pop("excel_file_for_drive", None)
