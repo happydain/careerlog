@@ -1,10 +1,5 @@
 """
-Google Drive 연동 모듈 (이전 버전 복구본)
-- CareerLog/연도/기관/강의폴더 자동 생성
-- 원본 카톡 텍스트 → 구글 Docs로 저장 (용량 무료)
-- 증빙 이미지/파일 업로드
-- 변경이력 자동 기록
-- 폴더 URL 반환
+Google Drive 연동 모듈 (기존 코드 100% 유지)
 """
 
 import io
@@ -30,10 +25,6 @@ def get_drive_service():
         _drive_service = build("drive", "v3", credentials=creds)
     return _drive_service
 
-
-# ─────────────────────────────────────────────
-# 폴더 관리
-# ─────────────────────────────────────────────
 
 def _find_folder(service, name, parent_id):
     q = (
@@ -86,12 +77,7 @@ def get_folder_url(folder_id: str) -> str:
     return f"https://drive.google.com/drive/folders/{folder_id}"
 
 
-# ─────────────────────────────────────────────
-# 파일 업로드
-# ─────────────────────────────────────────────
-
 def _upload_text(service, filename: str, content: str, parent_id: str) -> str:
-    """텍스트를 구글 Docs로 저장 (용량 무료)"""
     meta = {
         "name": filename,
         "mimeType": "application/vnd.google-apps.document",
@@ -111,16 +97,10 @@ def _upload_text(service, filename: str, content: str, parent_id: str) -> str:
 
 
 def _upload_bytes(service, filename: str, data: bytes, mimetype: str, parent_id: str) -> str:
-    """
-    파일 업로드
-    - DOCX → 구글 Docs로 변환 저장 (용량 무료)
-    - 이미지/PDF → 그대로 저장
-    """
     meta = {
         "name": filename,
         "parents": [parent_id]
     }
-
     if "wordprocessingml" in mimetype:
         meta["mimeType"] = "application/vnd.google-apps.document"
 
@@ -135,7 +115,6 @@ def _upload_bytes(service, filename: str, data: bytes, mimetype: str, parent_id:
 
 
 def save_original_text(folder_id: str, text: str, requester: str, request_date: str):
-    """01_원본의뢰/ 에 카톡 원문을 구글 Docs로 저장"""
     service = get_drive_service()
     sub_id = _get_or_create_folder(service, "01_원본의뢰", folder_id)
     safe_date = str(request_date).replace("-", "")
@@ -145,7 +124,6 @@ def save_original_text(folder_id: str, text: str, requester: str, request_date: 
 
 
 def save_evidence_files(folder_id: str, uploaded_files):
-    """01_원본의뢰/ 에 증빙 파일들 업로드"""
     if not uploaded_files:
         return
     service = get_drive_service()
@@ -157,7 +135,6 @@ def save_evidence_files(folder_id: str, uploaded_files):
 
 
 def save_docx_to_drive(folder_id: str, docx_bytes: bytes, filename: str):
-    """02_의뢰서/ 에 DOCX를 구글 Docs로 변환 저장"""
     service = get_drive_service()
     sub_id = _get_or_create_folder(service, "02_의뢰서", folder_id)
     mimetype = "application/vnd.openxmlformats-officedocument.wordprocessingml.document"
@@ -165,7 +142,6 @@ def save_docx_to_drive(folder_id: str, docx_bytes: bytes, filename: str):
 
 
 def append_change_log(folder_id: str, change_summary: str, modifier: str):
-    """03_변경이력/ 에 변경내역을 구글 Docs로 저장"""
     service = get_drive_service()
     sub_id = _get_or_create_folder(service, "03_변경이력", folder_id)
     today = datetime.now().strftime("%Y%m%d_%H%M")
@@ -183,8 +159,6 @@ def append_change_log(folder_id: str, change_summary: str, modifier: str):
 def create_careerlog_structure(year, agency, lecture_date, subject):
     lecture_folder_id = get_lecture_folder_id(year, agency, lecture_date, subject)
     service = get_drive_service()
-
     for folder_name in ["01_원본의뢰", "02_의뢰서", "03_변경이력", "04_정산"]:
         _get_or_create_folder(service, folder_name, lecture_folder_id)
-
     return lecture_folder_id
