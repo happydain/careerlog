@@ -196,8 +196,37 @@ if menu == "📥 보건스케줄 입력":
                 else:
                     with st.spinner("저장 중..."):
 
+                        # 🛠️ 수정한 문법 오류 해결 영역
                         def auto_weekday(r):
                             try:
                                 return ["월","화","수","목","금","토","일"][pd.to_datetime(r["강의일시"]).weekday()]
                             except:
-                                return r.get("요일
+                                return r.get("요일", "")
+
+                        def auto_fee(r):
+                            if str(r.get("의뢰기관", "")) == "한안협":
+                                return 120000 if str(r.get("강사님", "")) == "이다인" else 110000
+                            return r.get("강의료(1시간)", 100000)
+
+                        edited_df["요일"] = edited_df.apply(auto_weekday, axis=1)
+                        edited_df["시수"] = edited_df.apply(
+                            lambda r: calc_hours(r["시작"], r["종료"])
+                            if pd.notna(r.get("시작")) and pd.notna(r.get("종료")) else 0, axis=1
+                        )
+                        edited_df["강의료(1시간)"] = edited_df.apply(auto_fee, axis=1)
+                        edited_df["강의료(1일)"] = edited_df.apply(
+                            lambda r: calc_fee(r["시수"], r["강의료(1시간)"])
+                            if pd.notna(r.get("시수")) and pd.notna(r.get("강의료(1시간)")) else 0, axis=1
+                        )
+
+                        drive_errors = []
+
+                        for idx in edited_df.index:
+                            row = edited_df.loc[idx].to_dict()
+                            try:
+                                date_str = str(row.get("강의일시", ""))
+                                agency   = str(row.get("의뢰기관", common_agency))
+                                subject  = str(row.get("과정명", "")).replace(" ", "")
+                                yr       = int(date_str[:4]) if len(date_str) >= 4 else year
+
+                                folder_id  = create_careerlog_structure(yr, agency, date_str, subject)
