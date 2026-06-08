@@ -5,21 +5,18 @@ from datetime import datetime
 
 from config import COLUMNS, AGENCY_OPTIONS
 from utils import calc_hours, calc_fee, get_column_config
-
 from gsheet import (
     append_to_gsheet, load_gsheet_raw, load_gsheet_final,
     save_gsheet_final, append_evidence_to_sheet,
     create_evidence_spreadsheet,
 )
-
-
-from gdrive import (
-    create_request_folder, get_folder_url, append_change_log, save_kakao_text,
-)
-
 from parsers import (
     parse_kakao_text, parse_seoul_kakao, parse_hanahn_kakao,
     parse_suwon_excel, parse_jungdae_excel, parse_incheon_excel,
+)
+from gdrive import (
+    create_request_folder, get_folder_url, append_change_log,
+)
 
 # ─────────────────────────────────────────────
 st.set_page_config(page_title="보건스케줄", page_icon="📅", layout="wide")
