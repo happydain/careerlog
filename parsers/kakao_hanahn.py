@@ -49,7 +49,7 @@ def _parse_date(clean, year):
     return None
 
 
-def parse_hanahn_kakao(text, year, requester, request_date):
+def parse_hanahn_kakao(text, year, requester, request_date, request_method=""):
     rows = []
     lines = [line.strip() for line in text.splitlines() if line.strip()]
     current_date = None
@@ -87,6 +87,8 @@ def parse_hanahn_kakao(text, year, requester, request_date):
                                    "", _get_hanahn_fee(""))
                     row["의뢰인"] = requester
                     row["의뢰일"] = request_date
+                    row["의뢰방법"] = request_method  # ← 없음
+
                     rows.append(row)
             continue
 
@@ -115,6 +117,8 @@ def parse_hanahn_kakao(text, year, requester, request_date):
                                    "", _get_hanahn_fee(""))
                     row["의뢰인"] = requester
                     row["의뢰일"] = request_date
+                    row["의뢰방법"] = request_method
+
                     rows.append(row)
             else:
                 final = detect_subject(subject_part) or subject_part
@@ -123,6 +127,8 @@ def parse_hanahn_kakao(text, year, requester, request_date):
                                "", _get_hanahn_fee(""))
                 row["의뢰인"] = requester
                 row["의뢰일"] = request_date
+                row["의뢰방법"] = request_method
+
                 rows.append(row)
 
     return pd.DataFrame(rows, columns=COLUMNS)
