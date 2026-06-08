@@ -118,3 +118,30 @@ def append_change_log(folder_id: str, change_summary: str, modifier: str):
         fields="id",
         supportsAllDrives=True
     ).execute()
+
+def save_kakao_text(folder_id: str, text: str, requester: str, request_date: str):
+    """카톡 원문을 구글 Docs로 저장 (용량 무료)"""
+    service = get_drive_service()
+    filename = f"{request_date.replace('-','')}_{requester}_원본카톡"
+    content = (
+        f"[원본 카톡 내용]\n"
+        f"의뢰일: {request_date}\n"
+        f"의뢰인: {requester}\n"
+        f"{'='*40}\n\n"
+        f"{text}"
+    )
+    meta = {
+        "name": filename,
+        "mimeType": "application/vnd.google-apps.document",
+        "parents": [folder_id]
+    }
+    media = MediaIoBaseUpload(
+        io.BytesIO(content.encode("utf-8")),
+        mimetype="text/plain"
+    )
+    service.files().create(
+        body=meta,
+        media_body=media,
+        fields="id",
+        supportsAllDrives=True
+    ).execute()
