@@ -12,7 +12,7 @@ from gsheet import (
     create_evidence_spreadsheet,
 )
 
-)
+
 from gdrive import (
     create_request_folder, get_folder_url, append_change_log, save_kakao_text,
 )
