@@ -2,6 +2,8 @@ import io
 import pandas as pd
 import streamlit as st
 from datetime import datetime
+from gsheet import append_to_gsheet, load_gsheet_raw, load_gsheet_final, save_gsheet_final, append_evidence_to_sheet
+
 
 from config import COLUMNS, AGENCY_OPTIONS
 from utils import calc_hours, calc_fee, get_column_config
@@ -145,12 +147,10 @@ if menu == "📥 보건스케줄 입력":
     st.divider()
 
     # ── 증빙 파일 업로드 ────────────────────────
-    st.markdown("### 📎 증빙 파일 업로드 (카톡 캡처, PDF 등)")
-    if st.session_state.get("excel_file_for_drive"):
-        st.success(f"📎 엑셀 파일 자동 포함: **{st.session_state['excel_file_for_drive'].name}**")
-
+    st.markdown("### 📎 증빙 파일 업로드")
+    st.info("💡 엑셀, 이미지, PDF 업로드 시 구글 시트 '증빙' 탭에 자동 기록됩니다.")
     evidence_files = st.file_uploader(
-        "추가 증빙자료 (캡처, PDF 등)",
+        "증빙자료 업로드",
         type=["png", "jpg", "jpeg", "pdf", "docx", "xlsx"],
         accept_multiple_files=True,
         key="evidence_uploader"
@@ -231,6 +231,9 @@ if menu == "📥 보건스케줄 입력":
                                 folder_id  = create_careerlog_structure(yr, agency, date_str, subject)
                                 folder_url = get_folder_url(folder_id)
                                 edited_df.loc[idx, "증빙폴더"] = folder_url
+                                
+                                if evidence_files and idx == edited_df.index[0]:  # 첫 행에서만 한 번 실행
+                                    append_evidence_to_sheet(f"{date_str}_{subject}", evidence_files)    
 
                             except Exception as e:
                                 drive_errors.append(f"행 {idx}: {e}")
