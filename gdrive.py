@@ -171,3 +171,19 @@ def save_kakao_text(folder_id: str, text: str, requester: str, request_date: str
         body=meta, media_body=media,
         fields="id", supportsAllDrives=True
     ).execute()
+
+
+TEMPLATE_DOC_ID = "1ZYpR5P46QOUMKxss6gFcy7_Xhq2e2X88HSLqpft_r5I/edit?tab=t.0"  # config.py로 옮겨도 됨
+
+def create_doc_from_template(folder_id: str, filename: str, content: str):
+    """템플릿 Docs 복사 후 내용 입력"""
+    service = get_drive_service()
+    
+    # 파일 복사
+    copied = service.files().copy(
+        fileId=TEMPLATE_DOC_ID,
+        body={"name": filename, "parents": [folder_id]},
+        supportsAllDrives=True
+    ).execute()
+    
+    return copied["id"]
