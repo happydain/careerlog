@@ -19,13 +19,9 @@ st.set_page_config(page_title="보건스케줄", page_icon="📅", layout="wide"
 # ─────────────────────────────────────────────
 
 st.sidebar.title("📅 CareerLog")
-menu = st.sidebar.radio("메뉴 선택", [
-    "📥 보건스케줄 입력",
-    "📋 의뢰일별 스케줄",
-    "📅 최종 스케줄(취소,변경반영)",
-    "📊 협회별 월별 스케줄",
-    "👨‍🏫 강사별 대시보드",
-])
+default_menu = st.session_state.pop("_menu", "📥 보건스케줄 입력")
+menu_options = ["📥 보건스케줄 입력", "📋 의뢰일별 스케줄", "📅 최종 스케줄(취소,변경반영)", "📊 협회별 월별 스케줄", "👨‍🏫 강사별 대시보드"]
+menu = st.sidebar.radio("메뉴 선택", menu_options, index=menu_options.index(default_menu))
 
 st.title("📅 보건스케줄 자동정리")
 
@@ -244,17 +240,22 @@ if menu == "📥 보건스케줄 입력":
                         # 드라이브 오류와 무관하게 시트는 항상 저장
                         result = append_to_gsheet(edited_df)
                         if result:
-                            if drive_errors:
+                             if drive_errors:
                                 st.warning("⚠️ 드라이브 폴더 생성 실패 (시트는 저장됨):\n" + "\n".join(drive_errors))
                             else:
                                 st.success("✅ 구글시트 + 드라이브 저장 완료!")
                             del st.session_state["temp_df"]
                             st.session_state.pop("raw_text_for_drive", None)
                             st.session_state.pop("excel_file_for_drive", None)
-                            if st.button("📋 의뢰일별 스케줄 확인하기", key="go_to_raw"):
-                                st.session_state["menu"] = "📋 의뢰일별 스케줄"
+                            st.session_state["saved_done"] = True
                             st.rerun()
-
+        if st.session_state.get("saved_done"):
+            st.success("✅ 저장 완료!")
+            if st.button("📋 의뢰일별 스케줄 확인하기", key="go_to_raw"):
+                st.session_state.pop("saved_done")
+                st.session_state["_menu"] = "📋 의뢰일별 스케줄"
+                st.rerun()
+        
         # ── 엑셀 다운로드 ──
         with col2:
             buffer = io.BytesIO()
