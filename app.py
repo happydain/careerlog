@@ -54,10 +54,14 @@ if menu == "📥 보건스케줄 입력":
 
     col1, col2, col3, col4 = st.columns(4)
     with col1:
-        year = st.selectbox("기준 연도", list(range(2022, 2036)),
-                            index=list(range(2024, 2036)).index(datetime.now().year))
+    year = st.selectbox("기준 연도", list(range(2022, 2036)),
+                        index=list(range(2022, 2036)).index(datetime.now().year))
     with col2:
-        common_date = st.date_input("의뢰일", value=datetime.now(), format="YYYY/MM/DD")
+        default_date = datetime(year, datetime.now().month, datetime.now().day)
+        try:
+            common_date = st.date_input("의뢰일", value=default_date, format="YYYY/MM/DD")
+        except Exception:
+            common_date = st.date_input("의뢰일", value=datetime.now(), format="YYYY/MM/DD")
     with col3:
         @st.cache_data(ttl=300)
         def get_requester_list():
