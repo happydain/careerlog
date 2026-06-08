@@ -64,16 +64,16 @@ def _get_or_create_folder(service, name, parent_id):
 
 
 def create_request_folder(year: int, agency: str, request_date: str, requester: str) -> str:
-    """의뢰 1건 = 폴더 1개: CareerLog/연도/기관/날짜_의뢰인/의뢰_1건"""
+    """CareerLog/연도/기관/날짜_의뢰인_의뢰N건"""
     service = get_drive_service()
-    year_id    = _get_or_create_folder(service, str(year), DRIVE_ROOT_FOLDER_ID)
-    agency_id  = _get_or_create_folder(service, agency, year_id)
-    base_name  = f"{request_date.replace('-', '')}_{requester}"
-    base_id    = _get_or_create_folder(service, base_name, agency_id)
+    year_id   = _get_or_create_folder(service, str(year), DRIVE_ROOT_FOLDER_ID)
+    agency_id = _get_or_create_folder(service, agency, year_id)
 
-    # 기존 의뢰_N건 폴더 개수 세기
+    # 기존 의뢰N건 폴더 개수 세기
+    base = f"{request_date.replace('-', '')}_{requester}"
     q = (
-        f"'{base_id}' in parents "
+        f"name contains '{base}_의뢰' "
+        f"and '{agency_id}' in parents "
         f"and mimeType='application/vnd.google-apps.folder' "
         f"and trashed=false"
     )
@@ -83,7 +83,8 @@ def create_request_folder(year: int, agency: str, request_date: str, requester: 
         includeItemsFromAllDrives=True
     ).execute()
     count = len(result.get("files", [])) + 1
-    folder_id = _get_or_create_folder(service, f"의뢰_{count}건", base_id)
+    folder_name = f"{base}_의뢰{count}건"
+    folder_id = _create_folder(service, folder_name, agency_id)
     return folder_id
 
 
@@ -144,4 +145,29 @@ def save_kakao_text(folder_id: str, text: str, requester: str, request_date: str
         media_body=media,
         fields="id",
         supportsAllDrives=True
+    ).execute()
+
+def save_kakao_text(folder_id: str, text: str, requester: str, request_date: str):
+    """카톡 원문을 구글 Docs로 저장"""
+    service = get_drive_service()
+    filename = f"원본카톡_{request_date.replace('-','')}"
+    content = (
+        f"[원본 카톡 내용]\n"
+        f"의뢰일: {request_date}\n"
+        f"의뢰인: {requester}\n"
+        f"{'='*40}\n\n"
+        f"{text}"
+    )
+    meta = {
+        "name": filename,
+        "mimeType": "application/vnd.google-apps.document",
+        "parents": [folder_id]
+    }
+    media = MediaIoBaseUpload(
+        io.BytesIO(content.encode("utf-8")),
+        mimetype="text/plain"
+    )
+    service.files().create(
+        body=meta, media_body=media,
+        fields="id", supportsAllDrives=True
     ).execute()
