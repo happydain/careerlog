@@ -2,7 +2,7 @@ import re
 import pandas as pd
 from datetime import datetime
 from config import COLUMNS, DEFAULT_INDUSTRY
-from utils import detect_target, detect_subject, parse_time_range, make_row
+from utils import detect_target, detect_subject, parse_time_range, make_row, extract_instructor
 
 
 def _get_hanahn_fee(instructor):
@@ -82,9 +82,10 @@ def parse_hanahn_kakao(text, year, requester, request_date, request_method=""):
                     subject_part = re.sub(r"오전|오후|산업현장", "", subject_part).strip()
                     subject_part = re.sub(r"^[-\s]+", "", subject_part).strip()
                     final = detect_subject(subject_part) or subject_part or "응급처치"
+                    instructor = extract_instructor(clean)
                     row = make_row(current_date, start, end, "한안협", final,
                                    current_target, current_industry, current_location,
-                                   "", _get_hanahn_fee(""))
+                                   instructor, _get_hanahn_fee(instructor))
                     row["의뢰인"] = requester
                     row["의뢰일"] = request_date
                     row["의뢰방법"] = request_method  # ← 없음
