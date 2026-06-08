@@ -70,12 +70,15 @@ if menu == "📥 보건스케줄 입력":
             return sorted([n for n in names if n.strip()])
 
         existing_requesters = get_requester_list()
-        requester_options = ["직접 입력"] + existing_requesters
-        selected_requester = st.selectbox("의뢰인", requester_options)
-        if selected_requester == "직접 입력":
-            common_requester = st.text_input("이름 입력")
+        if existing_requesters:
+            requester_options = existing_requesters + ["직접 입력"]
+            selected_requester = st.selectbox("의뢰인", requester_options)
+            if selected_requester == "직접 입력":
+                common_requester = st.text_input("새 이름 입력")
+            else:
+                common_requester = selected_requester
         else:
-            common_requester = selected_requester
+            common_requester = st.text_input("의뢰인")
     with col4:
         common_method = st.selectbox("의뢰방법", ["카카오톡엑셀", "카카오톡문자", "이메일", "전화", "문자", "기타"])
 
