@@ -14,6 +14,8 @@ from google.oauth2.service_account import Credentials
 from googleapiclient.discovery import build
 from googleapiclient.http import MediaIoBaseUpload
 from config import DRIVE_ROOT_FOLDER_ID
+from datetime import datetime
+
 
 SCOPES = ["https://www.googleapis.com/auth/drive"]
 
@@ -209,3 +211,41 @@ def create_careerlog_structure(
         )
 
     return lecture_folder_id
+
+def append_evidence_to_sheet(folder_name: str, files):
+    """증빙 파일 내용을 구글 시트 '증빙' 탭에 기록"""
+    try:
+        client = get_gsheet_client()
+        sheet = get_or_create_sheet(client, "증빙")
+        
+        # 헤더 확인
+        evidence_columns = ["폴더명", "파일명", "업로드일시", "내용"]
+        existing = sheet.get_all_values()
+        if not existing or existing[0] != evidence_columns:
+            sheet.clear()
+            sheet.append_row(evidence_columns)
+        
+        now = datetime.now().strftime("%Y-%m-%d %H:%M")
+        rows = []
+        
+        for f in files:
+            f.seek(0)
+            # 엑셀이면 내용 읽기
+            if f.name.endswith(".xlsx"):
+                df = pd.read_excel(f, sheet_name=0)
+                content = df.to_csv(index=False)
+            # 텍스트 계열이면 내용 읽기
+            elif f.type and "text" in f.type:
+                content = f.read().decode("utf-8", errors="ignore")
+            # 이미지/PDF는 파일명만
+            else:
+                content = f"[{f.type}] 파일"
+            
+            rows.append([folder_name, f.name, now, content[:5000]])
+        
+        if rows:
+            sheet.append_rows(rows)
+        return True
+    except Exception as e:
+        st.error(f"증빙 저장 오류: {e}")
+        return False
