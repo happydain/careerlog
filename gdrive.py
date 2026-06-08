@@ -173,17 +173,38 @@ def save_kakao_text(folder_id: str, text: str, requester: str, request_date: str
     ).execute()
 
 
-TEMPLATE_DOC_ID = "1ZYpR5P46QOUMKxss6gFcy7_Xhq2e2X88HSLqpft_r5I/edit?tab=t.0"  # config.py로 옮겨도 됨
+TEMPLATE_DOC_ID = "1ls2TMEvsgRnHiYWQsZmV8rZdMOsFKoq8SPWeQXNE_nU"  
 
-def create_doc_from_template(folder_id: str, filename: str, content: str):
-    """템플릿 Docs 복사 후 내용 입력"""
-    service = get_drive_service()
-    
-    # 파일 복사
-    copied = service.files().copy(
-        fileId=TEMPLATE_DOC_ID,
-        body={"name": filename, "parents": [folder_id]},
-        supportsAllDrives=True
-    ).execute()
-    
-    return copied["id"]
+def create_evidence_sheet(folder_id: str, filename: str, raw_text: str, requester: str, request_date: str):
+    """템플릿 시트 복사 후 카톡 내용 입력"""
+    try:
+        from googleapiclient.discovery import build
+        from google.oauth2.service_account import Credentials
+        from config import EVIDENCE_TEMPLATE_ID
+
+        creds = Credentials.from_service_account_info(
+            dict(st.secrets["google_gsheets"]),
+            scopes=["https://www.googleapis.com/auth/drive",
+                    "https://www.googleapis.com/auth/spreadsheets"]
+        )
+        drive_service = build("drive", "v3", credentials=creds)
+
+        # 템플릿 복사
+        copied = drive_service.files().copy(
+            fileId=EVIDENCE_TEMPLATE_ID,
+            body={"name": filename, "parents": [folder_id]},
+            supportsAllDrives=True
+        ).execute()
+
+        # 내용 입력
+        client = get_gsheet_client()
+        spreadsheet = client.open_by_key(copied["id"])
+        sheet = spreadsheet.sheet1
+        sheet.update_title("원본의뢰")
+        sheet.append_row(["의뢰일", "의뢰인", "원본내용"])
+        sheet.append_row([request_date, requester, raw_text])
+
+        return True
+    except Exception as e:
+        st.error(f"증빙 시트 생성 오류: {e}")
+        return False
