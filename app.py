@@ -2,18 +2,16 @@ import io
 import pandas as pd
 import streamlit as st
 from datetime import datetime
-from gsheet import append_to_gsheet, load_gsheet_raw, load_gsheet_final, save_gsheet_final, append_evidence_to_sheet
-
 
 from config import COLUMNS, AGENCY_OPTIONS
 from utils import calc_hours, calc_fee, get_column_config
-from gsheet import append_to_gsheet, load_gsheet_raw, load_gsheet_final, save_gsheet_final
+from gsheet import append_to_gsheet, load_gsheet_raw, load_gsheet_final, save_gsheet_final, append_evidence_to_sheet
 from parsers import (
     parse_kakao_text, parse_seoul_kakao, parse_hanahn_kakao,
     parse_suwon_excel, parse_jungdae_excel, parse_incheon_excel,
 )
 from gdrive import (
-    create_careerlog_structure, get_folder_url, append_change_log,
+    create_request_folder, get_folder_url, append_change_log,
 )
 
 # ─────────────────────────────────────────────
@@ -80,7 +78,7 @@ if menu == "📥 보건스케줄 입력":
         else:
             common_requester = st.text_input("의뢰인")
     with col4:
-        common_method = st.selectbox("의뢰방법", ["카카오톡엑셀", "카카오톡문자", "이메일", "전화", "문자", "기타"])
+        common_method = st.selectbox("의뢰방법", ["카카오톡", "이메일", "전화", "문자", "기타"])
 
     request_date_str = common_date.strftime("%Y-%m-%d")
 
@@ -101,7 +99,6 @@ if menu == "📥 보건스케줄 입력":
                 df_text = parse_seoul_kakao(raw_text, year, common_requester, request_date_str)
             elif common_agency == "한안협":
                 df_text = parse_hanahn_kakao(raw_text, year, common_requester, request_date_str, common_method)
-
             else:
                 df_text = parse_kakao_text(raw_text, year)
                 df_text["의뢰기관"] = common_agency
@@ -156,9 +153,12 @@ if menu == "📥 보건스케줄 입력":
 
     # ── 증빙 파일 업로드 ────────────────────────
     st.markdown("### 📎 증빙 파일 업로드")
-    st.info("💡 엑셀, 이미지, PDF 업로드 시 구글 시트 '증빙' 탭에 자동 기록됩니다.")
+    st.info("💡 저장 시 드라이브 폴더에 함께 기록됩니다.")
+    if st.session_state.get("excel_file_for_drive"):
+        st.success(f"📎 엑셀 파일 자동 포함: **{st.session_state['excel_file_for_drive'].name}**")
+
     evidence_files = st.file_uploader(
-        "증빙자료 업로드",
+        "추가 증빙자료 (캡처, PDF 등)",
         type=["png", "jpg", "jpeg", "pdf", "docx", "xlsx"],
         accept_multiple_files=True,
         key="evidence_uploader"
@@ -228,23 +228,18 @@ if menu == "📥 보건스케줄 입력":
 
                         drive_errors = []
 
+                        # 의뢰 1건 = 폴더 1개
+                        try:
+                            folder_id  = create_request_folder(year, common_agency, request_date_str, common_requester)
+                            folder_url = get_folder_url(folder_id)
+                            if evidence_files:
+                                append_evidence_to_sheet(f"{request_date_str}_{common_requester}", evidence_files)
+                        except Exception as e:
+                            folder_url = ""
+                            drive_errors.append(f"폴더 생성 실패: {e}")
+
                         for idx in edited_df.index:
-                            row = edited_df.loc[idx].to_dict()
-                            try:
-                                date_str = str(row.get("강의일시", ""))
-                                agency   = str(row.get("의뢰기관", common_agency))
-                                subject  = str(row.get("과정명", "")).replace(" ", "")
-                                yr       = int(date_str[:4]) if len(date_str) >= 4 else year
-
-                                folder_id  = create_careerlog_structure(yr, agency, date_str, subject)
-                                folder_url = get_folder_url(folder_id)
-                                edited_df.loc[idx, "증빙폴더"] = folder_url
-                                
-                                if evidence_files and idx == edited_df.index[0]:  # 첫 행에서만 한 번 실행
-                                    append_evidence_to_sheet(f"{date_str}_{subject}", evidence_files)    
-
-                            except Exception as e:
-                                drive_errors.append(f"행 {idx}: {e}")
+                            edited_df.loc[idx, "증빙폴더"] = folder_url
 
                         # 드라이브 오류와 무관하게 시트는 항상 저장
                         result = append_to_gsheet(edited_df)
