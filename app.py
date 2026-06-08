@@ -11,7 +11,7 @@ from parsers import (
     parse_suwon_excel, parse_jungdae_excel, parse_incheon_excel,
 )
 from gdrive import (
-    create_request_folder, get_folder_url, append_change_log,
+    create_request_folder, get_folder_url, append_change_log, save_kakao_text,
 )
 
 # ─────────────────────────────────────────────
@@ -162,15 +162,6 @@ if menu == "📥 보건스케줄 입력":
 
     st.divider()
 
-    # ── 수동 입력 ──────────────────────────────
-    st.markdown("### ✍️ 수동으로 직접 입력하기")
-    if st.button("➕ 빈 테이블 생성"):
-        st.session_state["temp_df"] = pd.DataFrame(columns=COLUMNS)
-        st.session_state["raw_text_for_drive"] = ""
-        st.rerun()
-
-    st.divider()
-
     # ── 저장 완료 후 안내 ──────────────────────
     if st.session_state.get("saved_done"):
         st.success("✅ 저장 완료!")
@@ -236,6 +227,10 @@ if menu == "📥 보건스케줄 입력":
                         try:
                             folder_id  = create_request_folder(year, common_agency, request_date_str, common_requester)
                             folder_url = get_folder_url(folder_id)
+                            # 카톡 텍스트 저장
+                            raw_text_to_save = st.session_state.get("raw_text_for_drive", "")
+                            if raw_text_to_save.strip():
+                                save_kakao_text(folder_id, raw_text_to_save, common_requester, request_date_str)
                             if evidence_files:
                                 append_evidence_to_sheet(f"{request_date_str}_{common_requester}", evidence_files)
                         except Exception as e:
