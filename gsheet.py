@@ -1,6 +1,7 @@
 import streamlit as st
 import pandas as pd
 import gspread
+from datetime import datetime
 from oauth2client.service_account import ServiceAccountCredentials
 from config import SPREADSHEET_ID, COLUMNS
 
@@ -30,16 +31,13 @@ def ensure_header(sheet):
 
 def append_to_gsheet(df):
     try:
-        st.write("🔍 시트 연결 시도 중...")
         client = get_gsheet_client()
-        st.write("✅ 클라이언트 연결 성공")
         sheet1 = get_or_create_sheet(client, "의뢰일별")
-        st.write("✅ 의뢰일별 시트 접근 성공")
         ensure_header(sheet1)
         sheet2 = get_or_create_sheet(client, "최종")
-        st.write("✅ 최종 시트 접근 성공")
         ensure_header(sheet2)
 
+        # 중복 체크
         existing_data = sheet2.get_all_records()
         if existing_data:
             existing_df = pd.DataFrame(existing_data)
@@ -63,14 +61,45 @@ def append_to_gsheet(df):
         df = df[COLUMNS]
         df_clean = df.fillna("").astype(str)
         values = df_clean.values.tolist()
-        st.write("✅ 데이터 준비 완료, 저장 시도 중...")
         sheet1.append_rows(values)
-        st.write("✅ 의뢰일별 저장 완료")
         sheet2.append_rows(values)
-        st.write("✅ 최종 저장 완료")
         return True
     except Exception as e:
         st.exception(e)
+        return False
+
+
+def append_evidence_to_sheet(folder_name: str, files):
+    """증빙 파일 내용을 구글 시트 '증빙' 탭에 기록"""
+    try:
+        client = get_gsheet_client()
+        sheet = get_or_create_sheet(client, "증빙")
+
+        evidence_columns = ["폴더명", "파일명", "업로드일시", "내용"]
+        existing = sheet.get_all_values()
+        if not existing or existing[0] != evidence_columns:
+            sheet.clear()
+            sheet.append_row(evidence_columns)
+
+        now = datetime.now().strftime("%Y-%m-%d %H:%M")
+        rows = []
+
+        for f in files:
+            f.seek(0)
+            if f.name.endswith(".xlsx"):
+                df = pd.read_excel(f, sheet_name=0)
+                content = df.to_csv(index=False)
+            elif f.type and "text" in f.type:
+                content = f.read().decode("utf-8", errors="ignore")
+            else:
+                content = f"[{f.type}] 파일"
+            rows.append([folder_name, f.name, now, content[:5000]])
+
+        if rows:
+            sheet.append_rows(rows)
+        return True
+    except Exception as e:
+        st.error(f"증빙 저장 오류: {e}")
         return False
 
 
