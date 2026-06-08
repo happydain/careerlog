@@ -171,6 +171,14 @@ if menu == "📥 보건스케줄 입력":
 
     st.divider()
 
+    # ── 저장 완료 후 안내 ──────────────────────
+    if st.session_state.get("saved_done"):
+        st.success("✅ 저장 완료!")
+        if st.button("📋 의뢰일별 스케줄 확인하기", key="go_to_raw"):
+            st.session_state.pop("saved_done")
+            st.session_state["_menu"] = "📋 의뢰일별 스케줄"
+            st.rerun()
+
     # ── 최종 확인 및 저장 ──────────────────────
     st.header("📋 최종 확인 및 저장")
 
@@ -237,10 +245,9 @@ if menu == "📥 보건스케줄 입력":
                         for idx in edited_df.index:
                             edited_df.loc[idx, "증빙폴더"] = folder_url
 
-                        # 드라이브 오류와 무관하게 시트는 항상 저장
                         result = append_to_gsheet(edited_df)
                         if result:
-                             if drive_errors:
+                            if drive_errors:
                                 st.warning("⚠️ 드라이브 폴더 생성 실패 (시트는 저장됨):\n" + "\n".join(drive_errors))
                             else:
                                 st.success("✅ 구글시트 + 드라이브 저장 완료!")
@@ -249,13 +256,11 @@ if menu == "📥 보건스케줄 입력":
                             st.session_state.pop("excel_file_for_drive", None)
                             st.session_state["saved_done"] = True
                             st.rerun()
-        if st.session_state.get("saved_done"):
-            st.success("✅ 저장 완료!")
-            if st.button("📋 의뢰일별 스케줄 확인하기", key="go_to_raw"):
-                st.session_state.pop("saved_done")
-                st.session_state["_menu"] = "📋 의뢰일별 스케줄"
-                st.rerun()
-        
+                        else:
+                            st.error("❌ 구글시트 저장 실패")
+                            if drive_errors:
+                                st.warning("드라이브 오류:\n" + "\n".join(drive_errors))
+
         # ── 엑셀 다운로드 ──
         with col2:
             buffer = io.BytesIO()
