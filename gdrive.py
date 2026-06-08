@@ -54,18 +54,14 @@ def _find_folder(service, name, parent_id):
     return files[0]["id"] if files else None
 
 
-def _create_folder(service, name, parent_id):
-    meta = {
-        "name": name,
-        "mimeType": "application/vnd.google-apps.folder",
-        "parents": [parent_id]
-    }
-    folder = service.files().create(
-        body=meta,
-        fields="id",
-        supportsAllDrives=True
-    ).execute()
-    return folder["id"]
+# create_careerlog_structure 함수 교체
+def create_request_folder(year: int, agency: str, request_date: str, requester: str) -> str:
+    service = get_drive_service()
+    year_id    = _get_or_create_folder(service, str(year), DRIVE_ROOT_FOLDER_ID)
+    agency_id  = _get_or_create_folder(service, agency, year_id)
+    folder_name = f"{request_date.replace('-', '')}_{requester}"
+    folder_id  = _get_or_create_folder(service, folder_name, agency_id)
+    return folder_id
 
 
 def _get_or_create_folder(service, name, parent_id):
