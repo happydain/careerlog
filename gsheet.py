@@ -34,7 +34,7 @@ def append_to_gsheet(df):
         client = get_gsheet_client()
         sheet1 = get_or_create_sheet(client, "의뢰일별")
         ensure_header(sheet1)
-        sheet2 = get_or_create_sheet(client, "최종")
+        sheet2 = get_or_create_sheet(client, "강의날짜별")
         ensure_header(sheet2)
 
         # 중복 체크
@@ -123,7 +123,7 @@ def load_gsheet_raw():
 def load_gsheet_final():
     try:
         client = get_gsheet_client()
-        sheet = get_or_create_sheet(client, "최종")
+        sheet = get_or_create_sheet(client, "강의날짜별")
         data = sheet.get_all_records()
         if not data:
             return pd.DataFrame(columns=COLUMNS)
@@ -142,7 +142,7 @@ def load_gsheet_final():
 def save_gsheet_final(df):
     try:
         client = get_gsheet_client()
-        sheet = get_or_create_sheet(client, "최종")
+        sheet = get_or_create_sheet(client, "강의날짜별")
         for col in COLUMNS:
             if col not in df.columns:
                 df[col] = ""
