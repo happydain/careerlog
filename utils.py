@@ -3,42 +3,7 @@ import pandas as pd
 from datetime import datetime
 from config import COLUMNS, DEFAULT_HOURLY_FEE, AGENCY_OPTIONS, LOCATION_OPTIONS
 
-def parse_dates_from_text(text, year):
-    dates = []
-    
-    # 기존: 6월 9일, 6월 9~12일
-    for month, s, e in re.findall(r"(\d{1,2})월\s*(\d{1,2})\s*[~-]\s*(\d{1,2})일", text):
-        for day in range(int(s), int(e) + 1):
-            try:
-                dates.append(datetime(year, int(month), day))
-            except ValueError:
-                pass
-    for month, day in re.findall(r"(\d{1,2})월\s*(\d{1,2})일", text):
-        try:
-            d = datetime(year, int(month), int(day))
-            if d not in dates:
-                dates.append(d)
-        except ValueError:
-            pass
 
-    # 추가: 2022.6.9 또는 6.9(목) 형식
-    for y, m, d in re.findall(r"(\d{4})[./](\d{1,2})[./](\d{1,2})", text):
-        try:
-            dt = datetime(int(y), int(m), int(d))
-            if dt not in dates:
-                dates.append(dt)
-        except ValueError:
-            pass
-    for m, d in re.findall(r"(\d{1,2})[./](\d{1,2})\s*\([월화수목금토일]\)", text):
-        try:
-            dt = datetime(year, int(m), int(d))
-            if dt not in dates:
-                dates.append(dt)
-        except ValueError:
-            pass
-
-    return dates
-    
 def get_weekday(date_obj):
     return ["월", "화", "수", "목", "금", "토", "일"][date_obj.weekday()]
 
@@ -49,34 +14,24 @@ def normalize_time(hour):
 
 def parse_time_range(text):
     text = re.sub(r"\([^)]*\)", "", str(text)).strip()
+
+    # 15:00~18:00
     match = re.search(r"(\d{1,2}:\d{2})\s*[-~]\s*(\d{1,2}:\d{2})", text)
     if match:
         return match.group(1), match.group(2)
-    match = re.search(r"(\d{1,2})\s*시\s*[-~]\s*(\d{1,2})\s*시?", text)
-    if match:
-        return normalize_time(match.group(1)), normalize_time(match.group(2))
-    return None, None
 
-
-def parse_time_range(text):
-    text = re.sub(r"\([^)]*\)", "", str(text)).strip()
-    
-    # 기존: 15:00~18:00
-    match = re.search(r"(\d{1,2}:\d{2})\s*[-~]\s*(\d{1,2}:\d{2})", text)
-    if match:
-        return match.group(1), match.group(2)
-    
-    # 기존: 15시~18시
+    # 15시~18시
     match = re.search(r"(\d{1,2})\s*시\s*[-~]\s*(\d{1,2})\s*시?", text)
     if match:
         return normalize_time(match.group(1)), normalize_time(match.group(2))
 
-    # 추가: 15-18시
+    # 15-18시
     match = re.search(r"(\d{1,2})\s*[-~]\s*(\d{1,2})\s*시", text)
     if match:
         return normalize_time(match.group(1)), normalize_time(match.group(2))
 
     return None, None
+
 
 def calc_hours(start, end):
     try:
@@ -136,7 +91,45 @@ def detect_subject(text):
     return ""
 
 
+def parse_dates_from_text(text, year):
+    dates = []
 
+    # 6월 9~12일
+    for month, s, e in re.findall(r"(\d{1,2})월\s*(\d{1,2})\s*[~-]\s*(\d{1,2})일", text):
+        for day in range(int(s), int(e) + 1):
+            try:
+                dates.append(datetime(year, int(month), day))
+            except ValueError:
+                pass
+
+    # 6월 9일
+    for month, day in re.findall(r"(\d{1,2})월\s*(\d{1,2})일", text):
+        try:
+            d = datetime(year, int(month), int(day))
+            if d not in dates:
+                dates.append(d)
+        except ValueError:
+            pass
+
+    # 2022.6.9 또는 2022/6/9
+    for y, m, d in re.findall(r"(\d{4})[./](\d{1,2})[./](\d{1,2})", text):
+        try:
+            dt = datetime(int(y), int(m), int(d))
+            if dt not in dates:
+                dates.append(dt)
+        except ValueError:
+            pass
+
+    # 6.9(목) 또는 6/9(목)
+    for m, d in re.findall(r"(\d{1,2})[./](\d{1,2})\s*\([월화수목금토일]\)", text):
+        try:
+            dt = datetime(year, int(m), int(d))
+            if dt not in dates:
+                dates.append(dt)
+        except ValueError:
+            pass
+
+    return dates
 
 
 def make_row(date_obj, start, end, agency, subject, target,
@@ -181,7 +174,7 @@ def get_column_config():
         "강의료(1일)": st.column_config.NumberColumn("강의료(1일)", format="₩%d"),
         "시수": st.column_config.NumberColumn("시수", format="%d시간"),
         "방식/위치": st.column_config.SelectboxColumn("방식/위치", options=LOCATION_OPTIONS),
-        "요청사항": st.column_config.TextColumn("의뢰업체메모", width="large"),
+        "요청사항": st.column_config.TextColumn("요청사항", width="large"),
         "내부메모": st.column_config.TextColumn("내부메모", width="large"),
         "변경이력": st.column_config.TextColumn("변경이력", width="large"),
         "증빙폴더": st.column_config.LinkColumn("증빙폴더", display_text="📂 열기"),
