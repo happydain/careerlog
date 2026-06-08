@@ -54,7 +54,7 @@ if menu == "📥 보건스케줄 입력":
 
     col1, col2, col3, col4 = st.columns(4)
     with col1:
-        year = st.selectbox("기준 연도", list(range(2024, 2036)),
+        year = st.selectbox("기준 연도", list(range(2022, 2036)),
                             index=list(range(2024, 2036)).index(datetime.now().year))
     with col2:
         common_date = st.date_input("의뢰일", value=datetime.now(), format="YYYY/MM/DD")
