@@ -175,8 +175,8 @@ def save_kakao_text(folder_id: str, text: str, requester: str, request_date: str
 
 TEMPLATE_DOC_ID = "1ls2TMEvsgRnHiYWQsZmV8rZdMOsFKoq8SPWeQXNE_nU"  
 
-def create_evidence_sheet(folder_id: str, filename: str, raw_text: str, requester: str, request_date: str):
-    """템플릿 시트 복사 후 카톡 내용 입력"""
+def create_evidence_sheet(folder_id: str, folder_name: str, raw_text: str, requester: str, request_date: str):
+    """템플릿 시트를 복사해서 폴더에 넣고 폴더명과 동일한 이름으로"""
     try:
         from googleapiclient.discovery import build
         from google.oauth2.service_account import Credentials
@@ -184,15 +184,17 @@ def create_evidence_sheet(folder_id: str, filename: str, raw_text: str, requeste
 
         creds = Credentials.from_service_account_info(
             dict(st.secrets["google_gsheets"]),
-            scopes=["https://www.googleapis.com/auth/drive",
-                    "https://www.googleapis.com/auth/spreadsheets"]
+            scopes=[
+                "https://www.googleapis.com/auth/drive",
+                "https://www.googleapis.com/auth/spreadsheets"
+            ]
         )
         drive_service = build("drive", "v3", credentials=creds)
 
-        # 템플릿 복사
+        # 템플릿 복사 → 폴더에 넣고 폴더명과 동일한 이름
         copied = drive_service.files().copy(
             fileId=EVIDENCE_TEMPLATE_ID,
-            body={"name": filename, "parents": [folder_id]},
+            body={"name": folder_name, "parents": [folder_id]},
             supportsAllDrives=True
         ).execute()
 
@@ -200,7 +202,7 @@ def create_evidence_sheet(folder_id: str, filename: str, raw_text: str, requeste
         client = get_gsheet_client()
         spreadsheet = client.open_by_key(copied["id"])
         sheet = spreadsheet.sheet1
-        sheet.update_title("원본의뢰")
+        sheet.clear()
         sheet.append_row(["의뢰일", "의뢰인", "원본내용"])
         sheet.append_row([request_date, requester, raw_text])
 
