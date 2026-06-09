@@ -55,10 +55,13 @@ def extract_instructor(text):
 def detect_agency(text):
     text = str(text)
     if "대한산안협" in text or "대한산업안전협회" in text:
-        if "서울" in text: return "대한협서울"
-        if "수원" in text: return "대한협수원"
-        if "인천" in text: return "대한협인천"
-        return "대한협"
+        if "서울" in text or "서울지역본부" in text: return "서울대한협"
+        if "수원" in text or "경기지역본부" in text: return "수원대한협"
+        if "인천" in text or "인천지역본부" in text: return "인천대한협"
+        return "수원대한협"
+    if "서울대한협" in text: return "서울대한협"
+    if "수원대한협" in text: return "수원대한협"
+    if "인천대한협" in text: return "인천대한협"
     if "중대협" in text: return "중대협"
     if "한안협" in text: return "한안협"
     if "잡그레이드" in text: return "잡그레이드"
