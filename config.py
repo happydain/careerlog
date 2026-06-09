@@ -25,6 +25,9 @@ LOCATION_OPTIONS = [
 ]
 
 # config.py에 추가
+
+CALENDAR_ID = "9898287aa6269a3c978e829d18f7856cac7910552b98a706af6376c25ea7f8a5@group.calendar.google.com"
+
 INSTRUCTOR_CALENDARS = {
     "송주영": "9898287aa6269a3c978e829d18f7856cac7910552b98a706af6376c25ea7f8a5@group.calendar.google.com",
     "문하나": "",
