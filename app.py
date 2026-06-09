@@ -1094,6 +1094,9 @@ elif menu == "📊 강의 현황":
                 st.success(f"✅ {success}건 등록 완료!")
                 if errors:
                     st.warning(f"⚠️ {errors}건 실패 (캘린더 미연동 강사 포함)")
+                except Exception as e:
+                    errors += 1
+                    st.write(f"오류: {e}")  # ← 추
 
         # ── 엑셀 저장 ──
         buffer = io.BytesIO()
