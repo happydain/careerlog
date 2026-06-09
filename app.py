@@ -690,7 +690,7 @@ elif menu == "🗓️ 강사 매칭 시스템":
                 if st.button("📅 캘린더 원티드 반영", key="cal_wanted"):
                     from gcalendar import get_events
                     from config import INSTRUCTOR_CALENDARS
-                    from matching_engine import apply_calendar_wanted
+                    from matching_engine import build_unavailable
                     import calendar as cal_module
             
                     with st.spinner("캘린더 읽는 중..."):
@@ -713,21 +713,14 @@ elif menu == "🗓️ 강사 매칭 시스템":
             
                         unavailable = build_unavailable(events_by_instructor)
                         st.session_state["unavailable"] = unavailable
-                        
-                        # 불가 일정 표시
+            
                         total_blocks = sum(len(v) for v in unavailable.values())
                         if total_blocks > 0:
                             st.success(f"✅ 불가 일정 {total_blocks}건 로드!")
                             for instr, blocks in unavailable.items():
                                 for b in blocks:
-                                    st.caption(f"{b['date']} {instr} — {'오전' if b['morning'] and not b['afternoon'] else '오후' if b['afternoon'] and not b['morning'] else '전일'} 불가 ({b['title']})")
-                        else:
-                            st.info("이번달 원티드 일정이 없습니다.")
-                        if applied > 0:
-                            st.session_state["matched_df"] = result
-                            st.session_state["wanted_log"] = log
-                            st.success(f"✅ 원티드 {applied}건 반영!")
-                            # st.rerun() 제거
+                                    time_label = "오전" if b["morning"] and not b["afternoon"] else "오후" if b["afternoon"] and not b["morning"] else "전일"
+                                    st.caption(f"{b['date']} {instr} — {time_label} 불가 ({b['title']})")
                         else:
                             st.info("이번달 원티드 일정이 없습니다.")
                         
