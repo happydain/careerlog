@@ -1045,6 +1045,36 @@ elif menu == "📊 강의 현황":
 
         st.dataframe(view_df, use_container_width=True, height=400,
                      column_config=get_column_config())
+        
+    if st.button("📅 강사별 캘린더에 등록", key="apply_to_calendar"):
+        from gcalendar import add_event
+        from config import INSTRUCTOR_CALENDARS
+        success = 0
+        errors  = 0
+        with st.spinner("캘린더 등록 중..."):
+            for _, row in view_df.iterrows():
+                instructor = str(row.get("강사님", "")).strip()
+                cal_id     = INSTRUCTOR_CALENDARS.get(instructor, "")
+                if not cal_id:
+                    errors += 1
+                    continue
+                try:
+                    add_event(
+                        date_str    = str(row["강의일시"])[:10],
+                        start       = str(row["시작"]),
+                        end         = str(row["종료"]),
+                        title       = str(row["과정명"]),
+                        instructor  = instructor,
+                        agency      = str(row["의뢰기관"]),
+                        location    = str(row["방식/위치"]),
+                        calendar_id = cal_id,
+                    )
+                    success += 1
+                except Exception as e:
+                    errors += 1
+        st.success(f"✅ {success}건 등록 완료!")
+        if errors:
+            st.warning(f"⚠️ {errors}건 실패 (캘린더 미연동 강사 포함)")
 # ══════════════════════════════════════════════
 # 👨‍🏫 강사별 대시보드
 # ══════════════════════════════════════════════
