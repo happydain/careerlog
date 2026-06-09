@@ -120,6 +120,7 @@ if menu == "🏠 대시보드":
                 location   = str(row["방식/위치"]) if str(row["방식/위치"]) not in ("", "nan") else ""
                 color      = INSTRUCTOR_COLORS.get(instructor, "#888")
                 if status == "취소": color = "#aaa"
+                     continue
 
                 start_h     = start_time[:2].lstrip("0") or "0"
                 end_h       = end_time[:2].lstrip("0") or "0"
@@ -263,7 +264,8 @@ if menu == "🏠 대시보드":
         df["_dt"] = pd.to_datetime(df["강의일시"], errors="coerce")
         this_month = df[
             (df["_dt"].dt.year  == cal_year) &
-            (df["_dt"].dt.month == cal_month)
+            (df["_dt"].dt.month == cal_month) &
+            (df["상태"] != "취소")  # ← 추가
         ]
         total_count = len(this_month)
         total_hours = pd.to_numeric(this_month["시수"], errors="coerce").sum()
