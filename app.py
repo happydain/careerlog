@@ -22,14 +22,14 @@ st.set_page_config(page_title="보건스케줄", page_icon="📅", layout="wide"
 st.markdown("""
 <style>
 [data-testid="stSidebar"] label p {
-    font-size: 50px !important;
+    font-size: 30px !important;
     font-weight: 500 !important;
 }
 [data-testid="stSidebar"] .stRadio label {
-    font-size: 18px !important;
+    font-size: 25px !important;
 }
 section[data-testid="stSidebar"] * label {
-    font-size: 35px !important;
+    font-size: 20px !important;
 }
 </style>
 """, unsafe_allow_html=True)
