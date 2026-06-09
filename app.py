@@ -753,42 +753,50 @@ elif menu == "📅 최종 스케줄 매칭시스템":
             if fdf.empty:
                 st.info("데이터가 없습니다.")
             else:
-                fdf_active    = fdf[fdf["상태"] != "취소"] if "상태" in fdf.columns else fdf
-                count_val  = len(fdf_active) 
-                total_hours   = pd.to_numeric(fdf_active["시수"], errors="coerce").sum()
-                total_fee     = pd.to_numeric(fdf_active["강의료(1일)"], errors="coerce").sum()
-                total_days    = fdf_active["강의일시"].astype(str).str[:10].nunique()
-                avg_daily_fee = total_fee / total_days if total_days > 0 else 0
-                hourly_rate   = total_fee / total_hours if total_hours > 0 else 0
+                # fdf_active 정의 바로 아래에 넣을 코드
 
+                fdf_active    = fdf[fdf["상태"] != "취소"] if "상태" in fdf.columns else fdf
+                cnt           = len(fdf_active)
+                hrs           = pd.to_numeric(fdf_active["시수"], errors="coerce").sum()
+                fee           = pd.to_numeric(fdf_active["강의료(1일)"], errors="coerce").sum()
+                days          = fdf_active["강의일시"].astype(str).str[:10].nunique()
+                avg_daily     = fee / days if days > 0 else 0
+                hourly        = fee / hrs if hrs > 0 else 0
+                
+                hrs_str       = f"{hrs:.0f}"
+                fee_str       = f"₩{fee:,.0f}"
+                avg_daily_str = f"₩{avg_daily:,.0f}"
+                hourly_str    = f"₩{hourly:,.0f}"
+                
                 st.markdown(f"""
-                <div style="display:flex; gap:10px; margin-bottom:16px;">
-                    <div style="background:var(--color-background-secondary); border-radius:10px; padding:12px 16px; text-align:center; flex:1;">
-                        <div style="font-size:11px; color:var(--color-text-secondary); margin-bottom:4px;">강의 건수</div>
-                        <div style="font-size:20px; font-weight:500; color:#185FA5;">{len(fdf_active)}건</div>
+                <div style="display:flex; gap:16px; margin-bottom:8px;">
+                    <div style="background:#f0f4ff; border-radius:10px; padding:12px 24px; text-align:center; flex:1;">
+                        <div style="font-size:12px; color:#666;">강의 건수</div>
+                        <div style="font-size:20px; font-weight:bold; color:#1a56db;">{cnt}건</div>
                     </div>
-                    <div style="background:var(--color-background-secondary); border-radius:10px; padding:12px 16px; text-align:center; flex:1;">
-                        <div style="font-size:11px; color:var(--color-text-secondary); margin-bottom:4px;">총 시수</div>
-                        <div style="font-size:20px; font-weight:500; color:#0F6E56;">{total_hours:.0f}시간</div>
+                    <div style="background:#f0fff4; border-radius:10px; padding:12px 24px; text-align:center; flex:1;">
+                        <div style="font-size:12px; color:#666;">총 시수</div>
+                        <div style="font-size:20px; font-weight:bold; color:#0e9f6e;">{hrs_str}시간</div>
                     </div>
-                    <div style="background:var(--color-background-secondary); border-radius:10px; padding:12px 16px; text-align:center; flex:1;">
-                        <div style="font-size:11px; color:var(--color-text-secondary); margin-bottom:4px;">총 강의료</div>
-                        <div style="font-size:20px; font-weight:500; color:#854F0B;">₩{total_fee:,.0f}</div>
+                    <div style="background:#fff8f0; border-radius:10px; padding:12px 24px; text-align:center; flex:1;">
+                        <div style="font-size:12px; color:#666;">총 강의료</div>
+                        <div style="font-size:20px; font-weight:bold; color:#e3a008;">{fee_str}</div>
                     </div>
-                    <div style="background:var(--color-background-secondary); border-radius:10px; padding:12px 16px; text-align:center; flex:1;">
-                        <div style="font-size:11px; color:var(--color-text-secondary); margin-bottom:4px;">참여일</div>
-                        <div style="font-size:20px; font-weight:500; color:#534AB7;">{total_days}일</div>
+                    <div style="background:#fdf0ff; border-radius:10px; padding:12px 24px; text-align:center; flex:1;">
+                        <div style="font-size:12px; color:#666;">참여일</div>
+                        <div style="font-size:20px; font-weight:bold; color:#7c3aed;">{days}일</div>
                     </div>
-                    <div style="background:var(--color-background-secondary); border-radius:10px; padding:12px 16px; text-align:center; flex:1;">
-                        <div style="font-size:11px; color:var(--color-text-secondary); margin-bottom:4px;">일당</div>
-                        <div style="font-size:20px; font-weight:500; color:#993C1D;">₩{avg_daily_fee:,.0f}</div>
+                    <div style="background:#fff0f0; border-radius:10px; padding:12px 24px; text-align:center; flex:1;">
+                        <div style="font-size:12px; color:#666;">일당</div>
+                        <div style="font-size:20px; font-weight:bold; color:#e02424;">{avg_daily_str}</div>
                     </div>
-                    <div style="background:var(--color-background-secondary); border-radius:10px; padding:12px 16px; text-align:center; flex:1;">
-                        <div style="font-size:11px; color:var(--color-text-secondary); margin-bottom:4px;">시간당</div>
-                        <div style="font-size:20px; font-weight:500; color:#0C447C;">₩{hourly_rate:,.0f}</div>
+                    <div style="background:#f0f9ff; border-radius:10px; padding:12px 24px; text-align:center; flex:1;">
+                        <div style="font-size:12px; color:#666;">시간당</div>
+                        <div style="font-size:20px; font-weight:bold; color:#0369a1;">{hourly_str}</div>
                     </div>
                 </div>
                 """, unsafe_allow_html=True)
+                st.divider()
                 st.divider()
 
                 if "auto_matched_df" in st.session_state:
