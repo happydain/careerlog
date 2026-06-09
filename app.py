@@ -168,6 +168,14 @@ if menu == "🏠 대시보드":
         "eventDisplay": "block",
         "dayMaxEvents": 5,
         "eventTextColor": "white",
+        "eventTimeFormat": {
+            "hour": "numeric",
+            "minute": "2-digit",
+            "omitZeroMinute": True,
+            "meridiem": False
+        },
+        "displayEventTime": False,  # ← 시간 표시 끄기
+             
     }
 
     custom_css = """
