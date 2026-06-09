@@ -627,12 +627,12 @@ elif menu == "📅 최종 스케줄 매칭시스템":
     # ── 연간 통계 ──
     if not df_active.empty:
         df_active["_dt"] = pd.to_datetime(df_active["강의일시"], errors="coerce")
-        df_year = df_active[df_active["_dt"].dt.year == sel_year]
-        total_count  = len(df_year)
-        total_hours  = pd.to_numeric(df_year["시수"], errors="coerce").sum()
-        total_fee    = pd.to_numeric(df_year["강의료(1일)"], errors="coerce").sum()
-        total_days   = df_year["강의일시"].str[:10].nunique()
-        df_active    = df_active.drop(columns=["_dt"])
+        df_year     = df_active[df_active["_dt"].dt.year == sel_year]
+        total_count = len(df_year)
+        total_hours = pd.to_numeric(df_year["시수"], errors="coerce").sum()
+        total_fee   = pd.to_numeric(df_year["강의료(1일)"], errors="coerce").sum()
+        total_days  = df_year["강의일시"].str[:10].nunique()
+        df_active   = df_active.drop(columns=["_dt"])
     else:
         total_count = total_hours = total_fee = total_days = 0
 
@@ -691,8 +691,6 @@ elif menu == "📅 최종 스케줄 매칭시스템":
     st.divider()
 
     # ── 강사별 버튼 ──
-    
-    """, unsafe_allow_html=True)
     if not df_active.empty:
         instructors = sorted(df_active["강사님"].dropna().unique().tolist())
         instr_cols = st.columns(len(instructors) + 1)
@@ -740,52 +738,42 @@ elif menu == "📅 최종 스케줄 매칭시스템":
             if fdf.empty:
                 st.info("데이터가 없습니다.")
             else:
-                fdf_active = fdf[fdf["상태"] != "취소"] if "상태" in fdf.columns else fdf
-                total_hours = pd.to_numeric(fdf_active["시수"], errors="coerce").sum()
-                total_fee   = pd.to_numeric(fdf_active["강의료(1일)"], errors="coerce").sum()
-                total_days  = fdf_active["강의일시"].astype(str).str[:10].nunique()
-                total_hours = pd.to_numeric(fdf_active["시수"], errors="coerce").sum()
-                total_fee   = pd.to_numeric(fdf_active["강의료(1일)"], errors="coerce").sum()
-                avg_hours = total_hours / total_days if total_days > 0 else 0
-                avg_fee   = total_fee / total_days if total_days > 0 else 0
-                avg_daily_fee  = total_fee / total_days if total_days > 0 else 0
-                hourly_rate    = total_fee / total_hours if total_hours > 0 else 0
-                
-                c1, c2, c3, c4, c5, c6 = st.columns(6)
-                c1.metric("강의 건수", f"{len(fdf_active)}건")
-                c2.metric("총 시수", f"{total_hours:.0f}시간")
-                c3.metric("총 강의료", f"₩{total_fee:,.0f}")
-                c4.metric("참여일", f"{total_days}일")
-                c5.metric("일당", f"₩{avg_daily_fee:,.0f}")
-                c6.metric("시간당", f"₩{hourly_rate:,.0f}")
+                fdf_active    = fdf[fdf["상태"] != "취소"] if "상태" in fdf.columns else fdf
+                total_hours   = pd.to_numeric(fdf_active["시수"], errors="coerce").sum()
+                total_fee     = pd.to_numeric(fdf_active["강의료(1일)"], errors="coerce").sum()
+                total_days    = fdf_active["강의일시"].astype(str).str[:10].nunique()
+                avg_daily_fee = total_fee / total_days if total_days > 0 else 0
+                hourly_rate   = total_fee / total_hours if total_hours > 0 else 0
+
                 st.markdown(f"""
-                    <div style="display:flex; gap:10px; margin-bottom:16px;">
-                        <div style="background:#f0f4ff; border-radius:10px; padding:12px 16px; text-align:center; flex:1;">
-                            <div style="font-size:11px; color:#666;">강의 건수</div>
-                            <div style="font-size:20px; font-weight:bold; color:#1a56db;">{len(fdf_active)}건</div>
-                        </div>
-                        <div style="background:#f0fff4; border-radius:10px; padding:12px 16px; text-align:center; flex:1;">
-                            <div style="font-size:11px; color:#666;">총 시수</div>
-                            <div style="font-size:20px; font-weight:bold; color:#0e9f6e;">{total_hours:.0f}시간</div>
-                        </div>
-                        <div style="background:#fff8f0; border-radius:10px; padding:12px 16px; text-align:center; flex:1;">
-                            <div style="font-size:11px; color:#666;">총 강의료</div>
-                            <div style="font-size:20px; font-weight:bold; color:#e3a008;">₩{total_fee:,.0f}</div>
-                        </div>
-                        <div style="background:#fdf0ff; border-radius:10px; padding:12px 16px; text-align:center; flex:1;">
-                            <div style="font-size:11px; color:#666;">참여일</div>
-                            <div style="font-size:20px; font-weight:bold; color:#7c3aed;">{total_days}일</div>
-                        </div>
-                        <div style="background:#fff0f0; border-radius:10px; padding:12px 16px; text-align:center; flex:1;">
-                            <div style="font-size:11px; color:#666;">일당</div>
-                            <div style="font-size:20px; font-weight:bold; color:#e02424;">₩{avg_daily_fee:,.0f}</div>
-                        </div>
-                        <div style="background:#f0f9ff; border-radius:10px; padding:12px 16px; text-align:center; flex:1;">
-                            <div style="font-size:11px; color:#666;">시간당</div>
-                            <div style="font-size:20px; font-weight:bold; color:#0369a1;">₩{hourly_rate:,.0f}</div>
-                        </div>
+                <div style="display:flex; gap:10px; margin-bottom:16px;">
+                    <div style="background:#f0f4ff; border-radius:10px; padding:12px 16px; text-align:center; flex:1;">
+                        <div style="font-size:11px; color:#666;">강의 건수</div>
+                        <div style="font-size:20px; font-weight:bold; color:#1a56db;">{len(fdf_active)}건</div>
                     </div>
-                
+                    <div style="background:#f0fff4; border-radius:10px; padding:12px 16px; text-align:center; flex:1;">
+                        <div style="font-size:11px; color:#666;">총 시수</div>
+                        <div style="font-size:20px; font-weight:bold; color:#0e9f6e;">{total_hours:.0f}시간</div>
+                    </div>
+                    <div style="background:#fff8f0; border-radius:10px; padding:12px 16px; text-align:center; flex:1;">
+                        <div style="font-size:11px; color:#666;">총 강의료</div>
+                        <div style="font-size:20px; font-weight:bold; color:#e3a008;">₩{total_fee:,.0f}</div>
+                    </div>
+                    <div style="background:#fdf0ff; border-radius:10px; padding:12px 16px; text-align:center; flex:1;">
+                        <div style="font-size:11px; color:#666;">참여일</div>
+                        <div style="font-size:20px; font-weight:bold; color:#7c3aed;">{total_days}일</div>
+                    </div>
+                    <div style="background:#fff0f0; border-radius:10px; padding:12px 16px; text-align:center; flex:1;">
+                        <div style="font-size:11px; color:#666;">일당</div>
+                        <div style="font-size:20px; font-weight:bold; color:#e02424;">₩{avg_daily_fee:,.0f}</div>
+                    </div>
+                    <div style="background:#f0f9ff; border-radius:10px; padding:12px 16px; text-align:center; flex:1;">
+                        <div style="font-size:11px; color:#666;">시간당</div>
+                        <div style="font-size:20px; font-weight:bold; color:#0369a1;">₩{hourly_rate:,.0f}</div>
+                    </div>
+                </div>
+                """, unsafe_allow_html=True)
+                st.divider()
 
                 if "auto_matched_df" in st.session_state:
                     fdf = st.session_state.pop("auto_matched_df")
@@ -852,7 +840,6 @@ elif menu == "📅 최종 스케줄 매칭시스템":
                         if save_gsheet_final(df):
                             st.success("✅ 저장 완료!")
                             st.rerun()
-
 # ══════════════════════════════════════════════
 # 📊 협회별 월별 스케줄
 # ══════════════════════════════════════════════
