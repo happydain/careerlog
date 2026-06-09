@@ -183,13 +183,9 @@ if menu == "🏠 대시보드":
 
     with col_detail:
         if cal_result and cal_result.get("dateClick"):
-            st.write(cal_result["dateClick"])  # ← 임시 확인
-            clicked = cal_result["dateClick"]["date"][:10]
-            # UTC → KST 보정
-            clicked_dt = pd.to_datetime(clicked) + pd.Timedelta(hours=9)
+            clicked = cal_result["dateClick"]["date"]  # 전체 문자열
+            clicked_dt = pd.to_datetime(clicked, utc=True).tz_convert("Asia/Seoul")
             st.session_state["selected_date"] = clicked_dt.strftime("%Y-%m-%d")
-            st.write(f"선택된 날짜: {st.session_state.get('selected_date')}")
-
         if st.session_state.get("selected_date") and not fdf.empty:
             sel_date = st.session_state["selected_date"]
             day_df   = fdf[fdf["강의일시"].astype(str).str[:10] == sel_date]
