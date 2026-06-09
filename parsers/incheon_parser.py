@@ -95,7 +95,7 @@ def parse_incheon_excel(uploaded_file, agency=AGENCY, requester="", request_date
 
 
 # ── 카톡/텍스트 파싱 ───────────────────────
-def parse_incheon_kakao(text, year, requester="", request_date="", agency=AGENCY):
+def parse_incheon_kakao(text, year, requester="", request_date="", agency=AGENCY,request_method=""):
     rows = []
     lines = [l.strip() for l in text.splitlines() if l.strip()]
 
