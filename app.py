@@ -1056,25 +1056,7 @@ elif menu == "📊 강의 현황":
             num_rows="fixed",
         )
         
-        if st.button("📅 선택 일정 캘린더 등록", key="apply_to_calendar"):
-            selected_rows = edited_view[edited_view["등록"] == True]
-            if selected_rows.empty:
-                st.warning("등록할 일정을 선택해주세요.")
-            else:
-                from gcalendar import add_event
-                from config import INSTRUCTOR_CALENDARS
-                success = 0
-                errors  = 0
-                with st.spinner("캘린더 등록 중..."):
-                    for _, row in selected_rows.iterrows():
-                        instructor = str(row.get("강사님", "")).strip()
-                        cal_id     = INSTRUCTOR_CALENDARS.get(instructor, "")
-                        st.write(f"강사: '{instructor}' / cal_id: '{cal_id}'")
-                        if not cal_id:
-                            errors += 1
-                            continue
-
-                        UBJECT_SHORT = {
+        SUBJECT_SHORT = {
                             "응급처치": "응급",
                             "뇌심혈관": "뇌심",
                             "직장내괴롭힘": "괴롭힘",
@@ -1103,6 +1085,26 @@ elif menu == "📊 강의 현황":
                             "수원5층": "수원5층",
                             "수원광교": "광교",
                         }
+        
+        if st.button("📅 선택 일정 캘린더 등록", key="apply_to_calendar"):
+            selected_rows = edited_view[edited_view["등록"] == True]
+            if selected_rows.empty:
+                st.warning("등록할 일정을 선택해주세요.")
+            else:
+                from gcalendar import add_event
+                from config import INSTRUCTOR_CALENDARS
+                success = 0
+                errors  = 0
+                with st.spinner("캘린더 등록 중..."):
+                    for _, row in selected_rows.iterrows():
+                        instructor = str(row.get("강사님", "")).strip()
+                        cal_id     = INSTRUCTOR_CALENDARS.get(instructor, "")
+                        st.write(f"강사: '{instructor}' / cal_id: '{cal_id}'")
+                        if not cal_id:
+                            errors += 1
+                            continue
+
+                        
 
                         try:
                             start_h     = str(row["시작"])[:2].lstrip("0") or "0"
