@@ -276,9 +276,7 @@ if menu == "📥 보건스케줄 입력":
                         try:
                             # 의뢰 저장 시
                             lecture_count = len(edited_df)
-                            folder_id = create_request_folder(year, common_agency, request_date_str, common_requester, f"의뢰{lecture_count}건")
-                            # 변경 저장 시 (의뢰일별 스케줄 저장 버튼에서)
-                            folder_id = create_request_folder(year, common_agency, request_date_str, modifier, "변경")
+                            folder_id  = create_request_folder(year, common_agency, request_date_str, common_requester, f"의뢰{lecture_count}건")
                             folder_url = get_folder_url(folder_id)
                             if evidence_files:
                                 append_evidence_to_sheet(
