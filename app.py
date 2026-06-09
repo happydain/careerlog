@@ -332,11 +332,7 @@ elif menu == "📋 의뢰일별 스케줄":
             agency_f = st.selectbox("의뢰기관", ["전체"] + sorted(df["의뢰기관"].dropna().unique().tolist()))
         with col4:
             instr_f = st.selectbox("강사님", ["전체"] + sorted(df["강사님"].dropna().unique().tolist()))
-            st.session_state["year_f"] = "전체"
-            st.session_state["month_f"] = "전체"
-            st.session_state["agency_f"] = "전체"
-            st.session_state["instr_f"] = "전체"
-            st.rerun()
+
 
         fdf = df.copy()
         if year_f   != "전체": fdf = fdf[fdf["_년도"] == int(year_f)]
