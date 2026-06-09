@@ -40,7 +40,9 @@ def add_event(date_str: str, start: str, end: str, title: str,
         end_dt   = f"{date_str}T{end}:00+09:00"
 
         event = {
-            "summary": f"[{agency}] {title} - {instructor or '강사미정'}",
+            출강 = str(row.get("출강기업", "")).strip()
+            출강기업_str = f"_{출강}" if 출강 and 출강 != "nan" else ""
+            "summary": f"{agency}{출강기업_str}_{location}_{title}_{target}",
             "location": location,
             "description": f"의뢰기관: {agency}\n과정명: {title}\n강사: {instructor}",
             "start": {"dateTime": start_dt, "timeZone": "Asia/Seoul"},
