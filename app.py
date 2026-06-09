@@ -689,18 +689,26 @@ elif menu == "🗓️ 강사 매칭 시스템":
                 if st.button("📅 캘린더 원티드 반영", key="cal_wanted"):
                     from gcalendar import get_events
                     from config import INSTRUCTOR_CALENDARS
+                    from matching_engine import apply_calendar_wanted
                     import calendar as cal_module
-                
-                    first_day = f"{sel_year}-{sel_month:02d}-01"
-                    last_day  = f"{sel_year}-{sel_month:02d}-{cal_module.monthrange(sel_year, sel_month)[1]:02d}"
-                
-                    for instructor, cal_id in INSTRUCTOR_CALENDARS.items():
-                        if not cal_id:
-                            continue
-                        events = get_events(first_day, last_day, calendar_id=cal_id)
-                        st.write(f"{instructor}: {len(events)}개 이벤트")
-                        for e in events[:30]:
-                            st.write(e.get("summary", ""), e.get("start", {}))
+            
+                    with st.spinner("캘린더 읽는 중..."):
+                        first_day = f"{sel_year}-{sel_month:02d}-01"
+                        last_day  = f"{sel_year}-{sel_month:02d}-{cal_module.monthrange(sel_year, sel_month)[1]:02d}"
+            
+                        events_by_instructor = {}
+                        for instructor, cal_id in INSTRUCTOR_CALENDARS.items():
+                            if not cal_id:
+                                continue
+                            events = get_events(first_day, last_day, calendar_id=cal_id)
+                            events_by_instructor[instructor] = [
+                                {
+                                    "date":  e.get("start", {}).get("dateTime", e.get("start", {}).get("date", ""))[:10],
+                                    "start": e.get("start", {}).get("dateTime", "")[11:16] if e.get("start", {}).get("dateTime") else "",
+                                    "title": e.get("summary", ""),
+                                }
+                                for e in events
+                            ]
             
                         result, applied, log = apply_calendar_wanted(fdf, events_by_instructor)
                         if applied > 0:
