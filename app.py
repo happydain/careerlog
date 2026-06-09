@@ -186,7 +186,12 @@ if menu == "🏠 대시보드":
     
 
     with col_cal:
-        cal_result = st_calendar(events=events, options=calendar_options, custom_css=custom_css, key="main_calendar")
+        cal_result = st_calendar(
+            events=events,
+            options=calendar_options,
+            custom_css=custom_css,
+            key=f"main_calendar_{cal_year}_{cal_month}"  # ← 이렇게 되어 있나요?
+        )
 
     with col_detail:
         if cal_result and cal_result.get("dateClick"):
