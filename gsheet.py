@@ -192,5 +192,22 @@ def create_evidence_spreadsheet(folder_id: str, folder_name: str, raw_text: str,
         return True
     except Exception as e:
         st.error(f"증빙 시트 생성 오류: {e}")
+
+def save_gsheet_raw(df):
+    try:
+        client = get_gsheet_client()
+        sheet = get_or_create_sheet(client, "의뢰일별")
+        for col in COLUMNS:
+            if col not in df.columns:
+                df[col] = ""
+        df = df[COLUMNS]
+        sheet.clear()
+        sheet.append_row(COLUMNS)
+        df_clean = df.fillna("").astype(str)
+        sheet.append_rows(df_clean.values.tolist())
+        return True
+    except Exception as e:
+        st.exception(e)
+        return False
         return False
         return False
