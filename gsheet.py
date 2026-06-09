@@ -197,3 +197,27 @@ def init_status_column():
         return True
     except Exception as e:
         return False
+
+def replace_gsheet_final(df):
+    """최종 시트 전체 교체 (기존 데이터 삭제 후 새 데이터 입력)"""
+    try:
+        client = get_gsheet_client()
+        sheet = get_or_create_sheet(client, "최종")
+        for col in COLUMNS:
+            if col not in df.columns:
+                df[col] = ""
+        df = df[COLUMNS]
+        # 강의일시 내림차순 정렬
+        try:
+            df["_dt"] = pd.to_datetime(df["강의일시"], errors="coerce")
+            df = df.sort_values("_dt", ascending=False).drop(columns=["_dt"])
+        except Exception:
+            pass
+        sheet.clear()
+        sheet.append_row(COLUMNS)
+        df_clean = df.fillna("").astype(str)
+        sheet.append_rows(df_clean.values.tolist())
+        return True
+    except Exception as e:
+        st.exception(e)
+        return False
