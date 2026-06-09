@@ -9,8 +9,9 @@ _LOCATION_MAP = {
     "2층": "수원2층",
     "5층": "수원5층",
     "광교": "수원광교",
+    "동탄": "수원동탄",
+    "상공회의소": "수원상공회의소",
 }
-
 
 def _detect_industry(text: str) -> str:
     if "제조업" in text: return "제조업"
