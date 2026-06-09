@@ -43,9 +43,16 @@ if menu == "📥 보건스케줄 입력":
         "저장 시 구글시트 + 구글드라이브 폴더가 자동 생성됩니다."
     )
 
+# ── 기본 정보 ──────────────────────────────
     st.markdown("### ⚙️ 기본 정보")
     st.divider()
-    
+
+    @st.cache_data(ttl=300)
+    def get_requester_list():
+        df = load_gsheet_raw()
+        names = df["의뢰인"].dropna().unique().tolist()
+        return sorted([n for n in names if n.strip()])
+
     col1, col2, col3, col4, col5 = st.columns([2, 1, 2, 2, 2])
     with col1:
         common_agency = st.selectbox("🏢 의뢰기관", AGENCY_OPTIONS)
@@ -71,7 +78,8 @@ if menu == "📥 보건스케줄 입력":
             common_requester = st.text_input("의뢰인")
     with col5:
         common_method = st.selectbox("의뢰방법", ["카카오톡", "카카오톡+엑셀", "이메일", "전화", "문자", "기타"])
-    
+
+    request_date_str = common_date.strftime("%Y-%m-%d")
     st.info(f"📌 **{common_agency}** · {common_requester or '의뢰인 미입력'} · {common_date.strftime('%Y/%m/%d')}")
     st.divider()
 
