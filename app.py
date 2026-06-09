@@ -19,26 +19,7 @@ from gdrive import (
 
 st.set_page_config(page_title="보건스케줄", page_icon="📅", layout="wide")
 
-st.sidebar.title("📅 CareerLog")
-
-# ← 여기 추가
-st.sidebar.divider()
-if st.sidebar.button("🧪 캘린더 테스트"):
-    from gcalendar import add_event
-    link = add_event(
-        date_str="2026-06-10",
-        start="14:00",
-        end="16:00",
-        title="테스트 강의",
-        instructor="송주영",
-        agency="테스트",
-        location="서울"
-    )
-    if link:
-        st.sidebar.success("✅ 등록 성공!")
-        st.sidebar.markdown(f"[캘린더 확인]({link})")
-    else:
-        st.sidebar.error("❌ 등록 실패")
+st.sidebar.title("📅 CareerLog"
 
 
 default_menu = st.session_state.pop("_menu", "📥 보건스케줄 입력")
