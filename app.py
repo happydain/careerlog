@@ -8,7 +8,7 @@ from utils import calc_hours, calc_fee, get_column_config
 
 from gsheet import (
     append_to_gsheet, load_gsheet_raw, load_gsheet_final,
-    save_gsheet_final, append_evidence_to_sheet, replace
+    save_gsheet_final, append_evidence_to_sheet, replace_gsheet
 )
 
 from parsers import (
