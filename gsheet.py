@@ -98,21 +98,6 @@ def replace_gsheet(df):
         return False
 
 
-def load_gsheet():
-    try:
-        client = get_gsheet_client()
-        sheet = get_or_create_sheet(client, SHEET_NAME)
-        data = sheet.get_all_records()
-        if not data:
-            return pd.DataFrame(columns=COLUMNS)
-        df = pd.DataFrame(data)
-        for col in COLUMNS:
-            if col not in df.columns:
-                df[col] = ""
-        return df[COLUMNS]
-    except Exception as e:
-        st.error(f"구글시트 불러오기 오류: {e}")
-        return pd.DataFrame(columns=COLUMNS)
 
 
 def save_gsheet(df):
