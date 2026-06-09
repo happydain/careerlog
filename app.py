@@ -191,7 +191,12 @@ if menu == "📥 보건스케줄 입력":
             num_rows="dynamic",
             column_config=get_column_config(),
         )
-
+        from config import LOCATION_OPTIONS
+        unknown_locations = edited_df["방식/위치"].dropna().unique()
+        unknown_locations = [l for l in unknown_locations if str(l).strip() and str(l) not in LOCATION_OPTIONS]
+        if unknown_locations:
+            st.warning(f"⚠️ 목록에 없는 방식/위치가 있어요: **{', '.join(unknown_locations)}**\n\n직접 수정하거나 config.py에 추가해주세요.")
+        
         st.divider()
         col1, col2, col3 = st.columns(3)
 
