@@ -1064,22 +1064,21 @@ elif menu == "📊 강의 현황":
         errors  = 0
         with st.spinner("캘린더 등록 중..."):
             for _, row in selected_rows.iterrows():
-                instructor = str(row.get("강사님", "")).strip()
-                cal_id     = INSTRUCTOR_CALENDARS.get(instructor, "")
-                if not cal_id:
-                    errors += 1
-                    continue
-                try:
-                    add_event(
-                        date_str    = str(row["강의일시"])[:10],
-                        start       = str(row["시작"]),
-                        end         = str(row["종료"]),
-                        title       = str(row["과정명"]),
-                        instructor  = instructor,
-                        agency      = str(row["의뢰기관"]),
-                        location    = str(row["방식/위치"]),
-                        calendar_id = cal_id,
-                    )
+                outco  = str(row.get("출강기업", "")).strip()
+                outco  = f"_{outco}" if outco and outco != "nan" else ""
+                target = str(row.get("대상자", "")).strip()
+                title  = f"{row['의뢰기관']}{outco}_{row['방식/위치']}_{row['과정명']}_{target}"
+            
+                add_event(
+                    date_str    = str(row["강의일시"])[:10],
+                    start       = str(row["시작"]),
+                    end         = str(row["종료"]),
+                    title       = title,
+                    instructor  = instructor,
+                    agency      = str(row["의뢰기관"]),
+                    location    = str(row["방식/위치"]),
+                    calendar_id = cal_id,
+                )
                     success += 1
                 except Exception as e:
                     errors += 1
