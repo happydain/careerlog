@@ -263,13 +263,12 @@ if menu == "📥 보건스케줄 입력":
         ]
         if unknown_locations:
             st.warning(f"⚠️ 목록에 없는 방식/위치: **{', '.join(unknown_locations)}**")
-            cols = st.columns(len(unknown_locations))
-            for i, loc in enumerate(unknown_locations):
-                with cols[i]:
-                    if st.button(f"✅ {loc} 추가", key=f"add_loc_{i}"):
+            if st.button("✅ 전체 추가", key="add_all_locations"):
+                for loc in unknown_locations:
+                    if loc not in LOCATION_OPTIONS:
                         LOCATION_OPTIONS.append(loc)
-                        st.success(f"{loc} 추가됨!")
-                        st.rerun()
+                st.success(f"✅ {len(unknown_locations)}개 추가됨!")
+                st.rerun()
 
         st.divider()
         col1, col2, col3 = st.columns(3)
