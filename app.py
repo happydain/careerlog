@@ -336,8 +336,11 @@ elif menu == "📋 의뢰일별 스케줄":
 
         st.divider()
 
+        try:
+            fdf["강의일시"] = pd.to_datetime(fdf["강의일시"], errors="coerce").dt.date
+        except Exception:
+            pass
         original_fdf = fdf.copy()
-
         edited_raw_df = st.data_editor(
             fdf,
             use_container_width=True,
