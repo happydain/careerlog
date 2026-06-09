@@ -101,7 +101,6 @@ def load_gsheet():
     try:
         client = get_gsheet_client()
         sheet = get_or_create_sheet(client, SHEET_NAME)
-        data = sheet.get_all_records(expected_headers=COLUMNS)
         if not data:
             return pd.DataFrame(columns=COLUMNS)
         df = pd.DataFrame(data)
@@ -187,7 +186,7 @@ def replace_gsheet_final(df):
         df = df[COLUMNS]
         try:
             df["_dt"] = pd.to_datetime(df["강의일시"], errors="coerce")
-            df = df.sort_values("_dt", ascending=False).drop(columns=["_dt"])
+            df = df.sort_values("_dt", ascending=True).drop(columns=["_dt"])
         except Exception:
             pass
         sheet.clear()
