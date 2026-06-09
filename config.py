@@ -46,3 +46,55 @@ INSTRUCTOR_CALENDARS = {
     "김미연": "",
     "김한나": "",
 }
+
+
+INSTRUCTOR_CONFIG = {
+    "송주영": {
+        "limit": None,
+        "zoom": True,
+        "preferred_agency": [],
+        "unavailable_dates": [],
+        "morning_only": False,
+        "backup": False,
+    },
+    "문하나": {
+        "limit": None,
+        "zoom": False,
+        "preferred_agency": ["수원대한협"],
+        "unavailable_dates": [],
+        "morning_only": False,
+        "backup": False,
+    },
+    "김미림": {
+        "limit": None,
+        "zoom": False,
+        "preferred_agency": ["인천대한협"],
+        "unavailable_dates": [],
+        "morning_only": False,
+        "backup": False,
+    },
+    "노미영": {
+        "limit": 300,
+        "zoom": True,
+        "preferred_agency": [],
+        "unavailable_dates": [],
+        "morning_only": False,
+        "backup": False,
+    },
+    "여길매": {
+        "limit": 120,
+        "zoom": True,
+        "preferred_agency": [],
+        "unavailable_dates": [],
+        "morning_only": True,
+        "backup": False,
+    },
+    "이다인": {
+        "limit": None,
+        "zoom": False,
+        "preferred_agency": [],
+        "unavailable_dates": [],
+        "morning_only": False,
+        "backup": True,
+    },
+}
