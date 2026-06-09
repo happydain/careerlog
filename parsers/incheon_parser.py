@@ -86,6 +86,7 @@ def parse_incheon_excel(uploaded_file, agency=AGENCY, requester="", request_date
                      TARGET, industry, location, instructor, DEFAULT_HOURLY_FEE)
         r["의뢰인"] = requester
         r["의뢰일"] = request_date
+        r["의뢰방법"] = request_method 
         rows.append(r)
 
     return pd.DataFrame(rows, columns=COLUMNS)
@@ -136,6 +137,7 @@ def parse_incheon_kakao(text, year, requester="", request_date="", agency=AGENCY
                      TARGET, industry, location, "", DEFAULT_HOURLY_FEE)
         r["의뢰인"] = requester
         r["의뢰일"] = request_date
+        r["의뢰방법"] = request_method 
         rows.append(r)
 
     return pd.DataFrame(rows, columns=COLUMNS)
