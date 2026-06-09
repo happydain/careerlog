@@ -590,60 +590,7 @@ elif menu == "📅 최종 스케줄 매칭시스템":
                         if save_gsheet_final(df):
                             st.success("✅ 저장 완료!")
                             st.rerun()
-else:
-    st.info("위에서 월을 선택하세요.")
-
-    
-    if df.empty:
-        st.info("저장된 데이터가 없습니다.")
-    else:
-        col1, col2, col3 = st.columns(3)
-        with col1:
-            agency_f = st.selectbox("의뢰기관", ["전체"] + sorted(df["의뢰기관"].dropna().unique().tolist()))
-        with col2:
-            instr_f = st.selectbox("강사님", ["전체"] + sorted(df["강사님"].dropna().unique().tolist()))
-        with col3:
-            subj_f = st.selectbox("과정명", ["전체"] + sorted(df["과정명"].dropna().unique().tolist()))
-
-        fdf = df.copy()
-        if agency_f != "전체": fdf = fdf[fdf["의뢰기관"] == agency_f]
-        if instr_f  != "전체": fdf = fdf[fdf["강사님"]   == instr_f]
-        if subj_f   != "전체": fdf = fdf[fdf["과정명"]   == subj_f]
-
-        try:
-            fdf["강의일시"] = pd.to_datetime(fdf["강의일시"], errors="coerce").dt.date
-        except Exception:
-            pass
-
-        original_df = fdf.copy()
-
-        if "auto_matched_df" in st.session_state:
-            fdf = st.session_state.pop("auto_matched_df")
-
-        edited_gsheet_df = st.data_editor(
-            fdf,
-            use_container_width=True,
-            height=700,
-            num_rows="fixed",
-            column_config=get_column_config(),
-        )
-
-        col_save, col_modifier = st.columns([2, 2])
-        with col_modifier:
-            modifier = st.text_input("변경 담당자 이름", placeholder="변경 저장 시 입력")
-
-        with col_save:
-            if st.button("🤖 강사 자동매칭", key="auto_match_btn"):
-                count = 0
-                for idx in edited_gsheet_df.index:
-                    instructor = str(edited_gsheet_df.loc[idx, "강사님"]).strip()
-                    if not instructor or instructor == "nan":
-                        edited_gsheet_df.loc[idx, "강사님"] = "송주영"
-                        count += 1
-                st.session_state["auto_matched_df"] = edited_gsheet_df
-                st.success(f"✅ 강사 미배정 {count}건 → 송주영 자동 배정 완료!")
-                st.rerun()
-            
+           
 
 
 # ══════════════════════════════════════════════
