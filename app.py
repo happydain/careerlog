@@ -180,7 +180,7 @@ if menu == "🏠 대시보드":
 
     custom_css = """
         .fc-event-title {
-            font-size: 8px !important;
+            font-size: 9px !important;
             white-space: nowrap;
             overflow: hidden;
             text-overflow: ellipsis;
