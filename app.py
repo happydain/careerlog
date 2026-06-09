@@ -88,10 +88,8 @@ if menu == "🏠 대시보드":
         agency_f = st.selectbox("의뢰기관", ["전체"] + (sorted(df["의뢰기관"].dropna().unique().tolist()) if not df.empty else []), key="cal_agency")
     with col_i:
         instr_f = st.selectbox("강사님", ["전체"] + (sorted(df["강사님"].dropna().unique().tolist()) if not df.empty else []), key="cal_instr")
-        # 강사 바뀌면 캘린더 데이터 초기화
-        if st.session_state.get("cal_fetched_name") != selected:
-            st.session_state.pop("cal_fetched", None)
-            st.session_state.pop("cal_fetched_name", None)
+        
+        
 
     fdf = df.copy() if not df.empty else pd.DataFrame()
     if not fdf.empty:
