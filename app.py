@@ -735,15 +735,12 @@ elif menu == "📅 최종 스케줄 매칭시스템":
 
     # ── 년도 선택 ──
     now = datetime.now()
-    available_years = sorted(df_active["강의일시"].str[:4].dropna().unique().tolist(), reverse=True) if not df_active.empty else [str(now.year)]
-    available_years = [y for y in available_years if y.isdigit()]
+    available_years = sorted(
+        [y for y in df_active["강의일시"].str[:4].dropna().unique().tolist() if str(y).isdigit()],
+        reverse=True
+    ) if not df_active.empty else [str(now.year)]
 
-    selected_year = st.selectbox(
-        "년도",
-        available_years,
-        index=0,
-        key="match_year_sel"
-    )
+    selected_year = st.selectbox("년도", available_years, index=0, key="match_year_sel")
     sel_year = int(selected_year)
 
     # ── 연간 통계 ──
@@ -753,10 +750,10 @@ elif menu == "📅 최종 스케줄 매칭시스템":
         total_count  = len(df_year)
         total_hours  = pd.to_numeric(df_year["시수"], errors="coerce").sum()
         total_fee    = pd.to_numeric(df_year["강의료(1일)"], errors="coerce").sum()
-        total_people = total_count  # 참여인원 = 강의 건수 기준
-        df_active = df_active.drop(columns=["_dt"])
+        total_days   = df_year["강의일시"].str[:10].nunique()
+        df_active    = df_active.drop(columns=["_dt"])
     else:
-        total_count = total_hours = total_fee = total_people = 0
+        total_count = total_hours = total_fee = total_days = 0
 
     st.markdown(f"""
     <div style="display:flex; gap:12px; margin-bottom:16px;">
@@ -773,8 +770,8 @@ elif menu == "📅 최종 스케줄 매칭시스템":
             <div style="font-size:22px; font-weight:bold; color:#e3a008;">₩{total_fee:,.0f}</div>
         </div>
         <div style="background:#fdf0ff; border-radius:10px; padding:14px 20px; text-align:center; flex:1;">
-            <div style="font-size:11px; color:#666;">{sel_year}년 참여인원</div>
-            <div style="font-size:22px; font-weight:bold; color:#7c3aed;">{total_people}명</div>
+            <div style="font-size:11px; color:#666;">{sel_year}년 참여일</div>
+            <div style="font-size:22px; font-weight:bold; color:#7c3aed;">{total_days}일</div>
         </div>
     </div>
     """, unsafe_allow_html=True)
@@ -796,7 +793,8 @@ elif menu == "📅 최종 스케줄 매칭시스템":
         with cols[i]:
             selected = (
                 st.session_state.get("filter_year")  == sel_year and
-                st.session_state.get("filter_month") == mo
+                st.session_state.get("filter_month") == mo and
+                not st.session_state.get("filter_instructor")
             )
             if st.button(
                 f"{mo}월",
@@ -804,32 +802,60 @@ elif menu == "📅 최종 스케줄 매칭시스템":
                 use_container_width=True,
                 type="primary" if selected else "secondary"
             ):
-                st.session_state["filter_year"]  = sel_year
-                st.session_state["filter_month"] = mo
+                st.session_state["filter_year"]       = sel_year
+                st.session_state["filter_month"]      = mo
+                st.session_state["filter_instructor"] = None
                 st.rerun()
 
     st.divider()
 
-    # ── 선택된 월 데이터 ──
-    filter_year  = st.session_state.get("filter_year")
-    filter_month = st.session_state.get("filter_month")
+    # ── 강사별 버튼 ──
+    if not df_active.empty:
+        instructors = sorted(df_active["강사님"].dropna().unique().tolist())
+        instr_cols = st.columns(len(instructors) + 1)
+        with instr_cols[0]:
+            if st.button("전체", key="instr_all", type="primary" if not st.session_state.get("filter_instructor") else "secondary"):
+                st.session_state["filter_instructor"] = None
+                st.rerun()
+        for i, instr in enumerate(instructors):
+            with instr_cols[i + 1]:
+                selected_i = st.session_state.get("filter_instructor") == instr
+                if st.button(instr, key=f"instr_{instr}", type="primary" if selected_i else "secondary"):
+                    st.session_state["filter_instructor"] = instr
+                    st.session_state["filter_year"]       = sel_year
+                    st.session_state["filter_month"]      = None
+                    st.rerun()
 
-    if not filter_year or not filter_month:
-        st.info("위에서 월을 선택하세요.")
+    st.divider()
+
+    # ── 선택된 월 또는 강사 데이터 ──
+    filter_year       = st.session_state.get("filter_year")
+    filter_month      = st.session_state.get("filter_month")
+    filter_instructor = st.session_state.get("filter_instructor")
+
+    if not filter_year and not filter_instructor:
+        st.info("위에서 월 또는 강사님을 선택하세요.")
     else:
-        st.markdown(f"### 📅 {filter_year}년 {filter_month}월 강의 일정")
-
         if df.empty:
             st.info("저장된 데이터가 없습니다.")
         else:
             df["_dt"] = pd.to_datetime(df["강의일시"], errors="coerce")
-            fdf = df[
-                (df["_dt"].dt.year  == filter_year) &
-                (df["_dt"].dt.month == filter_month)
-            ].drop(columns=["_dt"]).copy()
+
+            if filter_instructor:
+                fdf = df[
+                    (df["_dt"].dt.year == sel_year) &
+                    (df["강사님"] == filter_instructor)
+                ].drop(columns=["_dt"]).copy()
+                st.markdown(f"### 👤 {filter_instructor} - {sel_year}년 전체")
+            else:
+                fdf = df[
+                    (df["_dt"].dt.year  == filter_year) &
+                    (df["_dt"].dt.month == filter_month)
+                ].drop(columns=["_dt"]).copy()
+                st.markdown(f"### 📅 {filter_year}년 {filter_month}월 강의 일정")
 
             if fdf.empty:
-                st.info(f"{filter_year}년 {filter_month}월 데이터가 없습니다.")
+                st.info("데이터가 없습니다.")
             else:
                 fdf_active = fdf[fdf["상태"] != "취소"] if "상태" in fdf.columns else fdf
                 total_hours = pd.to_numeric(fdf_active["시수"], errors="coerce").sum()
