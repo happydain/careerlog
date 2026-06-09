@@ -70,11 +70,14 @@ def append_to_gsheet(df):
         df_clean = df.fillna("").astype(str)
         values = df_clean.values.tolist()
         sheet1.append_rows(values)
-        sheet2.append_rows(va
+        sheet2.append_rows(values)
+        return True
+    except Exception as e:
+        st.exception(e)
+        return False
 
 
 def append_evidence_to_sheet(folder_name: str, files):
-    """증빙 파일 내용을 구글 시트 '증빙' 탭에 기록"""
     try:
         client = get_gsheet_client()
         sheet = get_or_create_sheet(client, "증빙")
@@ -127,7 +130,7 @@ def load_gsheet_raw():
 def load_gsheet_final():
     try:
         client = get_gsheet_client()
-        sheet = get_or_create_sheet(client, "강의날짜별")
+        sheet = get_or_create_sheet(client, "최종")
         data = sheet.get_all_records()
         if not data:
             return pd.DataFrame(columns=COLUMNS)
@@ -136,7 +139,7 @@ def load_gsheet_final():
             if col not in df.columns:
                 df[col] = ""
         df["_dt"] = pd.to_datetime(df["강의일시"], errors="coerce")
-        df = df.sort_values("_dt").drop(columns=["_dt"]).reset_index(drop=True)
+        df = df.sort_values("_dt", ascending=False).drop(columns=["_dt"]).reset_index(drop=True)
         return df[COLUMNS]
     except Exception as e:
         st.error(f"구글시트 불러오기 오류: {e}")
@@ -146,7 +149,7 @@ def load_gsheet_final():
 def save_gsheet_final(df):
     try:
         client = get_gsheet_client()
-        sheet = get_or_create_sheet(client, "강의날짜별")
+        sheet = get_or_create_sheet(client, "최종")
         for col in COLUMNS:
             if col not in df.columns:
                 df[col] = ""
@@ -158,44 +161,8 @@ def save_gsheet_final(df):
         return True
     except Exception as e:
         st.exception(e)
+        return False
 
-
-def create_evidence_spreadsheet(folder_id: str, folder_name: str, raw_text: str, requester: str, request_date: str):
-    """드라이브 폴더 안에 새 구글시트 생성 후 카톡 내용 저장"""
-    try:
-        from googleapiclient.discovery import build
-        from google.oauth2.service_account import Credentials
-
-        client = get_gsheet_client()
-        spreadsheet = client.create(f"{folder_name}_원본의뢰")
-
-        # 드라이브 폴더로 이동
-        creds = Credentials.from_service_account_info(
-            dict(st.secrets["google_gsheets"]),
-            scopes=["https://www.googleapis.com/auth/drive"]
-        )
-        drive_service = build("drive", "v3", credentials=creds)
-
-        file = drive_service.files().get(
-            fileId=spreadsheet.id, fields="parents"
-        ).execute()
-        drive_service.files().update(
-            fileId=spreadsheet.id,
-            addParents=folder_id,
-            removeParents=",".join(file.get("parents", [])),
-            fields="id, parents",
-            supportsAllDrives=True
-        ).execute()
-
-        # 내용 입력
-        sheet = spreadsheet.sheet1
-        sheet.update_title("원본의뢰")
-        sheet.append_row(["의뢰일", "의뢰인", "원본내용"])
-        sheet.append_row([request_date, requester, raw_text])
-
-        return True
-    except Exception as e:
-        st.error(f"증빙 시트 생성 오류: {e}")
 
 def save_gsheet_raw(df):
     try:
@@ -213,8 +180,7 @@ def save_gsheet_raw(df):
     except Exception as e:
         st.exception(e)
         return False
-        return False
-        return False
+
 
 def init_status_column():
     """기존 데이터에 상태 컬럼 일괄 추가"""
