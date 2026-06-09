@@ -174,16 +174,19 @@ if menu == "📥 보건스케줄 입력":
 
     # ── 증빙 파일 ────────────────────────────
     st.markdown("### 📎 증빙 파일")
-    st.info("💡 저장 후 증빙폴더 링크를 클릭해서 파일을 직접 드라이브에 업로드하세요.")
-    if st.session_state.get("excel_file_for_drive"):
-        st.success(f"📎 엑셀 파일 자동 포함: **{st.session_state['excel_file_for_drive'].name}**")
+    st.info("💡 저장 후 생성된 드라이브 폴더 링크를 클릭해서 파일을 직접 업로드하세요.")
+    st.warning("""
+    ⚠️ **자동 파일 업로드 기능 준비 중**
+    현재 서비스 계정 구글 드라이브 용량 제한으로 파일 자동 업로드가 제한됩니다.
+    추후 업데이트 예정이며, 현재는 드라이브 폴더에 직접 업로드해 주세요.
+    """)
 
-    evidence_files = st.file_uploader(
-        "추가 증빙자료 (캡처, PDF 등)",
-        type=["png", "jpg", "jpeg", "pdf", "docx", "xlsx"],
-        accept_multiple_files=True,
-        key="evidence_uploader"
-    )
+    # evidence_files = st.file_uploader(
+    #     "추가 증빙자료 (캡처, PDF 등)",
+    #     type=["png", "jpg", "jpeg", "pdf", "docx", "xlsx"],
+    #     accept_multiple_files=True,
+    #     key="evidence_uploader"
+    # )
 
     st.divider()
 
@@ -272,8 +275,9 @@ if menu == "📥 보건스케줄 입력":
 
                         try:
                             # 의뢰 저장 시
-                            folder_id = create_request_folder(year, common_agency, request_date_str, common_requester, "의뢰")
-                             # 변경 저장 시 (의뢰일별 스케줄 저장 버튼에서)
+                            lecture_count = len(edited_df)
+                            folder_id = create_request_folder(year, common_agency, request_date_str, common_requester, f"의뢰{lecture_count}건")
+                            # 변경 저장 시 (의뢰일별 스케줄 저장 버튼에서)
                             folder_id = create_request_folder(year, common_agency, request_date_str, modifier, "변경")
                             folder_url = get_folder_url(folder_id)
                             if evidence_files:
