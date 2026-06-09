@@ -810,6 +810,34 @@ elif menu == "📅 최종 스케줄 매칭시스템":
     st.divider()
 
     # ── 강사별 버튼 ──
+    st.markdown(f"""
+    <div style="display:flex; gap:10px; margin-bottom:16px;">
+        <div style="background:#f0f4ff; border-radius:10px; padding:12px 16px; text-align:center; flex:1;">
+            <div style="font-size:11px; color:#666;">강의 건수</div>
+            <div style="font-size:20px; font-weight:bold; color:#1a56db;">{len(fdf_active)}건</div>
+        </div>
+        <div style="background:#f0fff4; border-radius:10px; padding:12px 16px; text-align:center; flex:1;">
+            <div style="font-size:11px; color:#666;">총 시수</div>
+            <div style="font-size:20px; font-weight:bold; color:#0e9f6e;">{total_hours:.0f}시간</div>
+        </div>
+        <div style="background:#fff8f0; border-radius:10px; padding:12px 16px; text-align:center; flex:1;">
+            <div style="font-size:11px; color:#666;">총 강의료</div>
+            <div style="font-size:20px; font-weight:bold; color:#e3a008;">₩{total_fee:,.0f}</div>
+        </div>
+        <div style="background:#fdf0ff; border-radius:10px; padding:12px 16px; text-align:center; flex:1;">
+            <div style="font-size:11px; color:#666;">참여일</div>
+            <div style="font-size:20px; font-weight:bold; color:#7c3aed;">{total_days}일</div>
+        </div>
+        <div style="background:#fff0f0; border-radius:10px; padding:12px 16px; text-align:center; flex:1;">
+            <div style="font-size:11px; color:#666;">일당</div>
+            <div style="font-size:20px; font-weight:bold; color:#e02424;">₩{avg_daily_fee:,.0f}</div>
+        </div>
+        <div style="background:#f0f9ff; border-radius:10px; padding:12px 16px; text-align:center; flex:1;">
+            <div style="font-size:11px; color:#666;">시간당</div>
+            <div style="font-size:20px; font-weight:bold; color:#0369a1;">₩{hourly_rate:,.0f}</div>
+        </div>
+    </div>
+    """, unsafe_allow_html=True)
     if not df_active.empty:
         instructors = sorted(df_active["강사님"].dropna().unique().tolist())
         instr_cols = st.columns(len(instructors) + 1)
