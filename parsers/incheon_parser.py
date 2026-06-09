@@ -43,7 +43,7 @@ def _parse_date_str(raw) -> pd.Timestamp:
 
 
 # ── 엑셀 파싱 ──────────────────────────────
-def parse_incheon_excel(uploaded_file, agency=AGENCY, requester="", request_date=""):
+def parse_incheon_excel(uploaded_file, agency=AGENCY, requester="", request_date="",request_method=""):
     raw = pd.read_excel(uploaded_file, sheet_name=0, header=None)
 
     # 헤더 찾기
