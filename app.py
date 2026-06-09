@@ -1052,6 +1052,7 @@ elif menu == "👨‍🏫 강사별 대시보드":
     import calendar as cal_module
 
     st.header("👨‍🏫 강사별 대시보드")
+
     df = load_gsheet_final()
 
     if df.empty:
@@ -1059,117 +1060,192 @@ elif menu == "👨‍🏫 강사별 대시보드":
     elif "강사님" not in df.columns:
         st.warning("강사님 컬럼이 없습니다.")
     else:
-        selected = st.selectbox("강사 선택", sorted(df["강사님"].dropna().unique().tolist()))
-        idf = df[df["강사님"] == selected].copy()
-        cal_id = INSTRUCTOR_CALENDARS.get(selected, "")
+        # ── 강사 선택 ──
+        now = datetime.now()
+        instructors = sorted([i for i in df["강사님"].dropna().unique().tolist()
+                              if str(i).strip() and str(i) != "nan"])
+        selected = st.selectbox("강사 선택", instructors, key="dash_instr")
 
-        try:
-            total_hours = pd.to_numeric(idf["시수"], errors="coerce").sum()
-            total_fee   = pd.to_numeric(idf["강의료(1일)"], errors="coerce").sum()
-            c1, c2, c3 = st.columns(3)
-            c1.metric("총 강의 건수", f"{len(idf)}건")
-            c2.metric("총 시수", f"{total_hours:.0f}시간")
-            c3.metric("총 강의료", f"₩{total_fee:,.0f}")
-        except Exception as e:
-            st.error(f"집계 오류: {e}")
+        # ── 년도 선택 ──
+        available_years = sorted(
+            [y for y in df["강의일시"].str[:4].dropna().unique().tolist() if str(y).isdigit()],
+            reverse=True
+        )
+        sel_year = st.selectbox("년도", available_years, index=0, key="dash_year")
+        sel_year = int(sel_year)
+
+        idf = df[
+            (df["강사님"] == selected) &
+            (df["상태"] != "취소" if "상태" in df.columns else True)
+        ].copy()
+
+        idf["_dt"] = pd.to_datetime(idf["강의일시"], errors="coerce")
+        idf_year   = idf[idf["_dt"].dt.year == sel_year].copy()
+
+        # ── 연간 통계 ──
+        total_count = len(idf_year)
+        total_hours = pd.to_numeric(idf_year["시수"], errors="coerce").sum()
+        total_fee   = pd.to_numeric(idf_year["강의료(1일)"], errors="coerce").sum()
+        total_days  = idf_year["강의일시"].astype(str).str[:10].nunique()
+        avg_daily   = total_fee / total_days if total_days > 0 else 0
+        hourly      = total_fee / total_hours if total_hours > 0 else 0
+
+        st.markdown(f"<div style='font-size:24px; font-weight:500; margin:8px 0;'>👤 {selected} — {sel_year}년</div>", unsafe_allow_html=True)
+        st.markdown(f"""
+        <div style="display:flex; gap:12px; margin:12px 0;">
+            <div style="background:#f0f4ff; border-radius:10px; padding:12px 18px; text-align:center; flex:1;">
+                <div style="font-size:11px; color:#666;">강의 건수</div>
+                <div style="font-size:20px; font-weight:bold; color:#1a56db;">{total_count}건</div>
+            </div>
+            <div style="background:#f0fff4; border-radius:10px; padding:12px 18px; text-align:center; flex:1;">
+                <div style="font-size:11px; color:#666;">총 시수</div>
+                <div style="font-size:20px; font-weight:bold; color:#0e9f6e;">{total_hours:.0f}시간</div>
+            </div>
+            <div style="background:#fff8f0; border-radius:10px; padding:12px 18px; text-align:center; flex:1;">
+                <div style="font-size:11px; color:#666;">총 강의료</div>
+                <div style="font-size:20px; font-weight:bold; color:#e3a008;">₩{total_fee:,.0f}</div>
+            </div>
+            <div style="background:#fdf0ff; border-radius:10px; padding:12px 18px; text-align:center; flex:1;">
+                <div style="font-size:11px; color:#666;">참여일</div>
+                <div style="font-size:20px; font-weight:bold; color:#7c3aed;">{total_days}일</div>
+            </div>
+            <div style="background:#fff0f0; border-radius:10px; padding:12px 18px; text-align:center; flex:1;">
+                <div style="font-size:11px; color:#666;">일당</div>
+                <div style="font-size:20px; font-weight:bold; color:#e02424;">₩{avg_daily:,.0f}</div>
+            </div>
+            <div style="background:#f0f9ff; border-radius:10px; padding:12px 18px; text-align:center; flex:1;">
+                <div style="font-size:11px; color:#666;">시간당</div>
+                <div style="font-size:20px; font-weight:bold; color:#0369a1;">₩{hourly:,.0f}</div>
+            </div>
+        </div>
+        """, unsafe_allow_html=True)
 
         st.divider()
 
-        tab1, tab2 = st.tabs(["📥 캘린더 전체 가져오기", "📅 이번달 스케줄"])
+        tab1, tab2, tab3, tab4 = st.tabs(["📊 의뢰기관별", "📚 과목별", "🏢 외부출강", "📅 캘린더"])
 
+        # ── TAB1: 의뢰기관별 ──
         with tab1:
-            st.markdown("2022년부터 현재까지 캘린더 일정을 가져와 엑셀로 저장합니다.")
-            if not cal_id:
-                st.warning(f"⚠️ {selected} 강사님 캘린더가 연동되지 않았습니다.")
+            st.markdown("### 의뢰기관별 강의 현황")
+            if not idf_year.empty:
+                agency_grp = idf_year.groupby("의뢰기관").agg(
+                    건수=("강의일시", "count"),
+                    시수=("시수", lambda x: pd.to_numeric(x, errors="coerce").sum()),
+                    강의료=("강의료(1일)", lambda x: pd.to_numeric(x, errors="coerce").sum()),
+                ).reset_index().sort_values("건수", ascending=False)
+
+                for _, row in agency_grp.iterrows():
+                    st.markdown(f"""
+                    <div style="display:flex; align-items:center; gap:12px; padding:10px 0;
+                                border-bottom:0.5px solid var(--color-border-tertiary);">
+                        <div style="font-weight:500; min-width:120px;">{row['의뢰기관']}</div>
+                        <div style="color:#1a56db; min-width:50px;">{int(row['건수'])}건</div>
+                        <div style="color:#0e9f6e; min-width:70px;">{row['시수']:.0f}시간</div>
+                        <div style="color:#e3a008;">₩{row['강의료']:,.0f}</div>
+                    </div>
+                    """, unsafe_allow_html=True)
+
+                    # 과목별 상세
+                    sub_df = idf_year[idf_year["의뢰기관"] == row["의뢰기관"]]
+                    sub_grp = sub_df.groupby("과정명").agg(
+                        건수=("강의일시", "count"),
+                        시수=("시수", lambda x: pd.to_numeric(x, errors="coerce").sum()),
+                    ).reset_index()
+                    for _, s in sub_grp.iterrows():
+                        st.markdown(f"<div style='padding-left:20px; font-size:12px; color:var(--color-text-secondary);'>└ {s['과정명']} {int(s['건수'])}건 / {s['시수']:.0f}시간</div>", unsafe_allow_html=True)
             else:
-                if st.button("📥 전체 일정 가져오기", key="import_cal_btn"):
-                    with st.spinner("2022년부터 전체 일정 가져오는 중..."):
-                        all_events = []
-                        y, m = 2022, 1
-                        now = datetime.now()
-                        while (y, m) <= (now.year, now.month):
-                            first_day = f"{y}-{m:02d}-01"
-                            last_day  = f"{y}-{m:02d}-{cal_module.monthrange(y, m)[1]:02d}"
-                            events = get_events(first_day, last_day, calendar_id=cal_id)
-                            all_events.extend(events)
-                            m += 1
-                            if m > 12:
-                                m = 1
-                                y += 1
+                st.info("데이터가 없습니다.")
 
-                        rows = []
-                        for e in all_events:
-                            start = e.get("start", {}).get("dateTime", e.get("start", {}).get("date", ""))
-                            end   = e.get("end",   {}).get("dateTime", e.get("end",   {}).get("date", ""))
-                            rows.append({
-                                "강의일시": start[:10] if start else "",
-                                "시작":    start[11:16] if len(start) > 10 else "",
-                                "종료":    end[11:16]   if len(end)   > 10 else "",
-                                "제목":    e.get("summary", ""),
-                                "장소":    e.get("location", ""),
-                                "이벤트ID": e.get("id", ""),
-                            })
-
-                        st.session_state["cal_imported"] = pd.DataFrame(rows)
-                        st.session_state["cal_imported_name"] = selected
-                        st.success(f"✅ {len(rows)}건 가져왔어요!")
-                        st.rerun()
-
-                if "cal_imported" in st.session_state:
-                    cal_df = st.session_state["cal_imported"]
-                    name   = st.session_state.get("cal_imported_name", selected)
-                    st.dataframe(cal_df, use_container_width=True, height=400)
-                    col1, col2 = st.columns(2)
-                    with col1:
-                        buffer = io.BytesIO()
-                        cal_df.to_excel(buffer, index=False, engine="xlsxwriter")
-                        st.download_button(
-                            label="📥 엑셀 다운로드",
-                            data=buffer.getvalue(),
-                            file_name=f"캘린더_{name}_{datetime.now().strftime('%Y%m%d')}.xlsx",
-                            mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
-                            key="cal_download_btn",
-                        )
-                    with col2:
-                        if st.button("🗑️ 초기화", key="cal_reset_btn"):
-                            del st.session_state["cal_imported"]
-                            st.rerun()
-
+        # ── TAB2: 과목별 ──
         with tab2:
+            st.markdown("### 과목별 강의 현황")
+            if not idf_year.empty:
+                subj_grp = idf_year.groupby("과정명").agg(
+                    건수=("강의일시", "count"),
+                    시수=("시수", lambda x: pd.to_numeric(x, errors="coerce").sum()),
+                    강의료=("강의료(1일)", lambda x: pd.to_numeric(x, errors="coerce").sum()),
+                ).reset_index().sort_values("건수", ascending=False)
+
+                st.dataframe(
+                    subj_grp.style.format({"강의료": "₩{:,.0f}", "시수": "{:.0f}"}),
+                    use_container_width=True, hide_index=True
+                )
+            else:
+                st.info("데이터가 없습니다.")
+
+        # ── TAB3: 외부출강 ──
+        with tab3:
+            st.markdown("### 🏢 외부출강 이력")
+            if not idf_year.empty and "출강기업" in idf_year.columns:
+                ext_df = idf_year[idf_year["출강기업"].astype(str).str.strip().notnull() &
+                                  (idf_year["출강기업"].astype(str).str.strip() != "") &
+                                  (idf_year["출강기업"].astype(str).str.strip() != "nan")]
+                if not ext_df.empty:
+                    ext_grp = ext_df.groupby("출강기업").agg(
+                        건수=("강의일시", "count"),
+                        의뢰기관=("의뢰기관", lambda x: ", ".join(x.unique())),
+                        시수=("시수", lambda x: pd.to_numeric(x, errors="coerce").sum()),
+                    ).reset_index().sort_values("건수", ascending=False)
+
+                    for _, row in ext_grp.iterrows():
+                        st.markdown(f"""
+                        <div style="padding:10px 0; border-bottom:0.5px solid var(--color-border-tertiary);">
+                            <div style="font-weight:500;">{row['출강기업']}</div>
+                            <div style="font-size:12px; color:var(--color-text-secondary);">{row['의뢰기관']} · {int(row['건수'])}건 · {row['시수']:.0f}시간</div>
+                        </div>
+                        """, unsafe_allow_html=True)
+                else:
+                    st.info("외부출강 이력이 없습니다.")
+            else:
+                st.info("외부출강 데이터가 없습니다.")
+
+        # ── TAB4: 캘린더 ──
+        with tab4:
+            cal_id = INSTRUCTOR_CALENDARS.get(selected, "")
             if not cal_id:
                 st.warning(f"⚠️ {selected} 강사님 캘린더가 연동되지 않았습니다.")
             else:
-                now = datetime.now()
                 col1, col2 = st.columns(2)
                 with col1:
                     view_year = st.selectbox("년도", list(range(2022, 2028)),
                                              index=list(range(2022, 2028)).index(now.year),
-                                             key="view_year")
+                                             key="cal_view_year")
                 with col2:
                     view_month = st.selectbox("월", list(range(1, 13)),
                                               index=now.month - 1,
-                                              key="view_month")
+                                              key="cal_view_month")
 
-                first_day = f"{view_year}-{view_month:02d}-01"
-                last_day  = f"{view_year}-{view_month:02d}-{cal_module.monthrange(view_year, view_month)[1]:02d}"
+                if st.button("📥 캘린더 가져오기", key="cal_fetch"):
+                    with st.spinner("가져오는 중..."):
+                        first_day = f"{view_year}-{view_month:02d}-01"
+                        last_day  = f"{view_year}-{view_month:02d}-{cal_module.monthrange(view_year, view_month)[1]:02d}"
+                        events    = get_events(first_day, last_day, calendar_id=cal_id)
+                        rows = []
+                        for e in events:
+                            start = e.get("start", {}).get("dateTime", e.get("start", {}).get("date", ""))
+                            end   = e.get("end",   {}).get("dateTime", e.get("end",   {}).get("date", ""))
+                            rows.append({
+                                "날짜":  start[:10],
+                                "시작": start[11:16] if len(start) > 10 else "",
+                                "종료": end[11:16]   if len(end)   > 10 else "",
+                                "제목": e.get("summary", ""),
+                                "장소": e.get("location", ""),
+                            })
+                        st.session_state["cal_fetched"] = pd.DataFrame(rows)
+                        st.session_state["cal_fetched_name"] = selected
+                        st.success(f"✅ {len(rows)}건")
+                        st.rerun()
 
-                with st.spinner("일정 가져오는 중..."):
-                    events = get_events(first_day, last_day, calendar_id=cal_id)
+                if "cal_fetched" in st.session_state:
+                    cal_df = st.session_state["cal_fetched"]
+                    st.dataframe(cal_df, use_container_width=True, height=400)
 
-                if not events:
-                    st.info(f"{view_year}년 {view_month}월 일정이 없습니다.")
-                else:
-                    rows = []
-                    for e in events:
-                        start = e.get("start", {}).get("dateTime", e.get("start", {}).get("date", ""))
-                        end   = e.get("end",   {}).get("dateTime", e.get("end",   {}).get("date", ""))
-                        rows.append({
-                            "날짜":  start[:10] if start else "",
-                            "시작": start[11:16] if len(start) > 10 else "",
-                            "종료": end[11:16]   if len(end)   > 10 else "",
-                            "제목": e.get("summary", ""),
-                            "장소": e.get("location", ""),
-                        })
-                    month_df = pd.DataFrame(rows)
-                    st.markdown(f"#### {view_year}년 {view_month}월 — {len(rows)}건")
-                    st.dataframe(month_df, use_container_width=True, height=500)
+                    buffer = io.BytesIO()
+                    cal_df.to_excel(buffer, index=False, engine="xlsxwriter")
+                    st.download_button(
+                        label="📥 엑셀 다운로드",
+                        data=buffer.getvalue(),
+                        file_name=f"캘린더_{selected}_{datetime.now().strftime('%Y%m%d')}.xlsx",
+                        mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+                        key="cal_dl",
+                    )
