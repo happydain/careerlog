@@ -128,40 +128,63 @@ def check_date_conflicts(df: pd.DataFrame, year: int, month: int) -> list:
         pass
     return conflicts
 
+WANTED_NAME_MAP = {
+    "주영": "송주영",
+    "미림": "김미림",
+    "하나": "문하나",
+    "미영": "노미영",
+    "길매": "여길매",
+    "다인": "이다인",
+}
 
-def apply_calendar_wanted(fdf: pd.DataFrame, events_by_instructor: dict) -> tuple:
-    """
-    캘린더 원티드 반영
-    events_by_instructor: {강사명: [{"date": ..., "start": ..., "title": ...}]}
-    """
+def apply_calendar_wanted(fdf, events_by_instructor):
     result  = fdf.copy()
     applied = 0
     log     = []
 
-    for instructor, events in events_by_instructor.items():
+    # 모든 강사 캘린더 이벤트 합치기
+    all_events = []
+    for cal_instructor, events in events_by_instructor.items():
         for e in events:
-            title = e.get("title", "")
-            if "원티드" not in title:
+            all_events.append((cal_instructor, e))
+
+    for cal_instructor, e in all_events:
+        title = e.get("title", "")
+        if "원티드" not in title and "원티드" not in title:
+            continue
+
+        date_str = e.get("date", "")
+        if not date_str:
+            continue
+
+        # 강사 찾기
+        instructor = None
+        for key, name in WANTED_NAME_MAP.items():
+            if key in title:
+                instructor = name
+                break
+        if not instructor:
+            instructor = cal_instructor  # 캘린더 주인
+
+        # 시간대
+        morning_only   = "오전" in title
+        afternoon_only = "오후" in title
+        # 전일이면 둘 다 해당
+
+        mask = result["강의일시"].astype(str).str[:10] == date_str
+        for idx in result[mask].index:
+            try:
+                hour = int(str(result.loc[idx, "시작"]).split(":")[0])
+            except Exception:
+                hour = 9
+
+            if morning_only and hour >= 13:
+                continue
+            if afternoon_only and hour < 13:
                 continue
 
-            date_str      = e.get("date", "")
-            morning_only  = "오전" in title
-            afternoon_only = "오후" in title
-
-            mask = result["강의일시"].astype(str).str[:10] == date_str
-            for idx in result[mask].index:
-                try:
-                    hour = int(str(result.loc[idx, "시작"]).split(":")[0])
-                except Exception:
-                    hour = 9
-
-                if morning_only and hour >= 13:
-                    continue
-                if afternoon_only and hour < 13:
-                    continue
-
-                result.loc[idx, "강사님"] = instructor
-                applied += 1
-                log.append(f"{date_str} {result.loc[idx, '시작']} → {instructor} ({title})")
+            result.loc[idx, "강사님"] = instructor
+            applied += 1
+            log.append(f"{date_str} {result.loc[idx, '시작']} → {instructor} ({title})")
 
     return result, applied, log
