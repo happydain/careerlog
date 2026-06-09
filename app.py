@@ -53,10 +53,7 @@ st.title("📅 보건스케줄 자동정리")
 # ══════════════════════════════════════════════
 # 🏠 대시보드
 # ══════════════════════════════════════════════
-if not df.empty:
-    df = df[df["상태"] != "취소"]  # ← fdf 만들기 전에 취소 제거
-    fdf = df.copy()
-    
+
 if menu == "🏠 대시보드":
     from streamlit_calendar import calendar as st_calendar
     
@@ -71,6 +68,11 @@ if menu == "🏠 대시보드":
     st.divider()
     now = datetime.now()
     df  = load_gsheet_final()
+
+    if not df.empty:
+    df = df[df["상태"] != "취소"]  # ← fdf 만들기 전에 취소 제거
+    fdf = df.copy()
+    
 
     # ── 년/월 선택 + 필터 ──
     col_y, col_m, col_a, col_i = st.columns(4)
