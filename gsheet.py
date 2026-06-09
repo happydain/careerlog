@@ -177,6 +177,29 @@ def init_status_column():
     except Exception as e:
         return False
 
+def replace_gsheet_final(df):
+    """보건스케쥴 시트 전체 교체"""
+    try:
+        client = get_gsheet_client()
+        sheet = get_or_create_sheet(client, "보건스케쥴")
+        for col in COLUMNS:
+            if col not in df.columns:
+                df[col] = ""
+        df = df[COLUMNS]
+        try:
+            df["_dt"] = pd.to_datetime(df["강의일시"], errors="coerce")
+            df = df.sort_values("_dt", ascending=False).drop(columns=["_dt"])
+        except Exception:
+            pass
+        sheet.clear()
+        sheet.append_row(COLUMNS)
+        df_clean = df.fillna("").astype(str)
+        sheet.append_rows(df_clean.values.tolist())
+        return True
+    except Exception as e:
+        st.exception(e)
+        return False
+
 
 # 하위 호환성을 위한 별칭
 def load_gsheet_raw():
