@@ -162,7 +162,7 @@ if menu == "📥 보건스케줄 입력":
                     elif common_agency == "한안협":
                         df_text = parse_hanahn_kakao(raw_text, year, common_requester, request_date_str, common_method)
                     elif common_agency == "인천대한협":
-                        df_text = parse_incheon_kakao(raw_text, year, common_requester, request_date_str)
+                        df_text = parse_incheon_kakao(raw_text, year, common_requester, request_date_str, request_method=common_method)
                     else:
                         df_text = parse_kakao_text(raw_text, year)
                         df_text["의뢰기관"] = common_agency
