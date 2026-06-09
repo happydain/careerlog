@@ -105,7 +105,7 @@ if menu == "📥 보건스케줄 입력":
 
         if uploaded_file:
             if st.button("📄 변환"):
-                if not common_requester.strip():
+                if not common_requester.strip() and not st.session_state.get("is_bulk_upload"):
                     st.error("담당자 이름을 입력해주세요.")
                 else:
                     try:
