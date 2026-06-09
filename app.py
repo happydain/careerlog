@@ -329,7 +329,9 @@ if menu == "📥 보건스케줄 입력":
                 del st.session_state["temp_df"]
                 st.session_state.pop("raw_text_for_drive", None)
                 st.session_state.pop("excel_file_for_drive", None)
-                st.rerun()col_excel, col_kakao = st.columns(2)
+                st.rerun()
+                
+                col_excel, col_kakao = st.columns(2)
 
     # ── 엑셀 업로드 ────────────────────────────
     with col_excel:
