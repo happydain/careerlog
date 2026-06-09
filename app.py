@@ -1221,14 +1221,14 @@ elif menu == "👨‍🏫 강사별 대시보드":
 
                 if st.button("📥 캘린더 가져오기", key="cal_fetch"):
                     with st.spinner("가져오는 중..."):
-                    if view_month == "전체":
-                                first_day = f"{view_year}-01-01"
-                                last_day  = f"{view_year}-12-31"
-                            else:
-                                first_day = f"{view_year}-{int(view_month):02d}-01"
-                                last_day  = f"{view_year}-{int(view_month):02d}-{cal_module.monthrange(view_year, int(view_month))[1]:02d}"
-                            
-                            events = get_events(first_day, last_day, calendar_id=cal_id)
+                        if view_month == "전체":
+                                    first_day = f"{view_year}-01-01"
+                                    last_day  = f"{view_year}-12-31"
+                                else:
+                                    first_day = f"{view_year}-{int(view_month):02d}-01"
+                                    last_day  = f"{view_year}-{int(view_month):02d}-{cal_module.monthrange(view_year, int(view_month))[1]:02d}"
+                                
+                                events = get_events(first_day, last_day, calendar_id=cal_id)
                         rows = []
                         for e in events:
                             start = e.get("start", {}).get("dateTime", e.get("start", {}).get("date", ""))
