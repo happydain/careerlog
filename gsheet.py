@@ -78,7 +78,7 @@ def append_to_gsheet(df):
 
         try:
             all_df["_dt"] = pd.to_datetime(all_df["강의일시"], errors="coerce")
-            all_df = all_df.sort_values("_dt", ascending=False).drop(columns=["_dt"])
+            all_df = all_df.sort_values("_dt", ascending=True).drop(columns=["_dt"])
         except Exception:
             pass
 
@@ -102,7 +102,7 @@ def replace_gsheet(df):
         df = df[COLUMNS]
         try:
             df["_dt"] = pd.to_datetime(df["강의일시"], errors="coerce")
-            df = df.sort_values("_dt", ascending=False).drop(columns=["_dt"])
+            df = df.sort_values("_dt", ascending=True).drop(columns=["_dt"])
         except Exception:
             pass
         sheet.clear()
@@ -125,7 +125,7 @@ def replace_gsheet_final(df):
         df = df[COLUMNS]
         try:
             df["_dt"] = pd.to_datetime(df["강의일시"], errors="coerce")
-            df = df.sort_values("_dt", ascending=False).drop(columns=["_dt"])
+            df = df.sort_values("_dt", ascending=True).drop(columns=["_dt"])
         except Exception:
             pass
         sheet.clear()
@@ -223,7 +223,7 @@ def load_gsheet_final():
     df = load_gsheet()
     try:
         df["_dt"] = pd.to_datetime(df["강의일시"], errors="coerce")
-        df = df.sort_values("_dt", ascending=False).drop(columns=["_dt"]).reset_index(drop=True)
+        df = df.sort_values("_dt", ascending=True).drop(columns=["_dt"]).reset_index(drop=True)
     except Exception:
         pass
     return df
