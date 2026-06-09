@@ -5,6 +5,8 @@ import streamlit as st
 from google.oauth2.service_account import Credentials
 from googleapiclient.discovery import build
 from config import CALENDAR_ID
+from datetime import datetime, timedelta
+
 
 SCOPES = ["https://www.googleapis.com/auth/calendar"]
 _calendar_service = None
@@ -26,14 +28,13 @@ def add_event(date_str: str, start: str, end: str, title: str,
               calendar_id: str = CALENDAR_ID) -> str:
     try:
         service  = get_calendar_service()
-        start_dt = f"{date_str}T{start}:00+09:00"
-        end_dt   = f"{date_str}T{end}:00+09:00"
+        
         event = {
             "summary":     title,
             "location":    location,
             "description": f"의뢰기관: {agency}\n과정명: {title}\n강사: {instructor}",
             "start": {"date": date_str},
-            "end":   {"date": date_str},    
+            "end":   {"date": (datetime.strptime(date_str, "%Y-%m-%d") + timedelta(days=1)).strftime("%Y-%m-%d")},
         }
         result = service.events().insert(
             calendarId=calendar_id,
