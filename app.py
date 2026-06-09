@@ -23,8 +23,8 @@ st.sidebar.title("📅 CareerLog")
 default_menu = st.session_state.pop("_menu", "📥 보건스케줄 입력")
 menu_options = [
     "📥 보건스케줄 입력",
-    "📋 의뢰일별 스케줄",
-    "📅 최종 스케줄(취소,변경반영)",
+    "📋 의뢰일별 스케줄(취소,변경반영)",
+    "📅 최종 스케줄 매칭시스템",
     "📊 협회별 월별 스케줄",
     "👨‍🏫 강사별 대시보드",
 ]
@@ -435,8 +435,37 @@ elif menu == "📋 의뢰일별 스케줄":
 # ══════════════════════════════════════════════
 # 📅 최종 스케줄
 # ══════════════════════════════════════════════
-elif menu == "📅 최종 스케줄(취소,변경반영)":
-    st.header("📅 최종 스케줄")
+
+# 최종 스케줄 섹션 상단에 추가
+from datetime import date
+start_year, start_month = 2022, 04
+now = datetime.now()
+
+months = []
+y, m = start_year, start_month
+while (y, m) <= (now.year, now.month):
+    months.append((y, m))
+    m += 1
+    if m > 12:
+        m = 1
+        y += 1
+
+# 연도별로 묶어서 표시
+years = sorted(set(y for y, m in months), reverse=True)
+for yr in years:
+    st.markdown(f"**{yr}년**")
+    yr_months = [m for y, m in months if y == yr]
+    cols = st.columns(min(len(yr_months), 6))
+    for i, mo in enumerate(yr_months):
+        with cols[i % 6]:
+            if st.button(f"{mo}월", key=f"month_{yr}_{mo}"):
+                st.session_state["filter_year"] = yr
+                st.session_state["filter_month"] = mo
+                st.rerun()
+
+
+elif menu == "📅 최종 스케줄 매칭":
+    st.header("📅 최종 스케줄 매칭")
     df = load_gsheet_final()
 
     if df.empty:
