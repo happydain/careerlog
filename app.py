@@ -1043,16 +1043,27 @@ elif menu == "📊 강의 현황":
         except Exception:
             pass
 
-        st.dataframe(view_df, use_container_width=True, height=400,
-                     column_config=get_column_config())
+        view_df.insert(0, "등록", False)  # 체크박스 컬럼 추가
+
+        edited_view = st.data_editor(
+            view_df,
+            use_container_width=True,
+            height=400,
+            column_config={
+                "등록": st.column_config.CheckboxColumn("등록", default=False),
+                **get_column_config()
+            },
+            num_rows="fixed",
+        )
         
-    if st.button("📅 강사별 캘린더에 등록", key="apply_to_calendar"):
+    if st.button("📅 선택 강사별 캘린더에 등록", key="apply_to_calendar"):
+        selected_rows = edited_view[edited_view["등록"] == True]
         from gcalendar import add_event
         from config import INSTRUCTOR_CALENDARS
         success = 0
         errors  = 0
         with st.spinner("캘린더 등록 중..."):
-            for _, row in view_df.iterrows():
+            for _, row in selected_rows.iterrows():
                 instructor = str(row.get("강사님", "")).strip()
                 cal_id     = INSTRUCTOR_CALENDARS.get(instructor, "")
                 if not cal_id:
