@@ -177,5 +177,5 @@ def get_column_config():
         "요청사항": st.column_config.TextColumn("요청사항", width="large"),
         "내부메모": st.column_config.TextColumn("내부메모", width="large"),
         "변경이력": st.column_config.TextColumn("변경이력", width="large"),
-        "증빙폴더": st.column_config.LinkColumn("증빙폴더", display_text="📂 열기"),
+        "증빙폴더": st.column_config.TextColumn("증빙폴더"),
     }
