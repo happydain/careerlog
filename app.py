@@ -42,7 +42,6 @@ default_menu = st.session_state.pop("_menu", "📥 보건스케줄 입력")
 menu_options = [
     "🏠 대시보드",
     "📥 보건스케줄 입력",
-    "📋 전체 스케줄 관리",
     "📅 최종 스케줄 매칭시스템",
     "📊 협회별 월별 스케줄",
     "👨‍🏫 강사별 대시보드",
@@ -601,124 +600,6 @@ if menu == "📥 보건스케줄 입력":
                 st.session_state.pop("raw_text_for_drive", None)
                 st.session_state.pop("excel_file_for_drive", None)
                 st.rerun()
-
-
-# ══════════════════════════════════════════════
-# 📋 의뢰일별
-# ══════════════════════════════════════════════
-elif menu == "📋 전체 스케줄 관리":
-    st.header("📋 전체 스케줄 관리")
-    st.info("""
-    📌 **이 페이지에서 할 수 있는 것**
-    - 🧑‍🏫 **강사님 지정** - 의뢰 건별로 강사님 이름 입력
-    - 📝 **변경이력 확인** - 강사 변경, 시간 변경 등 이력 조회
-    - 💾 저장 시 변경일자·변경이력·변경의뢰인 자동 기록
-    """)
-    df = load_gsheet_raw()
-
-    if df.empty:
-        st.info("저장된 데이터가 없습니다.")
-    else:
-        df["_년도"] = pd.to_datetime(df["강의일시"], errors="coerce").dt.year
-        df["_월"]   = pd.to_datetime(df["강의일시"], errors="coerce").dt.month
-        year_list  = ["전체"] + sorted(df["_년도"].dropna().unique().astype(int).tolist(), reverse=True)
-        month_list = ["전체"] + sorted(df["_월"].dropna().unique().astype(int).tolist())
-
-        col0, col1, col2, col3, col4 = st.columns([1, 2, 2, 2, 2])
-        with col0:
-            st.markdown("<div style='height:28px'></div>", unsafe_allow_html=True)
-            if st.button("↺", key="reset_filter", help="전체 보기", use_container_width=True):
-                for k in ["year_f", "month_f", "agency_f", "instr_f"]:
-                    st.session_state.pop(k, None)
-                st.rerun()
-        with col1:
-            year_f = st.selectbox("년도", year_list)
-        with col2:
-            month_f = st.selectbox("월", month_list)
-        with col3:
-            agency_f = st.selectbox("의뢰기관", ["전체"] + sorted(df["의뢰기관"].dropna().unique().tolist()))
-        with col4:
-            instr_f = st.selectbox("강사님", ["전체"] + sorted(df["강사님"].dropna().unique().tolist()))
-
-        fdf = df.copy()
-        if year_f   != "전체": fdf = fdf[fdf["_년도"] == int(year_f)]
-        if month_f  != "전체": fdf = fdf[fdf["_월"]   == int(month_f)]
-        if agency_f != "전체": fdf = fdf[fdf["의뢰기관"] == agency_f]
-        if instr_f  != "전체": fdf = fdf[fdf["강사님"]   == instr_f]
-        fdf = fdf.drop(columns=["_년도", "_월"], errors="ignore")
-        df  = df.drop(columns=["_년도", "_월"], errors="ignore")
-
-        total_hours = pd.to_numeric(fdf["시수"], errors="coerce").sum()
-        total_fee   = pd.to_numeric(fdf["강의료(1일)"], errors="coerce").sum()
-
-        st.markdown(f"""
-        <div style="display:flex; gap:16px; margin-bottom:8px;">
-            <div style="background:#f0f4ff; border-radius:10px; padding:12px 24px; text-align:center; flex:1;">
-                <div style="font-size:12px; color:#666;">총 강의 건수</div>
-                <div style="font-size:20px; font-weight:bold; color:#1a56db;">{len(fdf)}건</div>
-            </div>
-            <div style="background:#f0fff4; border-radius:10px; padding:12px 24px; text-align:center; flex:1;">
-                <div style="font-size:12px; color:#666;">총 시수</div>
-                <div style="font-size:20px; font-weight:bold; color:#0e9f6e;">{total_hours:.0f}시간</div>
-            </div>
-            <div style="background:#fff8f0; border-radius:10px; padding:12px 24px; text-align:center; flex:1;">
-                <div style="font-size:12px; color:#666;">총 강의료</div>
-                <div style="font-size:20px; font-weight:bold; color:#e3a008;">₩{total_fee:,.0f}</div>
-            </div>
-        </div>
-        """, unsafe_allow_html=True)
-
-        st.divider()
-
-        try:
-            fdf["강의일시"] = pd.to_datetime(fdf["강의일시"], errors="coerce").dt.date
-        except Exception:
-            pass
-
-        original_fdf = fdf.copy()
-        edited_raw_df = st.data_editor(
-            fdf,
-            use_container_width=True,
-            height=600,
-            num_rows="fixed",
-            column_config=get_column_config(),
-        )
-
-        modifier = st.text_input("변경자 이름", placeholder="예: 이다인", key="raw_modifier")
-        if st.button("💾 강사/메모 저장", key="raw_save_btn"):
-            today = datetime.now().strftime("%Y-%m-%d")
-            for idx in edited_raw_df.index:
-                changes = []
-                for col in ["강사님", "내부메모", "요청사항"]:
-                    if col not in original_fdf.columns:
-                        continue
-                    orig = str(original_fdf.loc[idx, col]) if idx in original_fdf.index else ""
-                    new  = str(edited_raw_df.loc[idx, col])
-                    if orig != new:
-                        changes.append(f"{col} {orig}→{new}")
-
-                if changes:
-                    summary  = ", ".join(changes)
-                    existing = str(edited_raw_df.loc[idx, "변경이력"]).strip()
-                    new_hist = f"[{today}] {summary}"
-                    edited_raw_df.loc[idx, "변경이력"]   = f"{existing} / {new_hist}".strip(" /")
-                    edited_raw_df.loc[idx, "변경일자"]   = today
-                    edited_raw_df.loc[idx, "변경의뢰인"] = modifier or "미입력"
-
-                    folder_url = str(edited_raw_df.loc[idx, "증빙폴더"])
-                    if folder_url.startswith("https://drive.google.com"):
-                        try:
-                            folder_id = folder_url.split("/")[-1]
-                            append_change_log(folder_id, summary, modifier or "미입력")
-                        except Exception:
-                            pass
-
-            df.update(edited_raw_df)
-            from gsheet import save_gsheet_raw
-            if save_gsheet_raw(df):
-                st.success("✅ 저장 완료!")
-                st.rerun()
-
 
 # ══════════════════════════════════════════════
 # 📅 최종 스케줄 매칭시스템
