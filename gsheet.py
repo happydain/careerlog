@@ -211,3 +211,19 @@ def save_gsheet_raw(df):
         return False
         return False
         return False
+
+def init_status_column():
+    """기존 데이터에 상태 컬럼 일괄 추가"""
+    try:
+        client = get_gsheet_client()
+        for sheet_name in ["의뢰일별", "최종"]:
+            sheet = get_or_create_sheet(client, sheet_name)
+            df = pd.DataFrame(sheet.get_all_records())
+            if "상태" not in df.columns:
+                df["상태"] = "정상"
+                sheet.clear()
+                sheet.append_row(df.columns.tolist())
+                sheet.append_rows(df.fillna("").astype(str).values.tolist())
+        return True
+    except Exception as e:
+        return False
