@@ -164,7 +164,31 @@ if menu == "🏠 대시보드":
         "editable": False,
         "eventDisplay": "block",
         "dayMaxEvents": 4,
+        "eventDisplay": "block",
+        "dayMaxEvents": 4,
+        "views": {
+            "dayGridMonth": {
+                "eventMinHeight": 10,
+            }
+        },
+        "eventTextColor": "white",
+        "contentHeight": 700,
     }
+    }
+
+    custom_css = """
+        .fc-event-title {
+            font-size: 10px !important;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+        .fc-event-time {
+            font-size: 9px !important;
+        }
+    """
+    
+    cal_result = st_calendar(events=events, options=calendar_options, custom_css=custom_css, key="main_calendar")
 
     cal_result = st_calendar(events=events, options=calendar_options, key="main_calendar")
 
