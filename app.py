@@ -626,39 +626,40 @@ elif menu == "📅 최종 스케줄 매칭시스템":
         selected_year = st.selectbox("", available_years, index=0, key="match_year_sel",
                                      label_visibility="collapsed")
     sel_year = int(selected_year)
-
     st.markdown(f"<div style='font-size:32px; font-weight:500; color:var(--color-text-primary); margin-bottom:4px;'>{sel_year}</div>", unsafe_allow_html=True)
 
     # ── 연간 통계 ──
     if not df_active.empty:
         df_active["_dt"] = pd.to_datetime(df_active["강의일시"], errors="coerce")
         df_year     = df_active[df_active["_dt"].dt.year == sel_year]
-        total_count = len(df_year)
-        total_hours = pd.to_numeric(df_year["시수"], errors="coerce").sum()
-        total_fee   = pd.to_numeric(df_year["강의료(1일)"], errors="coerce").sum()
-        total_days  = df_year["강의일시"].str[:10].nunique()
+        yr_cnt      = len(df_year)
+        yr_hrs      = pd.to_numeric(df_year["시수"], errors="coerce").sum()
+        yr_fee      = pd.to_numeric(df_year["강의료(1일)"], errors="coerce").sum()
+        yr_days     = df_year["강의일시"].str[:10].nunique()
         df_active   = df_active.drop(columns=["_dt"])
     else:
-        total_count = total_hours = total_fee = total_days = 0
+        yr_cnt = yr_hrs = yr_fee = yr_days = 0
 
+    yr_hrs_str = f"{yr_hrs:.0f}"
+    yr_fee_str = f"₩{yr_fee:,.0f}"
 
     st.markdown(f"""
-    <div style="display:flex; gap:16px; margin-bottom:8px;">
-        <div style="background:#f0f4ff; border-radius:10px; padding:12px 24px; text-align:center; flex:1;">
-            <div style="font-size:12px; color:#666;">강의 건수</div>
-            <div style="font-size:20px; font-weight:bold; color:#1a56db;">{count_val}건</div>
+    <div style="display:flex; gap:16px; margin:16px 0;">
+        <div style="background:#f0f4ff; border-radius:10px; padding:14px 20px; text-align:center; flex:1;">
+            <div style="font-size:12px; color:#666;">{sel_year}년 강의 건수</div>
+            <div style="font-size:22px; font-weight:bold; color:#1a56db;">{yr_cnt}건</div>
         </div>
-        <div style="background:#f0fff4; border-radius:10px; padding:12px 24px; text-align:center; flex:1;">
-            <div style="font-size:12px; color:#666;">총 시수</div>
-            <div style="font-size:20px; font-weight:bold; color:#0e9f6e;">{total_hours:.0f}시간</div>
+        <div style="background:#f0fff4; border-radius:10px; padding:14px 20px; text-align:center; flex:1;">
+            <div style="font-size:12px; color:#666;">{sel_year}년 총 시수</div>
+            <div style="font-size:22px; font-weight:bold; color:#0e9f6e;">{yr_hrs_str}시간</div>
         </div>
-        <div style="background:#fff8f0; border-radius:10px; padding:12px 24px; text-align:center; flex:1;">
-            <div style="font-size:12px; color:#666;">총 강의료</div>
-            <div style="font-size:20px; font-weight:bold; color:#e3a008;">₩{total_fee:,.0f}</div>
+        <div style="background:#fff8f0; border-radius:10px; padding:14px 20px; text-align:center; flex:1;">
+            <div style="font-size:12px; color:#666;">{sel_year}년 총 강의료</div>
+            <div style="font-size:22px; font-weight:bold; color:#e3a008;">{yr_fee_str}</div>
         </div>
-        <div style="background:#fdf0ff; border-radius:10px; padding:12px 24px; text-align:center; flex:1;">
-            <div style="font-size:12px; color:#666;">참여일</div>
-            <div style="font-size:20px; font-weight:bold; color:#7c3aed;">{total_days}일</div>
+        <div style="background:#fdf0ff; border-radius:10px; padding:14px 20px; text-align:center; flex:1;">
+            <div style="font-size:12px; color:#666;">{sel_year}년 참여일</div>
+            <div style="font-size:22px; font-weight:bold; color:#7c3aed;">{yr_days}일</div>
         </div>
     </div>
     """, unsafe_allow_html=True)
@@ -701,12 +702,16 @@ elif menu == "📅 최종 스케줄 매칭시스템":
     st.markdown("""
     <div style="font-size:11px; font-weight:500; color:var(--color-text-secondary);
                 text-transform:uppercase; letter-spacing:0.08em;
-                margin-top:16px; margin-bottom:8px; border-top:0.5px solid var(--color-border-tertiary); padding-top:16px;">강사별</div>
+                margin-top:16px; margin-bottom:8px;
+                border-top:0.5px solid var(--color-border-tertiary); padding-top:16px;">강사별</div>
     """, unsafe_allow_html=True)
 
     if not df_active.empty:
-        instructors = sorted([i for i in df_active["강사님"].dropna().unique().tolist() if str(i).strip() and str(i) != "nan"])
-        instr_cols  = st.columns(len(instructors) + 1)
+        instructors = sorted([
+            i for i in df_active["강사님"].dropna().unique().tolist()
+            if str(i).strip() and str(i) != "nan"
+        ])
+        instr_cols = st.columns(len(instructors) + 1)
         with instr_cols[0]:
             if st.button("전체", key="instr_all",
                          type="primary" if not st.session_state.get("filter_instructor") else "secondary"):
@@ -753,23 +758,21 @@ elif menu == "📅 최종 스케줄 매칭시스템":
             if fdf.empty:
                 st.info("데이터가 없습니다.")
             else:
-                # fdf_active 정의 바로 아래에 넣을 코드
+                fdf_active = fdf[fdf["상태"] != "취소"] if "상태" in fdf.columns else fdf
+                cnt        = len(fdf_active)
+                hrs        = pd.to_numeric(fdf_active["시수"], errors="coerce").sum()
+                fee        = pd.to_numeric(fdf_active["강의료(1일)"], errors="coerce").sum()
+                days       = fdf_active["강의일시"].astype(str).str[:10].nunique()
+                avg_daily  = fee / days if days > 0 else 0
+                hourly     = fee / hrs if hrs > 0 else 0
 
-                fdf_active    = fdf[fdf["상태"] != "취소"] if "상태" in fdf.columns else fdf
-                cnt           = len(fdf_active)
-                hrs           = pd.to_numeric(fdf_active["시수"], errors="coerce").sum()
-                fee           = pd.to_numeric(fdf_active["강의료(1일)"], errors="coerce").sum()
-                days          = fdf_active["강의일시"].astype(str).str[:10].nunique()
-                avg_daily     = fee / days if days > 0 else 0
-                hourly        = fee / hrs if hrs > 0 else 0
-                
                 hrs_str       = f"{hrs:.0f}"
                 fee_str       = f"₩{fee:,.0f}"
                 avg_daily_str = f"₩{avg_daily:,.0f}"
                 hourly_str    = f"₩{hourly:,.0f}"
-                
+
                 st.markdown(f"""
-                <div style="display:flex; gap:16px; margin-bottom:8px;">
+                <div style="display:flex; gap:16px; margin-bottom:16px;">
                     <div style="background:#f0f4ff; border-radius:10px; padding:12px 24px; text-align:center; flex:1;">
                         <div style="font-size:12px; color:#666;">강의 건수</div>
                         <div style="font-size:20px; font-weight:bold; color:#1a56db;">{cnt}건</div>
@@ -796,7 +799,6 @@ elif menu == "📅 최종 스케줄 매칭시스템":
                     </div>
                 </div>
                 """, unsafe_allow_html=True)
-                st.divider()
                 st.divider()
 
                 if "auto_matched_df" in st.session_state:
@@ -864,6 +866,7 @@ elif menu == "📅 최종 스케줄 매칭시스템":
                         if save_gsheet_final(df):
                             st.success("✅ 저장 완료!")
                             st.rerun()
+                            
 # ══════════════════════════════════════════════
 # 📅 최종 스케줄 매칭시스템
 # ══════════════════════════════════════════════
