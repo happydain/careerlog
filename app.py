@@ -23,7 +23,7 @@ st.markdown("""
 <style>
 [data-testid="stSidebarNav"] { display: none; }
 .st-emotion-cache-1cypcdb { font-size: 24px !important; }
-[data-testid="stSidebar"] .stRadio label { font-size: 24px !important; font-weight: 500; }
+[data-testid="stSidebar"] .stRadio label { font-size: 50px !important; font-weight: 500; }
 [data-testid="stSidebar"] .stRadio div { gap: 15px !important; }
 </style>
 """, unsafe_allow_html=True)
