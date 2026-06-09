@@ -332,7 +332,6 @@ elif menu == "📋 의뢰일별 스케줄":
             agency_f = st.selectbox("의뢰기관", ["전체"] + sorted(df["의뢰기관"].dropna().unique().tolist()))
         with col4:
             instr_f = st.selectbox("강사님", ["전체"] + sorted(df["강사님"].dropna().unique().tolist()))
-        if st.button("🔄 전체 보기", key="reset_filter"):
             st.session_state["year_f"] = "전체"
             st.session_state["month_f"] = "전체"
             st.session_state["agency_f"] = "전체"
