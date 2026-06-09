@@ -91,7 +91,7 @@ if menu == "🏠 대시보드":
         # 강사 바뀌면 캘린더 데이터 초기화
         if st.session_state.get("cal_fetched_name") != selected:
             st.session_state.pop("cal_fetched", None)
-            st.session_state.pop("cal_fetched_name", None)lse []), key="cal_instr")
+            st.session_state.pop("cal_fetched_name", None)
 
     fdf = df.copy() if not df.empty else pd.DataFrame()
     if not fdf.empty:
