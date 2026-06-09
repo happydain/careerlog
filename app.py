@@ -43,47 +43,37 @@ if menu == "📥 보건스케줄 입력":
         "저장 시 구글시트 + 구글드라이브 폴더가 자동 생성됩니다."
     )
 
-    st.markdown("### ⚙️ 기본 정보")
-    common_agency = st.selectbox(
-        "🏢 의뢰기관 (필수)",
-        AGENCY_OPTIONS,
-        help="카톡/엑셀 모두 이 기관으로 처리됩니다."
-    )
-    st.info(f"📌 현재 선택된 의뢰기관: **{common_agency}**")
-    st.divider()
+st.markdown("### ⚙️ 기본 정보")
+st.divider()
 
-    col1, col2, col3, col4 = st.columns(4)
-    with col1:
-        year = st.selectbox("기준 연도", list(range(2022, 2036)),
-                            index=list(range(2022, 2036)).index(datetime.now().year))
-    with col2:
-        default_date = datetime(year, datetime.now().month, datetime.now().day)
-        try:
-            common_date = st.date_input("의뢰일", value=default_date, format="YYYY/MM/DD")
-        except Exception:
-            common_date = st.date_input("의뢰일", value=datetime.now(), format="YYYY/MM/DD")
-    with col3:
-        @st.cache_data(ttl=300)
-        def get_requester_list():
-            df = load_gsheet_raw()
-            names = df["의뢰인"].dropna().unique().tolist()
-            return sorted([n for n in names if n.strip()])
-
-        existing_requesters = get_requester_list()
-        if existing_requesters:
-            requester_options = existing_requesters + ["직접 입력"]
-            selected_requester = st.selectbox("의뢰인", requester_options)
-            if selected_requester == "직접 입력":
-                common_requester = st.text_input("새 이름 입력")
-            else:
-                common_requester = selected_requester
+col1, col2, col3, col4, col5 = st.columns([2, 1, 2, 2, 2])
+with col1:
+    common_agency = st.selectbox("🏢 의뢰기관", AGENCY_OPTIONS)
+with col2:
+    year = st.selectbox("연도", list(range(2022, 2036)),
+                        index=list(range(2022, 2036)).index(datetime.now().year))
+with col3:
+    default_date = datetime(year, datetime.now().month, datetime.now().day)
+    try:
+        common_date = st.date_input("의뢰일", value=default_date, format="YYYY/MM/DD")
+    except Exception:
+        common_date = st.date_input("의뢰일", value=datetime.now(), format="YYYY/MM/DD")
+with col4:
+    existing_requesters = get_requester_list()
+    if existing_requesters:
+        requester_options = existing_requesters + ["직접 입력"]
+        selected_requester = st.selectbox("의뢰인", requester_options)
+        if selected_requester == "직접 입력":
+            common_requester = st.text_input("이름 입력")
         else:
-            common_requester = st.text_input("의뢰인")
-    with col4:
-        common_method = st.selectbox("의뢰방법", ["카카오톡", "카카오톡+엑셀", "이메일", "전화", "문자", "기타"])
+            common_requester = selected_requester
+    else:
+        common_requester = st.text_input("의뢰인")
+with col5:
+    common_method = st.selectbox("의뢰방법", ["카카오톡", "카카오톡+엑셀", "이메일", "전화", "문자", "기타"])
 
-    request_date_str = common_date.strftime("%Y-%m-%d")
-    st.divider()
+st.info(f"📌 **{common_agency}** · {common_requester or '의뢰인 미입력'} · {common_date.strftime('%Y/%m/%d')}")
+st.divider()
 
     # ── 카톡 입력 ──────────────────────────────
     st.markdown("### 💬 카톡 / 이메일 텍스트 입력")
