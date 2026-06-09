@@ -164,7 +164,7 @@ if uploaded_file:
             df_preview = pd.read_excel(uploaded_file, header=None)
             st.dataframe(df_preview, use_container_width=True, height=300)
 
-    st.divider()
+        st.divider()
 
 # ── 증빙 파일 ────────────────────────────
     st.markdown("### 📎 증빙 파일")
