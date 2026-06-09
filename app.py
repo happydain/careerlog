@@ -438,7 +438,7 @@ elif menu == "📋 의뢰일별 스케줄(취소,변경반영)":
 elif menu == "📅 최종 스케줄 매칭시스템":
     st.header("📅 최종 스케줄 매칭시스템")
 
-    start_year, start_month = 2022, 1
+    start_year, start_month = 2022, 10
     end_year, end_month = 2027, 12
     
     months = []
@@ -450,24 +450,44 @@ elif menu == "📅 최종 스케줄 매칭시스템":
             m = 1
             y += 1
     
-    # 6개씩 행으로 나열
-    cols = st.columns(6)
-    for i, (yr, mo) in enumerate(months):
-        with cols[i % 6]:
-            selected = (
-                st.session_state.get("filter_year") == yr and
-                st.session_state.get("filter_month") == mo
-            )
-            if st.button(
-                f"{yr}년 {mo}월",
-                key=f"month_{yr}_{mo}",
-                use_container_width=True,
-                type="primary" if selected else "secondary"
-            ):
-                st.session_state["filter_year"] = yr
-                st.session_state["filter_month"] = mo
-                st.rerun()
-        st.divider()
+    year_colors = {
+        2022: "#FF6B6B",
+        2023: "#FF9F43",
+        2024: "#54A0FF",
+        2025: "#5F27CD",
+        2026: "#00D2D3",
+        2027: "#1DD1A1",
+    }
+    
+    years = sorted(set(y for y, m in months))
+    for yr in years:
+        yr_months = [mo for y, mo in months if y == yr]
+        color = year_colors.get(yr, "#888")
+        
+        st.markdown(f"""
+        <div style="display:flex; align-items:center; gap:8px; margin-bottom:4px;">
+            <span style="background:{color}; color:white; border-radius:6px;
+                         padding:2px 10px; font-size:12px; font-weight:bold;
+                         min-width:50px; text-align:center;">{yr}년</span>
+        </div>
+        """, unsafe_allow_html=True)
+        
+        cols = st.columns(len(yr_months))
+        for i, mo in enumerate(yr_months):
+            with cols[i]:
+                selected = (
+                    st.session_state.get("filter_year") == yr and
+                    st.session_state.get("filter_month") == mo
+                )
+                if st.button(
+                    f"{mo}월",
+                    key=f"month_{yr}_{mo}",
+                    use_container_width=True,
+                    type="primary" if selected else "secondary"
+                ):
+                    st.session_state["filter_year"] = yr
+                    st.session_state["filter_month"] = mo
+                    st.rerun()
     df = load_gsheet_final()
 
 
