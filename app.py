@@ -271,7 +271,10 @@ if menu == "📥 보건스케줄 입력":
                         drive_errors = []
 
                         try:
-                            folder_id  = create_request_folder(year, common_agency, request_date_str, common_requester)
+                            # 의뢰 저장 시
+                            folder_id = create_request_folder(year, common_agency, request_date_str, common_requester, "의뢰")
+                             # 변경 저장 시 (의뢰일별 스케줄 저장 버튼에서)
+                            folder_id = create_request_folder(year, common_agency, request_date_str, modifier, "변경")
                             folder_url = get_folder_url(folder_id)
                             if evidence_files:
                                 append_evidence_to_sheet(
