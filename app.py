@@ -52,50 +52,50 @@ st.title("📅 보건스케줄 자동정리")
 # ══════════════════════════════════════════════
 # 👨‍🏫 강사별 대시보드
 # ══════════════════════════════════════════════
-elif menu == "👨‍🏫 강사별 대시보드":
-    from gcalendar import get_events
-    from config import INSTRUCTOR_CALENDARS
-    import calendar as cal_module
-
-    st.header("👨‍🏫 강사별 대시보드")
-
-    df = load_gsheet_final()
-
-    if df.empty:
-        st.info("저장된 데이터가 없습니다.")
-    elif "강사님" not in df.columns:
-        st.warning("강사님 컬럼이 없습니다.")
-    else:
-        now = datetime.now()
-        instructors = sorted([i for i in df["강사님"].dropna().unique().tolist()
-                              if str(i).strip() and str(i) != "nan"])
-        available_years = sorted(
-            [y for y in df["강의일시"].str[:4].dropna().unique().tolist() if str(y).isdigit()],
-            reverse=True
-        )
-
-        col_i, col_y, col_m = st.columns(3)
-        with col_i:
-            selected = st.selectbox("강사", instructors, key="dash_instr")
-        with col_y:
-            sel_year = int(st.selectbox("년도", available_years, index=0, key="dash_year"))
-        with col_m:
-            sel_month = st.selectbox("월", list(range(1, 13)),
-                                     index=now.month - 1, key="dash_month")
-
-        idf = df[
-            (df["강사님"] == selected) &
-            (df["상태"] != "취소" if "상태" in df.columns else True)
-        ].copy()
-        idf["_dt"] = pd.to_datetime(idf["강의일시"], errors="coerce")
-        idf_year   = idf[idf["_dt"].dt.year == sel_year].copy()
-
-        total_count = len(idf_year)
-        total_hours = pd.to_numeric(idf_year["시수"], errors="coerce").sum()
-        total_fee   = pd.to_numeric(idf_year["강의료(1일)"], errors="coerce").sum()
-        total_days  = idf_year["강의일시"].astype(str).str[:10].nunique()
-        avg_daily   = total_fee / total_days if total_days > 0 else 0
-        hourly      = total_fee / total_hours if total_hours > 0 else 0
+    elif menu == "👨‍🏫 강사별 대시보드":
+        from gcalendar import get_events
+        from config import INSTRUCTOR_CALENDARS
+        import calendar as cal_module
+    
+        st.header("👨‍🏫 강사별 대시보드")
+    
+        df = load_gsheet_final()
+    
+        if df.empty:
+            st.info("저장된 데이터가 없습니다.")
+        elif "강사님" not in df.columns:
+            st.warning("강사님 컬럼이 없습니다.")
+        else:
+            now = datetime.now()
+            instructors = sorted([i for i in df["강사님"].dropna().unique().tolist()
+                                  if str(i).strip() and str(i) != "nan"])
+            available_years = sorted(
+                [y for y in df["강의일시"].str[:4].dropna().unique().tolist() if str(y).isdigit()],
+                reverse=True
+            )
+    
+            col_i, col_y, col_m = st.columns(3)
+            with col_i:
+                selected = st.selectbox("강사", instructors, key="dash_instr")
+            with col_y:
+                sel_year = int(st.selectbox("년도", available_years, index=0, key="dash_year"))
+            with col_m:
+                sel_month = st.selectbox("월", list(range(1, 13)),
+                                         index=now.month - 1, key="dash_month")
+    
+            idf = df[
+                (df["강사님"] == selected) &
+                (df["상태"] != "취소" if "상태" in df.columns else True)
+            ].copy()
+            idf["_dt"] = pd.to_datetime(idf["강의일시"], errors="coerce")
+            idf_year   = idf[idf["_dt"].dt.year == sel_year].copy()
+    
+            total_count = len(idf_year)
+            total_hours = pd.to_numeric(idf_year["시수"], errors="coerce").sum()
+            total_fee   = pd.to_numeric(idf_year["강의료(1일)"], errors="coerce").sum()
+            total_days  = idf_year["강의일시"].astype(str).str[:10].nunique()
+            avg_daily   = total_fee / total_days if total_days > 0 else 0
+            hourly      = total_fee / total_hours if total_hours > 0 else 0
 
         st.markdown(f"<div style='font-size:24px; font-weight:500; margin:8px 0;'>👤 {selected} — {sel_year}년</div>", unsafe_allow_html=True)
         st.markdown(f"""
