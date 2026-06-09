@@ -203,11 +203,10 @@ if menu == "📥 보건스케줄 입력":
         except Exception:
             pass
 
-        edited_raw_df = st.data_editor(
-            fdf,
+        edited_df = st.data_editor(
+            st.session_state["temp_df"],
             use_container_width=True,
-            height=400,
-            num_rows="fixed",
+            num_rows="dynamic",
             column_config=get_column_config(),
         )
 
