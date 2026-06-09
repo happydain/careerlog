@@ -726,59 +726,79 @@ elif menu == "📋 전체 스케줄 관리":
 elif menu == "📅 최종 스케줄 매칭시스템":
     st.header("📅 최종 스케줄 매칭시스템")
 
-    start_year, start_month = 2022, 1
-    end_year, end_month = 2027, 12
+    df = load_gsheet_final()
 
-    months = []
-    y, m = start_year, start_month
-    while (y, m) <= (end_year, end_month):
-        months.append((y, m))
-        m += 1
-        if m > 12:
-            m = 1
-            y += 1
+    # 취소 제외
+    if not df.empty and "상태" in df.columns:
+        df_active = df[df["상태"] != "취소"].copy()
+    else:
+        df_active = df.copy()
 
-    year_colors = {
-        2022: "#FF6B6B",
-        2023: "#FF9F43",
-        2024: "#54A0FF",
-        2025: "#5F27CD",
-        2026: "#00D2D3",
-        2027: "#1DD1A1",
-    }
+    # ── 2026년 전체 통계 ──
+    st.markdown("### 📊 2026년 전체 통계")
+    if not df_active.empty:
+        df_active["_dt"] = pd.to_datetime(df_active["강의일시"], errors="coerce")
+        df_2026 = df_active[df_active["_dt"].dt.year == 2026]
+        total_count = len(df_2026)
+        total_hours = pd.to_numeric(df_2026["시수"], errors="coerce").sum()
+        total_fee   = pd.to_numeric(df_2026["강의료(1일)"], errors="coerce").sum()
+        df_active = df_active.drop(columns=["_dt"])
+    else:
+        total_count = total_hours = total_fee = 0
 
-    years = sorted(set(y for y, m in months))
-    for yr in years:
-        yr_months = [mo for y, mo in months if y == yr]
-        color = year_colors.get(yr, "#888")
-
-        st.markdown(f"""
-        <div style="display:flex; align-items:center; gap:8px; margin-bottom:4px;">
-            <span style="background:{color}; color:white; border-radius:6px;
-                         padding:2px 10px; font-size:12px; font-weight:bold;
-                         min-width:50px; text-align:center;">{yr}년</span>
+    st.markdown(f"""
+    <div style="display:flex; gap:16px; margin-bottom:16px;">
+        <div style="background:#f0f4ff; border-radius:10px; padding:16px 24px; text-align:center; flex:1;">
+            <div style="font-size:12px; color:#666;">총 강의 건수</div>
+            <div style="font-size:24px; font-weight:bold; color:#1a56db;">{total_count}건</div>
         </div>
-        """, unsafe_allow_html=True)
-
-        cols = st.columns(len(yr_months))
-        for i, mo in enumerate(yr_months):
-            with cols[i]:
-                selected = (
-                    st.session_state.get("filter_year") == yr and
-                    st.session_state.get("filter_month") == mo
-                )
-                if st.button(
-                    f"{mo}월",
-                    key=f"month_{yr}_{mo}",
-                    use_container_width=True,
-                    type="primary" if selected else "secondary"
-                ):
-                    st.session_state["filter_year"] = yr
-                    st.session_state["filter_month"] = mo
-                    st.rerun()
+        <div style="background:#f0fff4; border-radius:10px; padding:16px 24px; text-align:center; flex:1;">
+            <div style="font-size:12px; color:#666;">총 시수</div>
+            <div style="font-size:24px; font-weight:bold; color:#0e9f6e;">{total_hours:.0f}시간</div>
+        </div>
+        <div style="background:#fff8f0; border-radius:10px; padding:16px 24px; text-align:center; flex:1;">
+            <div style="font-size:12px; color:#666;">총 강의료</div>
+            <div style="font-size:24px; font-weight:bold; color:#e3a008;">₩{total_fee:,.0f}</div>
+        </div>
+    </div>
+    """, unsafe_allow_html=True)
 
     st.divider()
 
+    # ── 월별 버튼 (2026년만) ──
+    st.markdown("""
+    <style>
+    div[data-testid="column"] button {
+        padding: 2px 6px !important;
+        font-size: 11px !important;
+        min-height: 28px !important;
+        height: 28px !important;
+    }
+    </style>
+    """, unsafe_allow_html=True)
+
+    st.markdown('<span style="background:#00D2D3; color:white; border-radius:4px; padding:1px 8px; font-size:11px; font-weight:bold;">2026년</span>', unsafe_allow_html=True)
+
+    cols = st.columns(12)
+    for i, mo in enumerate(range(1, 13)):
+        with cols[i]:
+            selected = (
+                st.session_state.get("filter_year") == 2026 and
+                st.session_state.get("filter_month") == mo
+            )
+            if st.button(
+                f"{mo}월",
+                key=f"month_2026_{mo}",
+                use_container_width=True,
+                type="primary" if selected else "secondary"
+            ):
+                st.session_state["filter_year"]  = 2026
+                st.session_state["filter_month"] = mo
+                st.rerun()
+
+    st.divider()
+
+    # ── 선택된 월 데이터 ──
     filter_year  = st.session_state.get("filter_year")
     filter_month = st.session_state.get("filter_month")
 
@@ -787,7 +807,6 @@ elif menu == "📅 최종 스케줄 매칭시스템":
     else:
         st.markdown(f"### 📅 {filter_year}년 {filter_month}월 강의 일정")
 
-        df = load_gsheet_final()
         if df.empty:
             st.info("저장된 데이터가 없습니다.")
         else:
@@ -800,10 +819,12 @@ elif menu == "📅 최종 스케줄 매칭시스템":
             if fdf.empty:
                 st.info(f"{filter_year}년 {filter_month}월 데이터가 없습니다.")
             else:
-                total_hours = pd.to_numeric(fdf["시수"], errors="coerce").sum()
-                total_fee   = pd.to_numeric(fdf["강의료(1일)"], errors="coerce").sum()
+                # 월별 집계
+                fdf_active = fdf[fdf["상태"] != "취소"] if "상태" in fdf.columns else fdf
+                total_hours = pd.to_numeric(fdf_active["시수"], errors="coerce").sum()
+                total_fee   = pd.to_numeric(fdf_active["강의료(1일)"], errors="coerce").sum()
                 c1, c2, c3 = st.columns(3)
-                c1.metric("총 강의 건수", f"{len(fdf)}건")
+                c1.metric("강의 건수", f"{len(fdf_active)}건")
                 c2.metric("총 시수", f"{total_hours:.0f}시간")
                 c3.metric("총 강의료", f"₩{total_fee:,.0f}")
                 st.divider()
