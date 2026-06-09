@@ -14,7 +14,8 @@ DEFAULT_HOURLY_FEE = 100000
 DEFAULT_LOCATION = ""
 DEFAULT_INDUSTRY = ""
 
-AGENCY_OPTIONS = ["대한협수원", "대한협인천", "대한협서울", "중대협", "한안협", "잡그레이드", "기타"]
+AGENCY_OPTIONS = ["수원대한협", "인천대한협", "서울대한협", "중대협", "한안협", "잡그레이드"]
+
 LOCATION_OPTIONS = [
     "동시송출", "줌",
     "인천1", "인천2",
