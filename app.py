@@ -119,8 +119,8 @@ if menu == "🏠 대시보드":
                 status     = str(row.get("상태", "정상"))
                 location   = str(row["방식/위치"]) if str(row["방식/위치"]) not in ("", "nan") else ""
                 color      = INSTRUCTOR_COLORS.get(instructor, "#888")
-                if status == "취소": color = "#aaa"
-                     continue
+                if status == "취소": 
+                    continue
 
                 start_h     = start_time[:2].lstrip("0") or "0"
                 end_h       = end_time[:2].lstrip("0") or "0"
