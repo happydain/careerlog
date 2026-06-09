@@ -40,7 +40,7 @@ def parse_seoul_kakao(text, year, requester, request_date):
                 subject = detect_subject(clean) or "응급처치 대한1"
                 instr_m = re.search(r"([가-힣]{2,3})\s*$", clean)
                 instructor = instr_m.group(1) if instr_m else ""
-                row = make_row(date_obj, start, end, "대한협서울", subject,
+                row = make_row(date_obj, start, end, "서울대한협", subject,
                                "관리감독자", DEFAULT_INDUSTRY, "출강", instructor, DEFAULT_HOURLY_FEE)
                 row["의뢰인"] = requester
                 row["의뢰일"] = request_date
@@ -59,7 +59,7 @@ def parse_seoul_kakao(text, year, requester, request_date):
                         start, end = start_default, end_default
                     instr_m = re.search(r"([가-힣]{2,3})\s*(?:$|\+)", clean)
                     instructor = instr_m.group(1) if instr_m else ""
-                    row = make_row(date_obj, start, end, "대한협서울", subject,
+                    row = make_row(date_obj, start, end, "서울대한협", subject,
                                    "관리감독자", DEFAULT_INDUSTRY, "서울", instructor, DEFAULT_HOURLY_FEE)
                     row["의뢰인"] = requester
                     row["의뢰일"] = request_date
