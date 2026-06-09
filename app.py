@@ -641,11 +641,13 @@ elif menu == "📅 최종 스케줄 매칭시스템":
     else:
         total_count = total_hours = total_fee = total_days = 0
 
+    count_val = len(fdf_active)
+
     st.markdown(f"""
     <div style="display:flex; gap:16px; margin-bottom:8px;">
         <div style="background:#f0f4ff; border-radius:10px; padding:12px 24px; text-align:center; flex:1;">
             <div style="font-size:12px; color:#666;">강의 건수</div>
-            <div style="font-size:20px; font-weight:bold; color:#1a56db;">{len(fdf_active)}건</div>
+            <div style="font-size:20px; font-weight:bold; color:#1a56db;">{count_val}건</div>
         </div>
         <div style="background:#f0fff4; border-radius:10px; padding:12px 24px; text-align:center; flex:1;">
             <div style="font-size:12px; color:#666;">총 시수</div>
