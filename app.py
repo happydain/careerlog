@@ -40,6 +40,7 @@ st.markdown("""
 st.sidebar.title("📅 CareerLog")
 default_menu = st.session_state.pop("_menu", "📥 보건스케줄 입력")
 menu_options = [
+    "🏠 대시보드",
     "📥 보건스케줄 입력",
     "📋 의뢰일별 스케줄(취소,변경)",
     "📅 최종 스케줄 매칭시스템",
@@ -49,7 +50,135 @@ menu_options = [
 menu = st.sidebar.radio("메뉴 선택", menu_options, index=menu_options.index(default_menu))
 st.title("📅 보건스케줄 자동정리")
 
+# ══════════════════════════════════════════════
+# 🏠 대시보드
+# ══════════════════════════════════════════════
+if menu == "🏠 대시보드":
+    from streamlit_calendar import calendar as st_calendar
+    import calendar as cal_module
 
+    df = load_gsheet_final()
+
+    # ── 집계 카드 ──
+    now = datetime.now()
+    if not df.empty:
+        df["_dt"] = pd.to_datetime(df["강의일시"], errors="coerce")
+        this_month = df[
+            (df["_dt"].dt.year  == now.year) &
+            (df["_dt"].dt.month == now.month)
+        ]
+        total_count = len(this_month)
+        total_hours = pd.to_numeric(this_month["시수"], errors="coerce").sum()
+        total_fee   = pd.to_numeric(this_month["강의료(1일)"], errors="coerce").sum()
+        df = df.drop(columns=["_dt"])
+    else:
+        total_count = total_hours = total_fee = 0
+
+    st.markdown(f"### {now.year}년 {now.month}월 현황")
+    c1, c2, c3 = st.columns(3)
+    c1.metric("이번달 강의", f"{total_count}건")
+    c2.metric("이번달 시수", f"{total_hours:.0f}시간")
+    c3.metric("이번달 강의료", f"₩{total_fee:,.0f}")
+
+    st.divider()
+
+    # ── 필터 ──
+    if not df.empty:
+        col1, col2 = st.columns(2)
+        with col1:
+            agency_f = st.selectbox("의뢰기관", ["전체"] + sorted(df["의뢰기관"].dropna().unique().tolist()), key="cal_agency")
+        with col2:
+            instr_f = st.selectbox("강사님", ["전체"] + sorted(df["강사님"].dropna().unique().tolist()), key="cal_instr")
+
+        fdf = df.copy()
+        if agency_f != "전체": fdf = fdf[fdf["의뢰기관"] == agency_f]
+        if instr_f  != "전체": fdf = fdf[fdf["강사님"]   == instr_f]
+    else:
+        fdf = pd.DataFrame()
+
+    # ── 강사 색상 ──
+    INSTRUCTOR_COLORS = {
+        "송주영": "#54A0FF",
+        "문하나":  "#5F27CD",
+        "김미림":  "#00D2D3",
+        "노미영":  "#FF9F43",
+        "이다인":  "#FF6B6B",
+        "여길매":  "#1DD1A1",
+        "이순영":  "#FF9FF3",
+    }
+
+    # ── 범례 ──
+    legend_html = " ".join([
+        f'<span style="background:{c}; color:white; padding:2px 10px; border-radius:12px; font-size:12px; margin-right:4px;">{n}</span>'
+        for n, c in INSTRUCTOR_COLORS.items()
+    ])
+    st.markdown(legend_html + '<span style="background:#888; color:white; padding:2px 10px; border-radius:12px; font-size:12px;">미배정</span>', unsafe_allow_html=True)
+    st.divider()
+
+    # ── 이벤트 생성 ──
+    events = []
+    if not fdf.empty:
+        for _, row in fdf.iterrows():
+            try:
+                date       = str(row["강의일시"])[:10]
+                start_time = str(row["시작"]) if str(row["시작"]) not in ("", "nan") else "09:00"
+                end_time   = str(row["종료"]) if str(row["종료"]) not in ("", "nan") else "11:00"
+                instructor = str(row["강사님"]) if str(row["강사님"]) not in ("", "nan") else "미배정"
+                status     = str(row.get("상태", "정상"))
+                color      = INSTRUCTOR_COLORS.get(instructor, "#888")
+
+                # 취소된 건 회색
+                if status == "취소":
+                    color = "#aaa"
+
+                title = f"{row['의뢰기관']} | {row['과정명']} | {instructor}"
+
+                events.append({
+                    "title": title,
+                    "start": f"{date}T{start_time}",
+                    "end":   f"{date}T{end_time}",
+                    "backgroundColor": color,
+                    "borderColor": color,
+                    "extendedProps": {
+                        "강사님":   instructor,
+                        "의뢰기관": str(row["의뢰기관"]),
+                        "과정명":   str(row["과정명"]),
+                        "방식위치": str(row["방식/위치"]),
+                        "상태":     status,
+                    }
+                })
+            except Exception:
+                pass
+
+    # ── 캘린더 옵션 ──
+    calendar_options = {
+        "headerToolbar": {
+            "left":   "prev,next today",
+            "center": "title",
+            "right":  "dayGridMonth,timeGridWeek,listMonth"
+        },
+        "initialView": "dayGridMonth",
+        "locale": "ko",
+        "height": 700,
+        "selectable": True,
+        "editable": False,
+        "eventDisplay": "block",
+        "dayMaxEvents": 4,
+    }
+
+    cal_result = st_calendar(events=events, options=calendar_options, key="main_calendar")
+
+    # ── 클릭 이벤트 ──
+    if cal_result and cal_result.get("eventClick"):
+        clicked = cal_result["eventClick"]["event"]
+        props   = clicked.get("extendedProps", {})
+        st.info(
+            f"**{clicked['title']}**  \n"
+            f"강사: {props.get('강사님', '')} | "
+            f"위치: {props.get('방식위치', '')} | "
+            f"상태: {props.get('상태', '')}"
+        )
+        
 # ══════════════════════════════════════════════
 # 📥 보건스케줄 입력
 # ══════════════════════════════════════════════
