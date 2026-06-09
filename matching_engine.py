@@ -150,7 +150,7 @@ def apply_calendar_wanted(fdf, events_by_instructor):
 
     for cal_instructor, e in all_events:
         title = e.get("title", "")
-        if "원티드" not in title and "원티드" not in title:
+        if "원티드" not in title:
             continue
 
         date_str = e.get("date", "")
