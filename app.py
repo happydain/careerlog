@@ -144,32 +144,56 @@ if menu == "📥 보건스케줄 입력":
     with col_kakao:
         tab_kakao, tab_image = st.tabs(["💬 카톡/이메일", "🖼️ 이미지"])
 
-    with tab_kakao:
-        raw_text = st.text_area("강의 요청 메시지를 붙여넣으세요.", height=220, key="raw_text_input")
-        if st.button("🪄 카톡 일정 분석"):
-            # 기존 카톡 분석 코드 그대로
+        with tab_kakao:
+            raw_text = st.text_area("강의 요청 메시지를 붙여넣으세요.", height=220, key="raw_text_input")
 
-    with tab_image:
-        img_file = st.file_uploader("강의 일정 이미지", type=["png","jpg","jpeg"], key="img_upload")
-        if img_file and st.button("🪄 이미지 분석", key="img_analyze"):
-            from parsers.image_parser import parse_image_schedule
-            with st.spinner("이미지 분석 중..."):
-                try:
-                    extracted = parse_image_schedule(img_file)
-                    st.text_area("추출된 텍스트", extracted, height=150, key="extracted_text")
-                    df_img = parse_kakao_text(extracted, year)
-                    if not df_img.empty:
-                        df_img["의뢰기관"] = common_agency
-                        df_img["의뢰인"] = common_requester
-                        df_img["의뢰일"] = request_date_str
-                        df_img["의뢰방법"] = common_method
-                        st.session_state["temp_df"] = df_img
-                        st.session_state["raw_text_for_drive"] = extracted
-                        st.success(f"✅ {len(df_img)}건 일정 생성 완료")
+            if st.button("🪄 카톡 일정 분석"):
+                if not common_requester.strip():
+                    st.error("담당자 이름을 입력해주세요.")
+                elif not raw_text.strip():
+                    st.warning("텍스트를 입력해주세요.")
+                else:
+                    if common_agency == "서울대한협":
+                        df_text = parse_seoul_kakao(raw_text, year, common_requester, request_date_str)
+                    elif common_agency == "한안협":
+                        df_text = parse_hanahn_kakao(raw_text, year, common_requester, request_date_str, common_method)
                     else:
-                        st.warning("일정을 찾지 못했습니다. 추출된 텍스트를 확인해주세요.")
-                except Exception as e:
-                    st.error(f"이미지 분석 오류: {e}")
+                        df_text = parse_kakao_text(raw_text, year)
+                        df_text["의뢰기관"] = common_agency
+                        df_text["의뢰인"] = common_requester
+                        df_text["의뢰일"] = request_date_str
+                        df_text["의뢰방법"] = common_method
+
+                    if df_text.empty:
+                        st.warning("날짜 정보를 찾지 못했습니다.")
+                    else:
+                        st.session_state["temp_df"] = df_text
+                        st.session_state["raw_text_for_drive"] = raw_text
+                        st.session_state.pop("excel_file_for_drive", None)
+                        st.success(f"✅ {len(df_text)}건 일정 생성 완료")
+
+        with tab_image:
+            img_file = st.file_uploader("강의 일정 이미지", type=["png", "jpg", "jpeg"], key="img_upload")
+            if img_file:
+                if st.button("🪄 이미지 분석", key="img_analyze"):
+                    from parsers.image_parser import parse_image_schedule
+                    with st.spinner("이미지 분석 중..."):
+                        try:
+                            extracted = parse_image_schedule(img_file)
+                            st.text_area("추출된 텍스트", extracted, height=150, key="extracted_text")
+                            df_img = parse_kakao_text(extracted, year)
+                            if not df_img.empty:
+                                df_img["의뢰기관"] = common_agency
+                                df_img["의뢰인"] = common_requester
+                                df_img["의뢰일"] = request_date_str
+                                df_img["의뢰방법"] = common_method
+                                st.session_state["temp_df"] = df_img
+                                st.session_state["raw_text_for_drive"] = extracted
+                                st.success(f"✅ {len(df_img)}건 일정 생성 완료")
+                            else:
+                                st.warning("일정을 찾지 못했습니다. 추출된 텍스트를 확인해주세요.")
+                        except Exception as e:
+                            st.error(f"이미지 분석 오류: {e}")
 
     st.divider()
 
@@ -181,13 +205,6 @@ if menu == "📥 보건스케줄 입력":
     현재 서비스 계정 구글 드라이브 용량 제한으로 파일 자동 업로드가 제한됩니다.
     추후 업데이트 예정이며, 현재는 드라이브 폴더에 직접 업로드해 주세요.
     """)
-
-    # evidence_files = st.file_uploader(
-    #     "추가 증빙자료 (캡처, PDF 등)",
-    #     type=["png", "jpg", "jpeg", "pdf", "docx", "xlsx"],
-    #     accept_multiple_files=True,
-    #     key="evidence_uploader"
-    # )
 
     st.divider()
 
@@ -273,7 +290,7 @@ if menu == "📥 보건스케줄 입력":
                         )
 
                         drive_errors = []
-                        evidence_files = []  # 자동 업로드 비활성화
+                        evidence_files = []
 
                         try:
                             lecture_count = len(edited_df)
