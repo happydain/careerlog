@@ -186,7 +186,19 @@ if menu == "🏠 대시보드":
                     for _, row in idf.sort_values("시작").iterrows():
                         start_h = str(row["시작"])[:2].lstrip("0") or "0"
                         end_h   = str(row["종료"])[:2].lstrip("0") or "0"
-                        st.markdown(f"- {start_h}-{end_h} {row['의뢰기관']} {row['방식/위치']}")
+                        st.markdown(f"**{start_h}-{end_h}** {row['의뢰기관']} {row['방식/위치']}")
+                        col_e, col_d = st.columns(2)
+                        with col_e:
+                            if st.button("✏️ 변경", key=f"edit_{row.name}"):
+                                st.session_state["_menu"] = "📅 최종 스케줄 매칭시스템"
+                                st.rerun()
+                        with col_d:
+                            if st.button("🗑️ 취소", key=f"cancel_{row.name}"):
+                                full_df = load_gsheet_final()
+                                full_df.loc[row.name, "상태"] = "취소"
+                                if save_gsheet_final(full_df):
+                                    st.success("✅ 취소!")
+                                    st.rerun()
                     st.divider()
             else:
                 st.info("강의 없음")
