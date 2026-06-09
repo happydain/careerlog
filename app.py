@@ -621,8 +621,13 @@ elif menu == "📅 최종 스케줄 매칭시스템":
         reverse=True
     ) if not df_active.empty else [str(now.year)]
 
-    selected_year = st.selectbox("년도", available_years, index=0, key="match_year_sel")
+    col_yr, _ = st.columns([1, 5])
+    with col_yr:
+        selected_year = st.selectbox("", available_years, index=0, key="match_year_sel",
+                                     label_visibility="collapsed")
     sel_year = int(selected_year)
+
+    st.markdown(f"<div style='font-size:32px; font-weight:500; color:var(--color-text-primary); margin-bottom:4px;'>{sel_year}</div>", unsafe_allow_html=True)
 
     # ── 연간 통계 ──
     if not df_active.empty:
@@ -637,34 +642,40 @@ elif menu == "📅 최종 스케줄 매칭시스템":
         total_count = total_hours = total_fee = total_days = 0
 
     st.markdown(f"""
-    <div style="display:flex; gap:12px; margin-bottom:16px;">
-        <div style="background:#f0f4ff; border-radius:10px; padding:14px 20px; text-align:center; flex:1;">
-            <div style="font-size:11px; color:#666;">{sel_year}년 강의 건수</div>
-            <div style="font-size:22px; font-weight:bold; color:#1a56db;">{total_count}건</div>
+    <div style="display:flex; gap:10px; margin:16px 0;">
+        <div style="background:var(--color-background-secondary); border-radius:10px; padding:14px 18px; text-align:center; flex:1;">
+            <div style="font-size:11px; color:var(--color-text-secondary); margin-bottom:4px;">강의 건수</div>
+            <div style="font-size:22px; font-weight:500; color:#185FA5;">{total_count}건</div>
         </div>
-        <div style="background:#f0fff4; border-radius:10px; padding:14px 20px; text-align:center; flex:1;">
-            <div style="font-size:11px; color:#666;">{sel_year}년 총 시수</div>
-            <div style="font-size:22px; font-weight:bold; color:#0e9f6e;">{total_hours:.0f}시간</div>
+        <div style="background:var(--color-background-secondary); border-radius:10px; padding:14px 18px; text-align:center; flex:1;">
+            <div style="font-size:11px; color:var(--color-text-secondary); margin-bottom:4px;">총 시수</div>
+            <div style="font-size:22px; font-weight:500; color:#0F6E56;">{total_hours:.0f}시간</div>
         </div>
-        <div style="background:#fff8f0; border-radius:10px; padding:14px 20px; text-align:center; flex:1;">
-            <div style="font-size:11px; color:#666;">{sel_year}년 총 강의료</div>
-            <div style="font-size:22px; font-weight:bold; color:#e3a008;">₩{total_fee:,.0f}</div>
+        <div style="background:var(--color-background-secondary); border-radius:10px; padding:14px 18px; text-align:center; flex:1;">
+            <div style="font-size:11px; color:var(--color-text-secondary); margin-bottom:4px;">총 강의료</div>
+            <div style="font-size:22px; font-weight:500; color:#854F0B;">₩{total_fee:,.0f}</div>
         </div>
-        <div style="background:#fdf0ff; border-radius:10px; padding:14px 20px; text-align:center; flex:1;">
-            <div style="font-size:11px; color:#666;">{sel_year}년 참여일</div>
-            <div style="font-size:22px; font-weight:bold; color:#7c3aed;">{total_days}일</div>
+        <div style="background:var(--color-background-secondary); border-radius:10px; padding:14px 18px; text-align:center; flex:1;">
+            <div style="font-size:11px; color:var(--color-text-secondary); margin-bottom:4px;">참여일</div>
+            <div style="font-size:22px; font-weight:500; color:#534AB7;">{total_days}일</div>
         </div>
     </div>
     """, unsafe_allow_html=True)
 
     # ── 월별 버튼 ──
     st.markdown("""
+    <div style="font-size:11px; font-weight:500; color:var(--color-text-secondary);
+                text-transform:uppercase; letter-spacing:0.08em; margin-bottom:8px;">월별</div>
+    """, unsafe_allow_html=True)
+
+    st.markdown("""
     <style>
     div[data-testid="column"] button {
-        padding: 2px 4px !important;
-        font-size: 11px !important;
-        min-height: 26px !important;
-        height: 26px !important;
+        padding: 3px 4px !important;
+        font-size: 12px !important;
+        min-height: 28px !important;
+        height: 28px !important;
+        border-radius: 6px !important;
     }
     </style>
     """, unsafe_allow_html=True)
@@ -677,31 +688,34 @@ elif menu == "📅 최종 스케줄 매칭시스템":
                 st.session_state.get("filter_month") == mo and
                 not st.session_state.get("filter_instructor")
             )
-            if st.button(
-                f"{mo}월",
-                key=f"month_{sel_year}_{mo}",
-                use_container_width=True,
-                type="primary" if selected else "secondary"
-            ):
+            if st.button(f"{mo}월", key=f"month_{sel_year}_{mo}",
+                         use_container_width=True,
+                         type="primary" if selected else "secondary"):
                 st.session_state["filter_year"]       = sel_year
                 st.session_state["filter_month"]      = mo
                 st.session_state["filter_instructor"] = None
                 st.rerun()
 
-    st.divider()
-
     # ── 강사별 버튼 ──
+    st.markdown("""
+    <div style="font-size:11px; font-weight:500; color:var(--color-text-secondary);
+                text-transform:uppercase; letter-spacing:0.08em;
+                margin-top:16px; margin-bottom:8px; border-top:0.5px solid var(--color-border-tertiary); padding-top:16px;">강사별</div>
+    """, unsafe_allow_html=True)
+
     if not df_active.empty:
         instructors = sorted(df_active["강사님"].dropna().unique().tolist())
-        instr_cols = st.columns(len(instructors) + 1)
+        instr_cols  = st.columns(len(instructors) + 1)
         with instr_cols[0]:
-            if st.button("전체", key="instr_all", type="primary" if not st.session_state.get("filter_instructor") else "secondary"):
+            if st.button("전체", key="instr_all",
+                         type="primary" if not st.session_state.get("filter_instructor") else "secondary"):
                 st.session_state["filter_instructor"] = None
                 st.rerun()
         for i, instr in enumerate(instructors):
             with instr_cols[i + 1]:
                 selected_i = st.session_state.get("filter_instructor") == instr
-                if st.button(instr, key=f"instr_{instr}", type="primary" if selected_i else "secondary"):
+                if st.button(instr, key=f"instr_{instr}",
+                             type="primary" if selected_i else "secondary"):
                     st.session_state["filter_instructor"] = instr
                     st.session_state["filter_year"]       = sel_year
                     st.session_state["filter_month"]      = None
@@ -727,7 +741,7 @@ elif menu == "📅 최종 스케줄 매칭시스템":
                     (df["_dt"].dt.year == sel_year) &
                     (df["강사님"] == filter_instructor)
                 ].drop(columns=["_dt"]).copy()
-                st.markdown(f"### 👤 {filter_instructor} - {sel_year}년 전체")
+                st.markdown(f"### 👤 {filter_instructor} — {sel_year}년 전체")
             else:
                 fdf = df[
                     (df["_dt"].dt.year  == filter_year) &
@@ -747,29 +761,29 @@ elif menu == "📅 최종 스케줄 매칭시스템":
 
                 st.markdown(f"""
                 <div style="display:flex; gap:10px; margin-bottom:16px;">
-                    <div style="background:#f0f4ff; border-radius:10px; padding:12px 16px; text-align:center; flex:1;">
-                        <div style="font-size:11px; color:#666;">강의 건수</div>
-                        <div style="font-size:20px; font-weight:bold; color:#1a56db;">{len(fdf_active)}건</div>
+                    <div style="background:var(--color-background-secondary); border-radius:10px; padding:12px 16px; text-align:center; flex:1;">
+                        <div style="font-size:11px; color:var(--color-text-secondary); margin-bottom:4px;">강의 건수</div>
+                        <div style="font-size:20px; font-weight:500; color:#185FA5;">{len(fdf_active)}건</div>
                     </div>
-                    <div style="background:#f0fff4; border-radius:10px; padding:12px 16px; text-align:center; flex:1;">
-                        <div style="font-size:11px; color:#666;">총 시수</div>
-                        <div style="font-size:20px; font-weight:bold; color:#0e9f6e;">{total_hours:.0f}시간</div>
+                    <div style="background:var(--color-background-secondary); border-radius:10px; padding:12px 16px; text-align:center; flex:1;">
+                        <div style="font-size:11px; color:var(--color-text-secondary); margin-bottom:4px;">총 시수</div>
+                        <div style="font-size:20px; font-weight:500; color:#0F6E56;">{total_hours:.0f}시간</div>
                     </div>
-                    <div style="background:#fff8f0; border-radius:10px; padding:12px 16px; text-align:center; flex:1;">
-                        <div style="font-size:11px; color:#666;">총 강의료</div>
-                        <div style="font-size:20px; font-weight:bold; color:#e3a008;">₩{total_fee:,.0f}</div>
+                    <div style="background:var(--color-background-secondary); border-radius:10px; padding:12px 16px; text-align:center; flex:1;">
+                        <div style="font-size:11px; color:var(--color-text-secondary); margin-bottom:4px;">총 강의료</div>
+                        <div style="font-size:20px; font-weight:500; color:#854F0B;">₩{total_fee:,.0f}</div>
                     </div>
-                    <div style="background:#fdf0ff; border-radius:10px; padding:12px 16px; text-align:center; flex:1;">
-                        <div style="font-size:11px; color:#666;">참여일</div>
-                        <div style="font-size:20px; font-weight:bold; color:#7c3aed;">{total_days}일</div>
+                    <div style="background:var(--color-background-secondary); border-radius:10px; padding:12px 16px; text-align:center; flex:1;">
+                        <div style="font-size:11px; color:var(--color-text-secondary); margin-bottom:4px;">참여일</div>
+                        <div style="font-size:20px; font-weight:500; color:#534AB7;">{total_days}일</div>
                     </div>
-                    <div style="background:#fff0f0; border-radius:10px; padding:12px 16px; text-align:center; flex:1;">
-                        <div style="font-size:11px; color:#666;">일당</div>
-                        <div style="font-size:20px; font-weight:bold; color:#e02424;">₩{avg_daily_fee:,.0f}</div>
+                    <div style="background:var(--color-background-secondary); border-radius:10px; padding:12px 16px; text-align:center; flex:1;">
+                        <div style="font-size:11px; color:var(--color-text-secondary); margin-bottom:4px;">일당</div>
+                        <div style="font-size:20px; font-weight:500; color:#993C1D;">₩{avg_daily_fee:,.0f}</div>
                     </div>
-                    <div style="background:#f0f9ff; border-radius:10px; padding:12px 16px; text-align:center; flex:1;">
-                        <div style="font-size:11px; color:#666;">시간당</div>
-                        <div style="font-size:20px; font-weight:bold; color:#0369a1;">₩{hourly_rate:,.0f}</div>
+                    <div style="background:var(--color-background-secondary); border-radius:10px; padding:12px 16px; text-align:center; flex:1;">
+                        <div style="font-size:11px; color:var(--color-text-secondary); margin-bottom:4px;">시간당</div>
+                        <div style="font-size:20px; font-weight:500; color:#0C447C;">₩{hourly_rate:,.0f}</div>
                     </div>
                 </div>
                 """, unsafe_allow_html=True)
