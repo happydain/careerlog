@@ -641,7 +641,6 @@ elif menu == "📅 최종 스케줄 매칭시스템":
     else:
         total_count = total_hours = total_fee = total_days = 0
 
-    count_val = len(fdf_active)
 
     st.markdown(f"""
     <div style="display:flex; gap:16px; margin-bottom:8px;">
@@ -755,6 +754,7 @@ elif menu == "📅 최종 스케줄 매칭시스템":
                 st.info("데이터가 없습니다.")
             else:
                 fdf_active    = fdf[fdf["상태"] != "취소"] if "상태" in fdf.columns else fdf
+                count_val  = len(fdf_active) 
                 total_hours   = pd.to_numeric(fdf_active["시수"], errors="coerce").sum()
                 total_fee     = pd.to_numeric(fdf_active["강의료(1일)"], errors="coerce").sum()
                 total_days    = fdf_active["강의일시"].astype(str).str[:10].nunique()
