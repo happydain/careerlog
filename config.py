@@ -23,3 +23,6 @@ LOCATION_OPTIONS = [
     "광교",
     "서울", "외부출강", "기타"
 ]
+
+#송주영
+CALENDAR_ID = "9898287aa6269a3c978e829d18f7856cac7910552b98a706af6376c25ea7f8a5@group.calendar.google.com"
