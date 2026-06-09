@@ -27,7 +27,8 @@ def get_calendar_service():
 
 
 def add_event(date_str: str, start: str, end: str, title: str,
-              instructor: str, agency: str, location: str) -> str:
+              instructor: str, agency: str, location: str,
+              calendar_id: str = CALENDAR_ID) -> str:
     """
     캘린더에 강의 일정 추가
     반환: 이벤트 링크
@@ -47,7 +48,7 @@ def add_event(date_str: str, start: str, end: str, title: str,
         }
 
         result = service.events().insert(
-            calendarId=CALENDAR_ID,
+            calendarId=calendar_id,
             body=event
         ).execute()
 
