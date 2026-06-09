@@ -57,7 +57,7 @@ if menu == "📥 보건스케줄 입력":
     with col1:
         common_agency = st.selectbox("🏢 의뢰기관", AGENCY_OPTIONS)
     with col2:
-        year = st.selectbox("연도", list(range(2022, 2036)),
+        year = st.selectbox("기준연도", list(range(2022, 2036)),
                             index=list(range(2022, 2036)).index(datetime.now().year))
     with col3:
         default_date = datetime(year, datetime.now().month, datetime.now().day)
