@@ -438,7 +438,6 @@ elif menu == "📋 의뢰일별 스케줄(취소,변경반영)":
 elif menu == "📅 최종 스케줄 매칭시스템":
     st.header("📅 최종 스케줄 매칭시스템")
 
-    # 2022년 10월 ~ 2027년 12월
     start_year, start_month = 2022, 1
     end_year, end_month = 2027, 12
     
@@ -451,26 +450,23 @@ elif menu == "📅 최종 스케줄 매칭시스템":
             m = 1
             y += 1
     
-    years = sorted(set(y for y, m in months))  # 오름차순 (2022가 위)
-    for yr in years:
-        yr_months = [mo for y, mo in months if y == yr]
-        cols = st.columns(len(yr_months))
-        st.markdown(f"<small><b>{yr}년</b></small>", unsafe_allow_html=True)
-        for i, mo in enumerate(yr_months):
-            with cols[i]:
-                selected = (
-                    st.session_state.get("filter_year") == yr and
-                    st.session_state.get("filter_month") == mo
-                )
-                if st.button(
-                    f"{mo}월",
-                    key=f"month_{yr}_{mo}",
-                    use_container_width=True,
-                    type="primary" if selected else "secondary"
-                ):
-                    st.session_state["filter_year"] = yr
-                    st.session_state["filter_month"] = mo
-                    st.rerun()
+    # 6개씩 행으로 나열
+    cols = st.columns(6)
+    for i, (yr, mo) in enumerate(months):
+        with cols[i % 6]:
+            selected = (
+                st.session_state.get("filter_year") == yr and
+                st.session_state.get("filter_month") == mo
+            )
+            if st.button(
+                f"{yr}년 {mo}월",
+                key=f"month_{yr}_{mo}",
+                use_container_width=True,
+                type="primary" if selected else "secondary"
+            ):
+                st.session_state["filter_year"] = yr
+                st.session_state["filter_month"] = mo
+                st.rerun()
         st.divider()
     df = load_gsheet_final()
 
