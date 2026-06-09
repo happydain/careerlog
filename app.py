@@ -1073,6 +1073,37 @@ elif menu == "📊 강의 현황":
                         if not cal_id:
                             errors += 1
                             continue
+
+                        UBJECT_SHORT = {
+                            "응급처치": "응급",
+                            "뇌심혈관": "뇌심",
+                            "직장내괴롭힘": "괴롭힘",
+                            "직장 내 괴롭힘 예방 및 관리": "괴롭힘",
+                            "근골격계": "근골",
+                            "열사병": "열사병",
+                            "보건관리": "보건",
+                            "응급_MSDS_건강": "보건",
+                            "건강진단": "건진"
+                        }
+                        
+                        AGENCY_SHORT = {
+                            "중대협": "중대협",
+                            "한안협": "한안협",
+                            "서울대한협": "서울",
+                            "수원대한협": "수원",
+                            "인천대한협": "인천",
+                        }
+                        LOCATION_SHORT = {
+                            "줌": "줌",
+                            "동시송출": "온오프",
+                            "오프라인": "오프",
+                            "인천1": "인천1",
+                            "인천2": "인천2",
+                            "수원2층": "수원2층",
+                            "수원5층": "수원5층",
+                            "수원광교": "광교",
+                        }
+
                         try:
                             start_h     = str(row["시작"])[:2].lstrip("0") or "0"
                             end_h       = str(row["종료"])[:2].lstrip("0") or "0"
@@ -1080,7 +1111,9 @@ elif menu == "📊 강의 현황":
                             outco       = str(row.get("출강기업", "")).strip()
                             outco_str   = f"_{outco}" if outco and outco != "nan" else ""
                             target      = str(row.get("대상자", "")).strip()
-                            title       = f"{start_h}-{end_h} ({instr_short}, {row['방식/위치']}, {row['과정명']}) {row['의뢰기관']}{outco_str}_{target}"
+                            subject_short = SUBJECT_SHORT.get(str(row["과정명"]).strip(), str(row["과정명"]).strip()[:4])
+                            agency_short  = AGENCY_SHORT.get(str(row["의뢰기관"]).strip(), str(row["의뢰기관"]).strip())
+                            title = f"{start_h}-{end_h} ({instr_short}, {row['방식/위치']}, {subject_short}) {agency_short}{outco_str}_{target}"
                             add_event(
                                 date_str    = str(row["강의일시"])[:10],
                                 start       = str(row["시작"]),
