@@ -704,6 +704,14 @@ elif menu == "📊 강의 현황":
     # 월별 현황
     # ══════════════════════════════════
     st.markdown("### 월별 현황")
+    col_all, _ = st.columns([1, 11])
+    with col_all:
+        if st.button("전체", key="month_all",
+                     type="primary" if not st.session_state.get("sel_month") else "secondary"):
+            st.session_state["sel_month"] = None
+            st.rerun()
+    
+    month_buttons("mon", "sel_month")
     month_buttons("mon", "sel_month")
 
     sel_month = st.session_state.get("sel_month")
