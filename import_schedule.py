@@ -150,5 +150,5 @@ def parse_all_sheets(filepath):
 
     df = pd.DataFrame(all_rows)
     df["_dt"] = pd.to_datetime(df["강의일시"], errors="coerce")
-    df = df.sort_values("_dt", ascending=False).drop(columns=["_dt"]).reset_index(drop=True)
+    df = df.sort_values("_dt", ascending=True).drop(columns=["_dt"]).reset_index(drop=True)
     return df
