@@ -135,11 +135,19 @@ if menu == "📥 보건스케줄 입력":
                         df_excel = parse_jungdae_excel(uploaded_file, common_requester,
                                                        request_date_str, year)
                     else:
-                        df_excel = parse_suwon_excel(uploaded_file, common_agency)
+                        try:
+                            df_excel = parse_suwon2_excel(uploaded_file, common_agency)
+                            if df_excel.empty:
+                                raise ValueError("데이터 없음")
+                        except Exception:
+                            try:
+                                uploaded_file.seek(0)
+                                df_excel = parse_suwon_excel(uploaded_file, common_agency)
+                            except Exception as e2:
+                                raise ValueError(f"파싱 실패: {e2}")
                         df_excel["의뢰인"] = common_requester
                         df_excel["의뢰일"] = request_date_str
                         df_excel["의뢰방법"] = common_method
-
                     if df_excel.empty:
                         st.warning("변환된 일정이 없습니다.")
                     else:
