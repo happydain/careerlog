@@ -337,37 +337,7 @@ if menu == "📥 보건스케줄 입력":
                 df_preview = pd.read_excel(uploaded_file, header=None)
                 st.dataframe(df_preview, use_container_width=True, height=300)
 
-    # ── 카톡 입력 ──────────────────────────────
-    with col_kakao:
-        st.markdown("### 💬 카톡 / 이메일 텍스트 입력")
-        st.info(f"📌 현재 의뢰기관: **{common_agency}** · 의뢰인: **{common_requester or '미입력'}** · {request_date_str}")
-        raw_text = st.text_area("강의 요청 메시지를 붙여넣으세요.", height=220, key="raw_text_input")
-
-        if st.button("🪄 카톡 일정 분석"):
-            if not common_requester.strip():
-                st.error("담당자 이름을 입력해주세요.")
-            elif not raw_text.strip():
-                st.warning("텍스트를 입력해주세요.")
-            else:
-                if common_agency == "서울대한협":
-                    df_text = parse_seoul_kakao(raw_text, year, common_requester, request_date_str)
-                elif common_agency == "한안협":
-                    df_text = parse_hanahn_kakao(raw_text, year, common_requester, request_date_str, common_method)
-                else:
-                    df_text = parse_kakao_text(raw_text, year)
-                    df_text["의뢰기관"] = common_agency
-                    df_text["의뢰인"] = common_requester
-                    df_text["의뢰일"] = request_date_str
-                    df_text["의뢰방법"] = common_method
-
-                if df_text.empty:
-                    st.warning("날짜 정보를 찾지 못했습니다.")
-                else:
-                    st.session_state["temp_df"] = df_text
-                    st.session_state["raw_text_for_drive"] = raw_text
-                    st.session_state.pop("excel_file_for_drive", None)
-                    st.success(f"✅ {len(df_text)}건 일정 생성 완료")
-
+   
     st.divider()
 
     # ── 증빙 파일 ────────────────────────────
