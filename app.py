@@ -614,241 +614,6 @@ elif menu == "📊 강의 현황":
     else:
         df_active = df.copy()
 
-    # ── 년도 선택 ──
-    now = datetime.now()
-    available_years = sorted(
-        [y for y in df_active["강의일시"].str[:4].dropna().unique().tolist() if str(y).isdigit()],
-        reverse=True
-    ) if not df_active.empty else [str(now.year)]
-
-    col_yr, _ = st.columns([1, 5])
-    with col_yr:
-        selected_year = st.selectbox("", available_years, index=0, key="match_year_sel",
-                                     label_visibility="collapsed")
-    sel_year = int(selected_year)
-    st.markdown(f"<div style='font-size:32px; font-weight:500; color:var(--color-text-primary); margin-bottom:4px;'>{sel_year}</div>", unsafe_allow_html=True)
-
-    # ── 헬퍼 함수 ──
-    def stat_cards(data_df, label_prefix=""):
-        cnt   = len(data_df)
-        hrs   = pd.to_numeric(data_df["시수"], errors="coerce").sum()
-        fee   = pd.to_numeric(data_df["강의료(1일)"], errors="coerce").sum()
-        days  = data_df["강의일시"].astype(str).str[:10].nunique()
-        return f"""
-        <div style="display:flex; gap:16px; margin:12px 0;">
-            <div style="background:#f0f4ff; border-radius:10px; padding:12px 20px; text-align:center; flex:1;">
-                <div style="font-size:11px; color:#666;">{label_prefix}강의 건수</div>
-                <div style="font-size:20px; font-weight:bold; color:#1a56db;">{cnt}건</div>
-            </div>
-            <div style="background:#f0fff4; border-radius:10px; padding:12px 20px; text-align:center; flex:1;">
-                <div style="font-size:11px; color:#666;">{label_prefix}총 시수</div>
-                <div style="font-size:20px; font-weight:bold; color:#0e9f6e;">{hrs:.0f}시간</div>
-            </div>
-            <div style="background:#fff8f0; border-radius:10px; padding:12px 20px; text-align:center; flex:1;">
-                <div style="font-size:11px; color:#666;">{label_prefix}총 강의료</div>
-                <div style="font-size:20px; font-weight:bold; color:#e3a008;">₩{fee:,.0f}</div>
-            </div>
-            <div style="background:#fdf0ff; border-radius:10px; padding:12px 20px; text-align:center; flex:1;">
-                <div style="font-size:11px; color:#666;">{label_prefix}참여일</div>
-                <div style="font-size:20px; font-weight:bold; color:#7c3aed;">{days}일</div>
-            </div>
-        </div>
-        """
-
-    # ── 연간 통계 ──
-    if not df_active.empty:
-        df_active["_dt"] = pd.to_datetime(df_active["강의일시"], errors="coerce")
-        df_year   = df_active[df_active["_dt"].dt.year == sel_year]
-        df_active = df_active.drop(columns=["_dt"])
-        st.markdown(stat_cards(df_year, f"{sel_year}년 "), unsafe_allow_html=True)
-
-    # ── 버튼 스타일 ──
-    st.markdown("""
-    <style>
-    div[data-testid="column"] button {
-        padding: 3px 4px !important; font-size: 12px !important;
-        min-height: 28px !important; height: 28px !important;
-        border-radius: 6px !important;
-    }
-    </style>
-    """, unsafe_allow_html=True)
-
-    # ── 월별 버튼 ──
-    st.markdown('<div style="font-size:11px; font-weight:500; color:var(--color-text-secondary); text-transform:uppercase; letter-spacing:0.08em; margin-bottom:8px;">월별</div>', unsafe_allow_html=True)
-    cols = st.columns(12)
-    for i, mo in enumerate(range(1, 13)):
-        with cols[i]:
-            sel_m = st.session_state.get("filter_month") == mo
-            if st.button(f"{mo}월", key=f"month_{sel_year}_{mo}",
-                         use_container_width=True,
-                         type="primary" if sel_m else "secondary"):
-                st.session_state["filter_month"] = mo if not sel_m else None
-                st.rerun()
-
-    # ── 강사별 버튼 ──
-    st.markdown('<div style="font-size:11px; font-weight:500; color:var(--color-text-secondary); text-transform:uppercase; letter-spacing:0.08em; margin-top:16px; margin-bottom:8px; border-top:0.5px solid var(--color-border-tertiary); padding-top:16px;">강사별</div>', unsafe_allow_html=True)
-
-    if not df_active.empty:
-        instructors = sorted([
-            i for i in df_active["강사님"].dropna().unique().tolist()
-            if str(i).strip() and str(i) != "nan"
-        ])
-        instr_cols = st.columns(len(instructors) + 1)
-        with instr_cols[0]:
-            is_all = not st.session_state.get("filter_instructor")
-            if st.button("전체", key="instr_all", type="primary" if is_all else "secondary"):
-                st.session_state["filter_instructor"] = None
-                st.session_state["filter_month"]      = None
-                st.rerun()
-        for i, instr in enumerate(instructors):
-            with instr_cols[i + 1]:
-                sel_i = st.session_state.get("filter_instructor") == instr
-                if st.button(instr, key=f"instr_{instr}",
-                             type="primary" if sel_i else "secondary"):
-                    st.session_state["filter_instructor"] = instr
-                    st.session_state["filter_month"]      = None
-                    st.rerun()
-
-    st.divider()
-
-    # ── 결과 표시 ──
-    filter_month      = st.session_state.get("filter_month")
-    filter_instructor = st.session_state.get("filter_instructor")
-
-    if df.empty:
-        st.info("저장된 데이터가 없습니다.")
-    else:
-        df["_dt"] = pd.to_datetime(df["강의일시"], errors="coerce")
-        base_df   = df[df["_dt"].dt.year == sel_year].copy()
-
-        # 강사 선택된 경우: 강사 연간 통계 고정 표시
-        if filter_instructor:
-            instr_df = base_df[base_df["강사님"] == filter_instructor]
-            instr_active = instr_df[instr_df["상태"] != "취소"] if "상태" in instr_df.columns else instr_df
-            st.markdown(f"#### 👤 {filter_instructor} — {sel_year}년 전체")
-            st.markdown(stat_cards(instr_active.drop(columns=["_dt"], errors="ignore")), unsafe_allow_html=True)
-
-            # 강사 선택 후 월별 버튼
-            st.markdown('<div style="font-size:11px; font-weight:500; color:var(--color-text-secondary); text-transform:uppercase; letter-spacing:0.08em; margin-bottom:8px;">월별 상세</div>', unsafe_allow_html=True)
-            cols2 = st.columns(12)
-            for i, mo in enumerate(range(1, 13)):
-                with cols2[i]:
-                    sel_m2 = st.session_state.get("filter_month") == mo
-                    if st.button(f"{mo}월", key=f"imonth_{mo}",
-                                 use_container_width=True,
-                                 type="primary" if sel_m2 else "secondary"):
-                        st.session_state["filter_month"] = mo if not sel_m2 else None
-                        st.rerun()
-            st.divider()
-
-        # 최종 데이터 필터링
-        fdf = base_df.copy()
-        if filter_instructor:
-            fdf = fdf[fdf["강사님"] == filter_instructor]
-        if filter_month:
-            fdf = fdf[fdf["_dt"].dt.month == filter_month]
-        fdf = fdf.drop(columns=["_dt"])
-
-        # 제목
-        parts = []
-        if filter_instructor: parts.append(f"👤 {filter_instructor}")
-        parts.append(f"{sel_year}년")
-        if filter_month: parts.append(f"{filter_month}월")
-        else: parts.append("전체") if filter_instructor else None
-
-        if filter_month or filter_instructor:
-            st.markdown(f"### {' — '.join(parts)}")
-
-            if fdf.empty:
-                st.info("데이터가 없습니다.")
-            else:
-                fdf_active = fdf[fdf["상태"] != "취소"] if "상태" in fdf.columns else fdf
-                if filter_month:
-                    st.markdown(stat_cards(fdf_active), unsafe_allow_html=True)
-                st.divider()
-
-                if "auto_matched_df" in st.session_state:
-                    fdf = st.session_state.pop("auto_matched_df")
-
-                try:
-                    fdf["강의일시"] = pd.to_datetime(fdf["강의일시"], errors="coerce").dt.date
-                except Exception:
-                    pass
-
-                original_fdf = fdf.copy()
-                edited_fdf = st.data_editor(
-                    fdf,
-                    use_container_width=True,
-                    height=500,
-                    num_rows="fixed",
-                    column_config=get_column_config(),
-                )
-
-                col_m1, col_m2, col_m3 = st.columns([2, 2, 4])
-                with col_m1:
-                    if st.button("🤖 강사 자동매칭", key="auto_match_btn"):
-                        count = 0
-                        for idx in edited_fdf.index:
-                            instructor = str(edited_fdf.loc[idx, "강사님"]).strip()
-                            if not instructor or instructor in ("nan", ""):
-                                edited_fdf.loc[idx, "강사님"] = "송주영"
-                                count += 1
-                        st.session_state["auto_matched_df"] = edited_fdf
-                        st.success(f"✅ {count}건 → 송주영 자동 배정!")
-                        st.rerun()
-
-                with col_m2:
-                    modifier = st.text_input("변경자", placeholder="이름 입력", key="match_modifier")
-
-                with col_m3:
-                    if st.button("💾 저장", key="match_save_btn"):
-                        today = datetime.now().strftime("%Y-%m-%d")
-                        for idx in edited_fdf.index:
-                            changes = []
-                            for col in COLUMNS:
-                                if col in ("변경이력", "증빙폴더"):
-                                    continue
-                                orig = str(original_fdf.loc[idx, col]) if idx in original_fdf.index else ""
-                                new  = str(edited_fdf.loc[idx, col])
-                                if orig != new:
-                                    changes.append(f"{col} {orig}→{new}")
-                            if changes:
-                                summary  = ", ".join(changes)
-                                existing = str(edited_fdf.loc[idx, "변경이력"]).strip()
-                                new_hist = f"[{today}] {summary}"
-                                edited_fdf.loc[idx, "변경이력"]   = f"{existing} / {new_hist}".strip(" /")
-                                edited_fdf.loc[idx, "변경일자"]   = today
-                                edited_fdf.loc[idx, "변경의뢰인"] = modifier or "미입력"
-
-                                folder_url = str(edited_fdf.loc[idx, "증빙폴더"])
-                                if folder_url.startswith("https://drive.google.com"):
-                                    try:
-                                        folder_id = folder_url.split("/")[-1]
-                                        append_change_log(folder_id, summary, modifier or "미입력")
-                                    except Exception:
-                                        pass
-
-                        df.update(edited_fdf)
-                        if save_gsheet_final(df):
-                            st.success("✅ 저장 완료!")
-                            st.rerun()
-        else:
-            st.info("월 또는 강사님을 선택하세요.")
-                            
-# ══════════════════════════════════════════════
-# 📊 강의 현황
-# ══════════════════════════════════════════════
-
-elif menu == "📊 강의 현황":
-    st.header("📊 강의 현황")
-
-    df = load_gsheet_final()
-
-    if not df.empty and "상태" in df.columns:
-        df_active = df[df["상태"] != "취소"].copy()
-    else:
-        df_active = df.copy()
-
     # ── 헬퍼: 통계 카드 ──
     def stat_cards(data_df, prefix=""):
         if data_df.empty:
@@ -860,7 +625,7 @@ elif menu == "📊 강의 현황":
         avg_daily = fee / days if days > 0 else 0
         hourly    = fee / hrs if hrs > 0 else 0
         return f"""
-        <div style="display:flex; gap:12px; margin:12px 0;">
+        <div style="display:flex; gap:12px; margin:8px 0 16px;">
             <div style="background:#f0f4ff; border-radius:10px; padding:12px 18px; text-align:center; flex:1;">
                 <div style="font-size:11px; color:#666;">{prefix}강의 건수</div>
                 <div style="font-size:20px; font-weight:bold; color:#1a56db;">{cnt}건</div>
@@ -888,9 +653,6 @@ elif menu == "📊 강의 현황":
         </div>
         """
 
-    def section_label(text):
-        st.markdown(f'<div style="font-size:11px; font-weight:500; color:var(--color-text-secondary); text-transform:uppercase; letter-spacing:0.08em; margin:12px 0 8px; border-top:0.5px solid var(--color-border-tertiary); padding-top:12px;">{text}</div>', unsafe_allow_html=True)
-
     def month_buttons(key_prefix, sel_key):
         cols = st.columns(12)
         for i, mo in enumerate(range(1, 13)):
@@ -913,7 +675,9 @@ elif menu == "📊 강의 현황":
     </style>
     """, unsafe_allow_html=True)
 
-    # ── 년도 선택 ──
+    # ══════════════════════════════════
+    # 년도 선택
+    # ══════════════════════════════════
     now = datetime.now()
     available_years = sorted(
         [y for y in df_active["강의일시"].str[:4].dropna().unique().tolist() if str(y).isdigit()],
@@ -930,27 +694,35 @@ elif menu == "📊 강의 현황":
     # ── 연간 통계 ──
     if not df_active.empty:
         df_active["_dt"] = pd.to_datetime(df_active["강의일시"], errors="coerce")
-        df_year   = df_active[df_active["_dt"].dt.year == sel_year]
+        df_year   = df_active[df_active["_dt"].dt.year == sel_year].copy()
         df_active = df_active.drop(columns=["_dt"])
         st.markdown(stat_cards(df_year, f"{sel_year}년 "), unsafe_allow_html=True)
     else:
         df_year = pd.DataFrame()
 
-    # ══ 월별 ══
-    section_label("월별")
+    # ══════════════════════════════════
+    # 월별 현황
+    # ══════════════════════════════════
+    st.markdown("### 월별 현황")
     month_buttons("mon", "sel_month")
 
     sel_month = st.session_state.get("sel_month")
-    if sel_month:
-        df_active["_dt"] = pd.to_datetime(df_active["강의일시"], errors="coerce") if not df_active.empty else None
-        if not df_active.empty:
-            df_active["_dt"] = pd.to_datetime(df_active["강의일시"], errors="coerce")
-            m_df = df_active[(df_active["_dt"].dt.year == sel_year) & (df_active["_dt"].dt.month == sel_month)]
-            df_active = df_active.drop(columns=["_dt"])
-            st.markdown(stat_cards(m_df, f"{sel_month}월 "), unsafe_allow_html=True)
+    if sel_month and not df_active.empty:
+        df_active["_dt"] = pd.to_datetime(df_active["강의일시"], errors="coerce")
+        m_df = df_active[
+            (df_active["_dt"].dt.year == sel_year) &
+            (df_active["_dt"].dt.month == sel_month)
+        ].copy()
+        df_active = df_active.drop(columns=["_dt"])
+        st.markdown(f"**{sel_month}월 통계**")
+        st.markdown(stat_cards(m_df), unsafe_allow_html=True)
 
-    # ══ 강사별 ══
-    section_label("강사별")
+    # ══════════════════════════════════
+    # 강사별 현황
+    # ══════════════════════════════════
+    st.divider()
+    st.markdown("### 강사별 현황")
+
     if not df_active.empty:
         instructors = sorted([i for i in df_active["강사님"].dropna().unique().tolist()
                               if str(i).strip() and str(i) != "nan"])
@@ -971,31 +743,37 @@ elif menu == "📊 강의 현황":
                     st.rerun()
 
     sel_instructor = st.session_state.get("sel_instructor")
-    if sel_instructor:
+    if sel_instructor and not df_active.empty:
         df_active["_dt"] = pd.to_datetime(df_active["강의일시"], errors="coerce")
-        i_df = df_active[(df_active["_dt"].dt.year == sel_year) & (df_active["강사님"] == sel_instructor)]
+        i_df = df_active[
+            (df_active["_dt"].dt.year == sel_year) &
+            (df_active["강사님"] == sel_instructor)
+        ].copy()
         df_active = df_active.drop(columns=["_dt"])
-        st.markdown(f"<div style='font-size:13px; font-weight:500; color:var(--color-text-secondary); margin:8px 0 4px;'>👤 {sel_instructor} — {sel_year}년 전체</div>", unsafe_allow_html=True)
+        st.markdown(f"**👤 {sel_instructor} — {sel_year}년 전체**")
         st.markdown(stat_cards(i_df), unsafe_allow_html=True)
 
-        # 강사 월별 버튼
-        st.markdown('<div style="font-size:11px; color:var(--color-text-secondary); margin:8px 0 4px;">월별 상세</div>', unsafe_allow_html=True)
+        st.caption("월별 상세")
         month_buttons("imon", "sel_instructor_month")
 
         sel_i_month = st.session_state.get("sel_instructor_month")
-        if sel_i_month:
+        if sel_i_month and not df_active.empty:
             df_active["_dt"] = pd.to_datetime(df_active["강의일시"], errors="coerce")
             im_df = df_active[
                 (df_active["_dt"].dt.year == sel_year) &
                 (df_active["강사님"] == sel_instructor) &
                 (df_active["_dt"].dt.month == sel_i_month)
-            ]
+            ].copy()
             df_active = df_active.drop(columns=["_dt"])
-            st.markdown(f"<div style='font-size:13px; font-weight:500; color:var(--color-text-secondary); margin:8px 0 4px;'>👤 {sel_instructor} — {sel_i_month}월</div>", unsafe_allow_html=True)
+            st.markdown(f"**👤 {sel_instructor} — {sel_i_month}월**")
             st.markdown(stat_cards(im_df), unsafe_allow_html=True)
 
-    # ══ 의뢰기관별 ══
-    section_label("의뢰기관별")
+    # ══════════════════════════════════
+    # 의뢰기관별 현황
+    # ══════════════════════════════════
+    st.divider()
+    st.markdown("### 의뢰기관별 현황")
+
     if not df_active.empty:
         agencies = sorted(df_active["의뢰기관"].dropna().unique().tolist())
         agency_cols = st.columns(len(agencies) + 1)
@@ -1015,30 +793,34 @@ elif menu == "📊 강의 현황":
                     st.rerun()
 
     sel_agency = st.session_state.get("sel_agency")
-    if sel_agency:
+    if sel_agency and not df_active.empty:
         df_active["_dt"] = pd.to_datetime(df_active["강의일시"], errors="coerce")
-        a_df = df_active[(df_active["_dt"].dt.year == sel_year) & (df_active["의뢰기관"] == sel_agency)]
+        a_df = df_active[
+            (df_active["_dt"].dt.year == sel_year) &
+            (df_active["의뢰기관"] == sel_agency)
+        ].copy()
         df_active = df_active.drop(columns=["_dt"])
-        st.markdown(f"<div style='font-size:13px; font-weight:500; color:var(--color-text-secondary); margin:8px 0 4px;'>🏢 {sel_agency} — {sel_year}년 전체</div>", unsafe_allow_html=True)
+        st.markdown(f"**🏢 {sel_agency} — {sel_year}년 전체**")
         st.markdown(stat_cards(a_df), unsafe_allow_html=True)
 
-        # 기관 월별 버튼
-        st.markdown('<div style="font-size:11px; color:var(--color-text-secondary); margin:8px 0 4px;">월별 상세</div>', unsafe_allow_html=True)
+        st.caption("월별 상세")
         month_buttons("amon", "sel_agency_month")
 
         sel_a_month = st.session_state.get("sel_agency_month")
-        if sel_a_month:
+        if sel_a_month and not df_active.empty:
             df_active["_dt"] = pd.to_datetime(df_active["강의일시"], errors="coerce")
             am_df = df_active[
                 (df_active["_dt"].dt.year == sel_year) &
                 (df_active["의뢰기관"] == sel_agency) &
                 (df_active["_dt"].dt.month == sel_a_month)
-            ]
+            ].copy()
             df_active = df_active.drop(columns=["_dt"])
-            st.markdown(f"<div style='font-size:13px; font-weight:500; color:var(--color-text-secondary); margin:8px 0 4px;'>🏢 {sel_agency} — {sel_a_month}월</div>", unsafe_allow_html=True)
+            st.markdown(f"**🏢 {sel_agency} — {sel_a_month}월**")
             st.markdown(stat_cards(am_df), unsafe_allow_html=True)
 
-    # ══ 데이터프레임 ══
+    # ══════════════════════════════════
+    # 데이터프레임 (읽기 전용)
+    # ══════════════════════════════════
     st.divider()
     st.markdown("#### 📋 강의 데이터")
 
@@ -1046,15 +828,19 @@ elif menu == "📊 강의 현황":
         df["_dt"] = pd.to_datetime(df["강의일시"], errors="coerce")
         view_df = df[df["_dt"].dt.year == sel_year].drop(columns=["_dt"]).copy()
 
-        # 선택된 필터 적용
         if sel_instructor:
             view_df = view_df[view_df["강사님"] == sel_instructor]
         if sel_agency:
             view_df = view_df[view_df["의뢰기관"] == sel_agency]
-        sel_m_final = st.session_state.get("sel_instructor_month") or st.session_state.get("sel_agency_month") or sel_month
-        if sel_m_final:
+
+        final_month = (
+            st.session_state.get("sel_instructor_month") or
+            st.session_state.get("sel_agency_month") or
+            sel_month
+        )
+        if final_month:
             view_df["_dt2"] = pd.to_datetime(view_df["강의일시"], errors="coerce")
-            view_df = view_df[view_df["_dt2"].dt.month == sel_m_final].drop(columns=["_dt2"])
+            view_df = view_df[view_df["_dt2"].dt.month == final_month].drop(columns=["_dt2"])
 
         try:
             view_df["강의일시"] = pd.to_datetime(view_df["강의일시"], errors="coerce").dt.date
@@ -1063,7 +849,6 @@ elif menu == "📊 강의 현황":
 
         st.dataframe(view_df, use_container_width=True, height=400,
                      column_config=get_column_config())
-
 
 # ══════════════════════════════════════════════
 # 👨‍🏫 강사별 대시보드
