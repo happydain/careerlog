@@ -1,17 +1,12 @@
 """
 Google Calendar 연동 모듈
-- 강의 일정을 구글 캘린더에 자동 등록
-- 캘린더 일정 조회
 """
-
 import streamlit as st
-from datetime import datetime, timedelta
 from google.oauth2.service_account import Credentials
 from googleapiclient.discovery import build
 from config import CALENDAR_ID
 
 SCOPES = ["https://www.googleapis.com/auth/calendar"]
-
 _calendar_service = None
 
 
@@ -29,31 +24,21 @@ def get_calendar_service():
 def add_event(date_str: str, start: str, end: str, title: str,
               instructor: str, agency: str, location: str,
               calendar_id: str = CALENDAR_ID) -> str:
-    """
-    캘린더에 강의 일정 추가
-    반환: 이벤트 링크
-    """
     try:
-        service = get_calendar_service()
-
+        service  = get_calendar_service()
         start_dt = f"{date_str}T{start}:00+09:00"
         end_dt   = f"{date_str}T{end}:00+09:00"
-
         event = {
-            출강 = str(row.get("출강기업", "")).strip()
-            출강기업_str = f"_{출강}" if 출강 and 출강 != "nan" else ""
-            "summary": f"{agency}{출강기업_str}_{location}_{title}_{target}",
-            "location": location,
+            "summary":     title,
+            "location":    location,
             "description": f"의뢰기관: {agency}\n과정명: {title}\n강사: {instructor}",
             "start": {"dateTime": start_dt, "timeZone": "Asia/Seoul"},
             "end":   {"dateTime": end_dt,   "timeZone": "Asia/Seoul"},
         }
-
         result = service.events().insert(
             calendarId=calendar_id,
             body=event
         ).execute()
-
         return result.get("htmlLink", "")
     except Exception as e:
         st.error(f"캘린더 등록 오류: {e}")
@@ -61,33 +46,26 @@ def add_event(date_str: str, start: str, end: str, title: str,
 
 
 def get_events(start_date: str, end_date: str, calendar_id: str = CALENDAR_ID) -> list:
-    """
-    기간 내 캘린더 일정 조회
-    start_date, end_date: 'YYYY-MM-DD'
-    """
     try:
         service = get_calendar_service()
-
-        result = service.events().list(
-            calendarId = calendar_id,
+        result  = service.events().list(
+            calendarId=calendar_id,
             timeMin=f"{start_date}T00:00:00+09:00",
             timeMax=f"{end_date}T23:59:59+09:00",
             singleEvents=True,
             orderBy="startTime"
         ).execute()
-
         return result.get("items", [])
     except Exception as e:
         st.error(f"캘린더 조회 오류: {e}")
         return []
 
 
-def delete_event(event_id: str) -> bool:
-    """캘린더 일정 삭제"""
+def delete_event(event_id: str, calendar_id: str = CALENDAR_ID) -> bool:
     try:
         service = get_calendar_service()
         service.events().delete(
-            calendarId=CALENDAR_ID,
+            calendarId=calendar_id,
             eventId=event_id
         ).execute()
         return True
