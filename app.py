@@ -70,7 +70,7 @@ if menu == "🏠 대시보드":
     df  = load_gsheet_final()
 
     if not df.empty:
-    df = df[df["상태"] != "취소"]  # ← fdf 만들기 전에 취소 제거
+        df = df[df["상태"] != "취소"]  # ← fdf 만들기 전에 취소 제거
     fdf = df.copy()
     
 
