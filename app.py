@@ -699,7 +699,7 @@ elif menu == "🗓️ 강사 매칭 시스템":
                             continue
                         events = get_events(first_day, last_day, calendar_id=cal_id)
                         st.write(f"{instructor}: {len(events)}개 이벤트")
-                        for e in events[:5]:
+                        for e in events[:30]:
                             st.write(e.get("summary", ""), e.get("start", {}))
             
                         result, applied, log = apply_calendar_wanted(fdf, events_by_instructor)
