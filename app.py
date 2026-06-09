@@ -19,7 +19,7 @@ from gdrive import (
 
 st.set_page_config(page_title="보건스케줄", page_icon="📅", layout="wide")
 
-st.sidebar.title("📅 CareerLog"
+st.sidebar.title("📅 CareerLog")
 
 
 default_menu = st.session_state.pop("_menu", "📥 보건스케줄 입력")
