@@ -67,11 +67,11 @@ def create_request_folder(year: int, agency: str, request_date: str, requester: 
     service = get_drive_service()
     year_id   = _get_or_create_folder(service, str(year), DRIVE_ROOT_FOLDER_ID)
     agency_id = _get_or_create_folder(service, agency, year_id)
-
     base = f"{request_date.replace('-', '')}_{requester}"
+
+    # 부모 폴더 전체 목록에서 파이썬으로 필터링
     q = (
-        f"name contains '{base}_{folder_type}' "
-        f"and '{agency_id}' in parents "
+        f"'{agency_id}' in parents "
         f"and mimeType='application/vnd.google-apps.folder' "
         f"and trashed=false"
     )
@@ -80,8 +80,13 @@ def create_request_folder(year: int, agency: str, request_date: str, requester: 
         supportsAllDrives=True,
         includeItemsFromAllDrives=True
     ).execute()
-    count     = len(result.get("files", [])) + 1
-    folder_id = _create_folder(service, f"{base}_{folder_type}{count}건", agency_id)
+
+    existing = [
+        f for f in result.get("files", [])
+        if f["name"].startswith(f"{base}_{folder_type}")
+    ]
+    seq = len(existing) + 1
+    folder_id = _create_folder(service, f"{base}_{folder_type}{seq}", agency_id)
     return folder_id
 
 def get_folder_url(folder_id: str) -> str:
