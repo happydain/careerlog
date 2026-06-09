@@ -152,6 +152,7 @@ def make_row(date_obj, start, end, agency, subject, target,
         "시수": hours,
         "강의료(1시간)": hourly_fee,
         "강의료(1일)": calc_fee(hours, hourly_fee),
+        "상태": "정상",
         "요청사항": "",
         "내부메모": "",
         "의뢰일": "",
@@ -166,6 +167,8 @@ def make_row(date_obj, start, end, agency, subject, target,
 
 def get_column_config():
     import streamlit as st
+    from config import STATUS_OPTIONS
+
     return {
         "강의일시": st.column_config.DateColumn("강의일시", format="YYYY-MM-DD"),
         "요일": st.column_config.TextColumn("요일"),
