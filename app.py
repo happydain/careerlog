@@ -22,8 +22,8 @@ st.set_page_config(page_title="보건스케줄", page_icon="📅", layout="wide"
 st.markdown("""
 <style>
 [data-testid="stSidebar"] {
-    min-width: 280px !important;
-    max-width: 280px !important;
+    min-width: 220px !important;
+    max-width: 220px !important;
 }
 [data-testid="stSidebar"] label p {
     font-size: 14px !important;
