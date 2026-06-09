@@ -340,19 +340,7 @@ if menu == "📥 보건스케줄 입력":
    
     st.divider()
 
-    # ── 증빙 파일 ────────────────────────────
-    st.markdown("### 📎 증빙 파일")
-    st.info("💡 저장 후 증빙폴더 링크를 클릭해서 파일을 직접 드라이브에 업로드하세요.")
-    if st.session_state.get("excel_file_for_drive"):
-        st.success(f"📎 엑셀 파일 자동 포함: **{st.session_state['excel_file_for_drive'].name}**")
-
-    evidence_files = st.file_uploader(
-        "추가 증빙자료 (캡처, PDF 등)",
-        type=["png", "jpg", "jpeg", "pdf", "docx", "xlsx"],
-        accept_multiple_files=True,
-        key="evidence_uploader"
-    )
-
+   
     st.divider()
 
     # ── 수동 입력 ──────────────────────────────
