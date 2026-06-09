@@ -282,9 +282,7 @@ if menu == "📥 보건스케줄 입력":
 
         with col1:
             if st.button("💾 저장", key="save_btn"):
-                if not common_requester.strip():
-                    st.error("담당자 이름을 입력해주세요.")
-                else:
+
                     with st.spinner("저장 중..."):
 
                         def auto_weekday(r):
