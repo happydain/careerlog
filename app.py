@@ -247,6 +247,7 @@ if menu == "🏠 대시보드":
 
                                 if save_gsheet_final(full_df):
                                     st.success("✅ 저장 완료!")
+                                    st.cache_data.clear()  # ← 캐시 클리어
                                     st.rerun()
 
                     st.divider()
