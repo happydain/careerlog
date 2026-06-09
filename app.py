@@ -176,6 +176,8 @@ if menu == "🏠 대시보드":
 
     # ── 캘린더 + 날짜 상세 ──
     col_cal, col_detail = st.columns([3, 1])
+    if cal_result and cal_result.get("dateClick"):
+        st.write(cal_result["dateClick"])  # ← 임시 확인
 
     with col_cal:
         cal_result = st_calendar(events=events, options=calendar_options, custom_css=custom_css, key="main_calendar")
