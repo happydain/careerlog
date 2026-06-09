@@ -204,7 +204,7 @@ if menu == "📥 보건스케줄 입력":
             pass
 
         edited_raw_df = st.data_editor(
-            fdf.head(10),
+            fdf,
             use_container_width=True,
             height=400,
             num_rows="fixed",
