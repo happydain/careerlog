@@ -438,7 +438,7 @@ elif menu == "📋 의뢰일별 스케줄":
 
 # 최종 스케줄 섹션 상단에 추가
 from datetime import date
-start_year, start_month = 2022, 04
+start_year, start_month = 2022, 4
 now = datetime.now()
 
 months = []
