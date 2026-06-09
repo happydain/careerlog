@@ -32,8 +32,8 @@ def add_event(date_str: str, start: str, end: str, title: str,
             "summary":     title,
             "location":    location,
             "description": f"의뢰기관: {agency}\n과정명: {title}\n강사: {instructor}",
-            "start": {"dateTime": start_dt, "timeZone": "Asia/Seoul"},
-            "end":   {"dateTime": end_dt,   "timeZone": "Asia/Seoul"},
+            "start": {"date": date_str},
+            "end":   {"date": date_str},    
         }
         result = service.events().insert(
             calendarId=calendar_id,
