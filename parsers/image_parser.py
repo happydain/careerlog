@@ -5,7 +5,7 @@ import google.generativeai as genai
 def parse_image_schedule(img_file) -> str:
     """이미지에서 강의 일정 텍스트 추출 (Gemini Vision)"""
     genai.configure(api_key=st.secrets["GEMINI_API_KEY"])
-    model = genai.GenerativeModel("gemini-1.5-flash")
+    model = genai.GenerativeModel("gemini-2.0-flash")
 
     img_file.seek(0)
     img_data = img_file.read()
