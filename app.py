@@ -56,25 +56,27 @@ st.title("📅 보건스케줄 자동정리")
 if menu == "🏠 대시보드":
     from streamlit_calendar import calendar as st_calendar
 
+    st.header("🏠 대시보드")
+    st.info("""
+    📌 **한눈에 보는 월별 스케줄**
+    - 📅 월별 강의 일정을 캘린더로 확인
+    - 👤 강사별 색상으로 한눈에 파악
+    - ✏️ 날짜 클릭 → 강사변경 / 날짜변경 / 취소 등 즉시 반영
+    - 📊 하단에서 해당 월 강의 건수 / 시수 / 강의료 집계 확인
+    """)
+    st.divider()
+
     now = datetime.now()
     df  = load_gsheet_final()
 
-    # ── 년/월 선택 ──
-    col_y, col_m, col_a, col_i = st.columns(4)
-    with col_y:
-        cal_year = st.selectbox("년도", list(range(2022, 2028)),
-                                index=list(range(2022, 2028)).index(now.year),
-                                key="cal_year_sel")
-    with col_m:
-        cal_month = st.selectbox("월", list(range(1, 13)),
-                                 index=now.month - 1,
-                                 key="cal_month_sel")
+    # ── 년/월 선택 + 필터 ──
+     col_a, col_i = st.columns(2)
+
     with col_a:
         agency_f = st.selectbox("의뢰기관", ["전체"] + (sorted(df["의뢰기관"].dropna().unique().tolist()) if not df.empty else []), key="cal_agency")
     with col_i:
         instr_f = st.selectbox("강사님", ["전체"] + (sorted(df["강사님"].dropna().unique().tolist()) if not df.empty else []), key="cal_instr")
 
-    # ── 필터 ──
     fdf = df.copy() if not df.empty else pd.DataFrame()
     if not fdf.empty:
         if agency_f != "전체": fdf = fdf[fdf["의뢰기관"] == agency_f]
@@ -96,7 +98,7 @@ if menu == "🏠 대시보드":
         f'<span style="background:{c}; color:white; padding:2px 10px; border-radius:12px; font-size:12px; margin-right:4px;">{n}</span>'
         for n, c in INSTRUCTOR_COLORS.items()
     ])
-    st.markdown(legend_html + '<span style="background:#888; color:white; padding:2px 10px; border-radius:12px; font-size:12px; margin-right:4px;">미배정</span>', unsafe_allow_html=True)
+    st.markdown(legend_html + '<span style="background:#888; color:white; padding:2px 10px; border-radius:12px; font-size:12px;">미배정</span>', unsafe_allow_html=True)
     st.divider()
 
     # ── 이벤트 생성 ──
@@ -111,9 +113,7 @@ if menu == "🏠 대시보드":
                 status     = str(row.get("상태", "정상"))
                 location   = str(row["방식/위치"]) if str(row["방식/위치"]) not in ("", "nan") else ""
                 color      = INSTRUCTOR_COLORS.get(instructor, "#888")
-
-                if status == "취소":
-                    color = "#aaa"
+                if status == "취소": color = "#aaa"
 
                 start_h     = start_time[:2].lstrip("0") or "0"
                 end_h       = end_time[:2].lstrip("0") or "0"
@@ -187,12 +187,14 @@ if menu == "🏠 대시보드":
                         start_h = str(row["시작"])[:2].lstrip("0") or "0"
                         end_h   = str(row["종료"])[:2].lstrip("0") or "0"
                         st.markdown(f"**{start_h}-{end_h}** {row['의뢰기관']} {row['방식/위치']} {row['과정명']}")
-                        
+
                         with st.expander("✏️ 변경/취소"):
-                            change_type = st.selectbox("변경 유형", 
+                            change_type = st.selectbox(
+                                "변경 유형",
                                 ["강사변경", "날짜변경", "과목변경", "장소변경", "취소"],
-                                key=f"type_{row.name}")
-                            
+                                key=f"type_{row.name}"
+                            )
+
                             if change_type == "강사변경":
                                 new_val = st.selectbox("새 강사", list(INSTRUCTOR_COLORS.keys()), key=f"val_{row.name}")
                             elif change_type == "날짜변경":
@@ -203,13 +205,17 @@ if menu == "🏠 대시보드":
                                 new_val = st.selectbox("새 장소", LOCATION_OPTIONS, key=f"val_{row.name}")
                             elif change_type == "취소":
                                 new_val = "취소"
-                            
-                            modifier = st.text_input("변경자", key=f"mod_{row.name}")
-                            
+                                st.caption("해당 강의를 취소 처리합니다.")
+
+                            st.divider()
+                            change_date = st.date_input("변경일", value=now.date(), key=f"date_{row.name}")
+                            modifier    = st.text_input("변경인", placeholder="이름 입력", key=f"mod_{row.name}")
+                            reason      = st.text_input("관련 근거", placeholder="예: 강사 일정 충돌", key=f"reason_{row.name}")
+
                             if st.button("💾 저장", key=f"save_{row.name}"):
                                 full_df = load_gsheet_final()
-                                today = datetime.now().strftime("%Y-%m-%d")
-                                
+                                today_str = change_date.strftime("%Y-%m-%d")
+
                                 col_map = {
                                     "강사변경": "강사님",
                                     "날짜변경": "강의일시",
@@ -218,18 +224,19 @@ if menu == "🏠 대시보드":
                                     "취소":     "상태",
                                 }
                                 target_col = col_map[change_type]
-                                full_df.loc[row.name, target_col] = str(new_val)
-                                full_df.loc[row.name, "상태"] = change_type
-                                full_df.loc[row.name, "변경일자"] = today
+                                full_df.loc[row.name, target_col]   = str(new_val)
+                                full_df.loc[row.name, "상태"]       = change_type
+                                full_df.loc[row.name, "변경일자"]   = today_str
                                 full_df.loc[row.name, "변경의뢰인"] = modifier or "미입력"
-                                
+
                                 existing = str(full_df.loc[row.name, "변경이력"]).strip()
-                                new_hist = f"[{today}] {change_type}: {new_val}"
+                                new_hist = f"[{today_str}] {change_type}: {new_val} / 근거: {reason or '없음'} / 변경인: {modifier or '미입력'}"
                                 full_df.loc[row.name, "변경이력"] = f"{existing} / {new_hist}".strip(" /")
-                                
+
                                 if save_gsheet_final(full_df):
                                     st.success("✅ 저장 완료!")
                                     st.rerun()
+
                     st.divider()
             else:
                 st.info("강의 없음")
