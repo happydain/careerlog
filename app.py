@@ -343,10 +343,23 @@ elif menu == "📋 의뢰일별 스케줄":
         # ── 집계 ──
         total_hours = pd.to_numeric(fdf["시수"], errors="coerce").sum()
         total_fee   = pd.to_numeric(fdf["강의료(1일)"], errors="coerce").sum()
-        c1, c2, c3 = st.columns(3)
-        c1.metric("총 강의 건수", f"{len(fdf)}건")
-        c2.metric("총 시수", f"{total_hours:.0f}시간")
-        c3.metric("총 강의료", f"₩{total_fee:,.0f}")
+        
+        st.markdown(f"""
+        <div style="display:flex; gap:16px; margin-bottom:8px;">
+            <div style="background:#f0f4ff; border-radius:10px; padding:12px 24px; text-align:center; flex:1;">
+                <div style="font-size:12px; color:#666;">총 강의 건수</div>
+                <div style="font-size:20px; font-weight:bold; color:#1a56db;">{len(fdf)}건</div>
+            </div>
+            <div style="background:#f0fff4; border-radius:10px; padding:12px 24px; text-align:center; flex:1;">
+                <div style="font-size:12px; color:#666;">총 시수</div>
+                <div style="font-size:20px; font-weight:bold; color:#0e9f6e;">{total_hours:.0f}시간</div>
+            </div>
+            <div style="background:#fff8f0; border-radius:10px; padding:12px 24px; text-align:center; flex:1;">
+                <div style="font-size:12px; color:#666;">총 강의료</div>
+                <div style="font-size:20px; font-weight:bold; color:#e3a008;">₩{total_fee:,.0f}</div>
+            </div>
+        </div>
+        """, unsafe_allow_html=True)
 
         st.divider()
 
