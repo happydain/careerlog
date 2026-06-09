@@ -26,9 +26,11 @@ def get_or_create_sheet(client, title):
 
 def ensure_header(sheet):
     existing = sheet.get_all_values()
-    if not existing or existing[0] != COLUMNS:
-        sheet.clear()
+    if not existing:
         sheet.append_row(COLUMNS)
+    elif existing[0] != COLUMNS:
+        # 데이터는 유지하고 헤더만 업데이트
+        sheet.update('A1', [COLUMNS])
 
 
 def append_to_gsheet(df):
