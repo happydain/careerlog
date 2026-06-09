@@ -19,6 +19,15 @@ from gdrive import (
 
 st.set_page_config(page_title="보건스케줄", page_icon="📅", layout="wide")
 
+st.markdown("""
+<style>
+[data-testid="stSidebarNav"] { display: none; }
+.st-emotion-cache-1cypcdb { font-size: 16px !important; }
+[data-testid="stSidebar"] .stRadio label { font-size: 16px !important; font-weight: 500; }
+[data-testid="stSidebar"] .stRadio div { gap: 12px !important; }
+</style>
+""", unsafe_allow_html=True)
+
 st.sidebar.title("📅 CareerLog")
 
 
