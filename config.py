@@ -24,5 +24,17 @@ LOCATION_OPTIONS = [
     "서울", "외부출강", "기타"
 ]
 
-#송주영
-CALENDAR_ID = "9898287aa6269a3c978e829d18f7856cac7910552b98a706af6376c25ea7f8a5@group.calendar.google.com"
+# config.py에 추가
+INSTRUCTOR_CALENDARS = {
+    "송주영": "9898287aa6269a3c978e829d18f7856cac7910552b98a706af6376c25ea7f8a5@group.calendar.google.com",
+    "문하나": "",
+    "김미림": "",  # 추후 추가
+    "노미영": "",
+    "여길매": "",
+    "서순진": "",
+    "이다인": "",
+    "이진영": "",
+    "표재은": "",
+    "김미연": "",
+    "김한나": "",
+}
