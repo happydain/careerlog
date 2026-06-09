@@ -26,10 +26,10 @@ st.markdown("""
     font-weight: 500 !important;
 }
 [data-testid="stSidebar"] .stRadio label {
-    font-size: 25px !important;
+    font-size: 20px !important;
 }
 section[data-testid="stSidebar"] * label {
-    font-size: 20px !important;
+    font-size: 18px !important;
 }
 </style>
 """, unsafe_allow_html=True)
