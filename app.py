@@ -188,6 +188,7 @@ if menu == "🏠 대시보드":
             # UTC → KST 보정
             clicked_dt = pd.to_datetime(clicked) + pd.Timedelta(hours=9)
             st.session_state["selected_date"] = clicked_dt.strftime("%Y-%m-%d")
+            st.write(f"선택된 날짜: {st.session_state.get('selected_date')}")
 
         if st.session_state.get("selected_date") and not fdf.empty:
             sel_date = st.session_state["selected_date"]
