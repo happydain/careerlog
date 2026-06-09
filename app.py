@@ -129,7 +129,8 @@ if menu == "🏠 대시보드":
                 if status == "취소":
                     color = "#aaa"
 
-                title = f"{row['의뢰기관']} | {row['과정명']} | {instructor}"
+                title = f"{start_time[:5]}-{end_time[:5]} {row['의뢰기관']} {row['과정명']} {instructor} {location}"
+
 
                 events.append({
                     "title": title,
