@@ -32,13 +32,11 @@ def ensure_header(sheet):
 def append_to_gsheet(df):
     try:
         client = get_gsheet_client()
-        sheet1 = get_or_create_sheet(client, "의뢰일별")
-        ensure_header(sheet1)
-        sheet2 = get_or_create_sheet(client, "최종")
-        ensure_header(sheet2)
+        sheet = get_or_create_sheet(client, "보건스케쥴")
+        ensure_header(sheet)
 
         # 중복 체크
-        existing_data = sheet2.get_all_records()
+        existing_data = sheet.get_all_records()
         if existing_data:
             existing_df = pd.DataFrame(existing_data)
             duplicates = []
@@ -60,7 +58,6 @@ def append_to_gsheet(df):
                 df[col] = ""
         df = df[COLUMNS]
 
-        # 강의일시 내림차순 정렬
         try:
             df["_dt"] = pd.to_datetime(df["강의일시"], errors="coerce")
             df = df.sort_values("_dt", ascending=False).drop(columns=["_dt"])
@@ -68,9 +65,7 @@ def append_to_gsheet(df):
             pass
 
         df_clean = df.fillna("").astype(str)
-        values = df_clean.values.tolist()
-        sheet1.append_rows(values)
-        sheet2.append_rows(values)
+        sheet.append_rows(df_clean.values.tolist())
         return True
     except Exception as e:
         st.exception(e)
