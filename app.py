@@ -296,6 +296,14 @@ if menu == "📥 보건스케줄 입력":
 # ══════════════════════════════════════════════
 # 📋 의뢰일별
 # ══════════════════════════════════════════════
+st.header("📋 의뢰일별 스케줄")
+st.info("""
+📌 **이 페이지에서 할 수 있는 것**
+- 🧑‍🏫 **강사님 지정** - 의뢰 건별로 강사님 이름 입력
+- 📝 **변경이력 확인** - 강사 변경, 시간 변경 등 이력 조회
+- 💾 저장 시 변경일자·변경이력·변경의뢰인 자동 기록
+""")
+
 elif menu == "📋 의뢰일별 스케줄":
     st.header("📋 의뢰일별 스케줄")
     df = load_gsheet_raw()
@@ -355,6 +363,7 @@ elif menu == "📋 의뢰일별 스케줄":
             column_config=get_column_config(),
         )
 
+        modifier = st.text_input("변경자 이름", placeholder="예: 이다인", key="raw_modifier")
         if st.button("💾 강사/메모 저장", key="raw_save_btn"):
             today = datetime.now().strftime("%Y-%m-%d")
             for idx in edited_raw_df.index:
@@ -369,15 +378,17 @@ elif menu == "📋 의뢰일별 스케줄":
 
                 if changes:
                     summary  = ", ".join(changes)
-                    existing = str(edited_raw_df.loc[idx, "내부메모"]).strip()
-                    history  = f"[{today}] {summary}"
-                    edited_raw_df.loc[idx, "내부메모"] = f"{existing} / {history}".strip(" /")
+                    existing = str(edited_raw_df.loc[idx, "변경이력"]).strip()
+                    new_hist = f"[{today}] {summary}"
+                    edited_raw_df.loc[idx, "변경이력"]   = f"{existing} / {new_hist}".strip(" /")
+                    edited_raw_df.loc[idx, "변경일자"]   = today
+                    edited_raw_df.loc[idx, "변경의뢰인"] = modifier or "미입력"
 
                     folder_url = str(edited_raw_df.loc[idx, "증빙폴더"])
                     if folder_url.startswith("https://drive.google.com"):
                         try:
                             folder_id = folder_url.split("/")[-1]
-                            append_change_log(folder_id, summary, "직접입력")
+                            append_change_log(folder_id, summary, modifier or "미입력")
                         except Exception:
                             pass
 
