@@ -643,38 +643,7 @@ else:
                 st.session_state["auto_matched_df"] = edited_gsheet_df
                 st.success(f"✅ 강사 미배정 {count}건 → 송주영 자동 배정 완료!")
                 st.rerun()
-            if st.button("💾 변경사항 저장", key="final_save_btn"):
-                today = datetime.now().strftime("%Y-%m-%d")
-                for idx in edited_gsheet_df.index:
-                    changes = []
-                    for col in COLUMNS:
-                        if col in ("변경이력", "증빙폴더"):
-                            continue
-                        orig = str(original_df.loc[idx, col]) if idx in original_df.index else ""
-                        new  = str(edited_gsheet_df.loc[idx, col])
-                        if orig != new:
-                            changes.append(f"{col} {orig}→{new}")
-
-                    if changes:
-                        summary  = ", ".join(changes)
-                        existing = str(edited_gsheet_df.loc[idx, "변경이력"]).strip()
-                        new_hist = f"[{today}] {summary}"
-                        edited_gsheet_df.loc[idx, "변경이력"]   = f"{existing} / {new_hist}".strip(" /")
-                        edited_gsheet_df.loc[idx, "변경일자"]   = today
-                        edited_gsheet_df.loc[idx, "변경의뢰인"] = modifier
-
-                        folder_url = str(edited_gsheet_df.loc[idx, "증빙폴더"])
-                        if folder_url.startswith("https://drive.google.com"):
-                            try:
-                                folder_id = folder_url.split("/")[-1]
-                                append_change_log(folder_id, summary, modifier or "미입력")
-                            except Exception:
-                                pass
-
-                df.update(edited_gsheet_df)
-                if save_gsheet_final(df):
-                    st.success("✅ 변경사항 저장 완료!")
-                    st.rerun()
+            
 
 
 # ══════════════════════════════════════════════
