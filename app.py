@@ -1107,7 +1107,7 @@ elif menu == "📊 강의 현황":
                             outco_str   = f"_{outco}" if outco and outco != "nan" else ""
                             target      = str(row.get("대상자", "")).strip()
                             subject_short = SUBJECT_SHORT.get(str(row["과정명"]).strip(), str(row["과정명"]).strip()[:4])
-                            title = f"{start_h}-{end_h} ({instr_short}, {row['방식/위치']}, {subject_short}) {agency_short}{outco_str}_{target}"
+                            title = f"{start_h}-{end_h} ({instr_short}, {row['방식/위치']}, {subject_short}){row['의뢰기관']}{outco_str}_{target}"
                             add_event(
                                 date_str    = str(row["강의일시"])[:10],
                                 start       = str(row["시작"]),
