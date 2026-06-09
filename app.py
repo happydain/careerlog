@@ -21,10 +21,16 @@ st.set_page_config(page_title="보건스케줄", page_icon="📅", layout="wide"
 
 st.markdown("""
 <style>
-[data-testid="stSidebarNav"] { display: none; }
-.st-emotion-cache-1cypcdb { font-size: 24px !important; }
-[data-testid="stSidebar"] .stRadio label { font-size: 50px !important; font-weight: 500; }
-[data-testid="stSidebar"] .stRadio div { gap: 15px !important; }
+[data-testid="stSidebar"] label p {
+    font-size: 18px !important;
+    font-weight: 500 !important;
+}
+[data-testid="stSidebar"] .stRadio label {
+    font-size: 18px !important;
+}
+section[data-testid="stSidebar"] * label {
+    font-size: 50px !important;
+}
 </style>
 """, unsafe_allow_html=True)
 
