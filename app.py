@@ -141,20 +141,7 @@ if menu == "📥 보건스케줄 입력":
                             st.success(f"✅ {len(df_excel)}건")
                     except Exception as e:
                         st.error(f"오류: {e}")
-            st.divider()
-            st.markdown("#### 📂 전체 스케줄 일괄 가져오기")
-            uploaded_bulk = st.file_uploader("월별 시트 엑셀", type=["xlsx"], key="bulk_upload")
-            if uploaded_bulk and st.button("📥 일괄 변환", key="bulk_btn"):
-                from import_schedule import parse_all_sheets
-                with st.spinner("파싱 중..."):
-                    df_bulk = parse_all_sheets(uploaded_bulk)
-                    st.session_state["temp_df"] = df_bulk
-                    st.success(f"✅ {len(df_bulk)}건 로드 완료!")
-                    st.rerun()
-            if st.button("🔍 미리보기", key="preview_excel"):
-                uploaded_file.seek(0)
-                df_preview = pd.read_excel(uploaded_file, header=None)
-                st.dataframe(df_preview, use_container_width=True, height=300)
+
 
     with col_kakao:
         st.markdown("### 💬 카톡 / 이메일")
@@ -217,6 +204,26 @@ if menu == "📥 보건스케줄 입력":
                     except Exception as e:
                         st.error(f"오류: {e}")
 
+    st.divider()
+    st.markdown("### 📂 전체 스케줄 일괄 가져오기")
+    st.caption("월별 시트가 있는 엑셀 파일을 업로드하세요.")
+    uploaded_bulk = st.file_uploader("월별 시트 엑셀", type=["xlsx"], key="bulk_upload")
+    if uploaded_bulk:
+        col_b1, col_b2 = st.columns(2)
+        with col_b1:
+            if st.button("📥 일괄 변환", key="bulk_btn"):
+                from import_schedule import parse_all_sheets
+                with st.spinner("파싱 중..."):
+                    df_bulk = parse_all_sheets(uploaded_bulk)
+                    st.session_state["temp_df"] = df_bulk
+                    st.session_state["is_bulk_upload"] = True
+                    st.success(f"✅ {len(df_bulk)}건 로드 완료!")
+                    st.rerun()
+        with col_b2:
+            if st.button("🔍 미리보기", key="bulk_preview"):
+                uploaded_bulk.seek(0)
+                df_preview = pd.read_excel(uploaded_bulk, sheet_name=0, header=None)
+                st.dataframe(df_preview, use_container_width=True, height=200)
     st.divider()
 
     # ── 증빙 파일 ────────────────────────────
