@@ -34,7 +34,7 @@ def append_to_gsheet(df):
         client = get_gsheet_client()
         sheet1 = get_or_create_sheet(client, "의뢰일별")
         ensure_header(sheet1)
-        sheet2 = get_or_create_sheet(client, "강의날짜별")
+        sheet2 = get_or_create_sheet(client, "최종")
         ensure_header(sheet2)
 
         # 중복 체크
@@ -59,14 +59,18 @@ def append_to_gsheet(df):
             if col not in df.columns:
                 df[col] = ""
         df = df[COLUMNS]
+
+        # 강의일시 내림차순 정렬
+        try:
+            df["_dt"] = pd.to_datetime(df["강의일시"], errors="coerce")
+            df = df.sort_values("_dt", ascending=False).drop(columns=["_dt"])
+        except Exception:
+            pass
+
         df_clean = df.fillna("").astype(str)
         values = df_clean.values.tolist()
         sheet1.append_rows(values)
-        sheet2.append_rows(values)
-        return True
-    except Exception as e:
-        st.exception(e)
-        return False
+        sheet2.append_rows(va
 
 
 def append_evidence_to_sheet(folder_name: str, files):
