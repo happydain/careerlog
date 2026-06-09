@@ -142,7 +142,7 @@ if menu == "📥 보건스케줄 입력":
                 st.dataframe(df_preview, use_container_width=True, height=300)
 
     with col_kakao:
-    tab_kakao, tab_image = st.tabs(["💬 카톡/이메일", "🖼️ 이미지"])
+        tab_kakao, tab_image = st.tabs(["💬 카톡/이메일", "🖼️ 이미지"])
 
     with tab_kakao:
         raw_text = st.text_area("강의 요청 메시지를 붙여넣으세요.", height=220, key="raw_text_input")
