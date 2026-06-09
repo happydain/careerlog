@@ -135,8 +135,7 @@ if menu == "🏠 대시보드":
                 start_h   = str(row["시작"])[:2].lstrip("0") or "0"
                 end_h     = str(row["종료"])[:2].lstrip("0") or "0"
                 instr_short = instructor[1:] if len(instructor) >= 2 else instructor
-                title     = f"{start_h}-{end_h} {instr_short} | {row['의뢰기관']}{outco_str} | {row['방식/위치']} | {row['과정명']}" | {row['과정명']}"
-
+                title = f"{start_h}-{end_h} {instr_short} | {row['의뢰기관']}{outco_str} | {row['방식/위치']} | {row['과정명']}"
                 events.append({
                     "title": title,
                     "start": f"{date}T{start_time}",
