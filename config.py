@@ -35,16 +35,11 @@ CALENDAR_ID = "9898287aa6269a3c978e829d18f7856cac7910552b98a706af6376c25ea7f8a5@
 
 INSTRUCTOR_CALENDARS = {
     "송주영": "9898287aa6269a3c978e829d18f7856cac7910552b98a706af6376c25ea7f8a5@group.calendar.google.com",
-    "문하나": "",
-    "김미림": "",  # 추후 추가
-    "노미영": "",
-    "여길매": "",
-    "서순진": "",
-    "이다인": "",
-    "이진영": "",
-    "표재은": "",
-    "김미연": "",
-    "김한나": "",
+    "김미림": "f4c809b6acf9b83337c7dd002df2901570f5cf2c21339482275ecadb4c5dd93f@group.calendar.google.com",
+    "문하나":  "bea1c93cd56025c81414d906aee1f0737047108e8a9e20172b440c132b36e0f0@group.calendar.google.com",
+    "노미영":  "cd923d2a08c856f63d059018afeffd0f4ab2001d9bd97b073c56a49c3ed6adb0@group.calendar.google.com",
+    "여길매":  "0e2d87416aca73a099081362ab45e227911cfadcd2452db1ea044497890f513d@group.calendar.google.com",
+    "이다인":  "ee68b5f7012f4173198c9c2ece6bdcb6e301e8030ca9961ddbe13992d05014c6@group.calendar.google.com",
 }
 
 
