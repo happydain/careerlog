@@ -141,7 +141,16 @@ if menu == "📥 보건스케줄 입력":
                             st.success(f"✅ {len(df_excel)}건")
                     except Exception as e:
                         st.error(f"오류: {e}")
-
+            st.divider()
+            st.markdown("#### 📂 전체 스케줄 일괄 가져오기")
+            uploaded_bulk = st.file_uploader("월별 시트 엑셀", type=["xlsx"], key="bulk_upload")
+            if uploaded_bulk and st.button("📥 일괄 변환", key="bulk_btn"):
+                from import_schedule import parse_all_sheets
+                with st.spinner("파싱 중..."):
+                    df_bulk = parse_all_sheets(uploaded_bulk)
+                    st.session_state["temp_df"] = df_bulk
+                    st.success(f"✅ {len(df_bulk)}건 로드 완료!")
+                    st.rerun()
             if st.button("🔍 미리보기", key="preview_excel"):
                 uploaded_file.seek(0)
                 df_preview = pd.read_excel(uploaded_file, header=None)
