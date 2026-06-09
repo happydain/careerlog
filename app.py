@@ -129,7 +129,10 @@ if menu == "🏠 대시보드":
                 if status == "취소":
                     color = "#aaa"
 
-                title = f"{start_time[:5]}-{end_time[:5]} {row['의뢰기관']} {row['과정명']} {instructor} {location}"
+                start_h = start_time[:2].lstrip("0") or "0"
+                end_h   = end_time[:2].lstrip("0") or "0"
+                instr_short = instructor[:2] if instructor != "미배정" else "미배정"
+                title = f"{start_h}-{end_h} {instr_short} | {row['의뢰기관']} | {location} | {row['과정명']} | {row['대상자']}"
 
 
                 events.append({
