@@ -101,6 +101,7 @@ def load_gsheet():
     try:
         client = get_gsheet_client()
         sheet = get_or_create_sheet(client, SHEET_NAME)
+        data = sheet.get_all_records()
         if not data:
             return pd.DataFrame(columns=COLUMNS)
         df = pd.DataFrame(data)
