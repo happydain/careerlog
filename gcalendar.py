@@ -57,7 +57,7 @@ def add_event(date_str: str, start: str, end: str, title: str,
         return ""
 
 
-def get_events(start_date: str, end_date: str) -> list:
+def get_events(start_date: str, end_date: str, calendar_id: str = CALENDAR_ID) -> list:
     """
     기간 내 캘린더 일정 조회
     start_date, end_date: 'YYYY-MM-DD'
