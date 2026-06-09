@@ -893,82 +893,65 @@ elif menu == "📅 최종 스케줄 매칭시스템":
     sel_year = int(selected_year)
     st.markdown(f"<div style='font-size:32px; font-weight:500; color:var(--color-text-primary); margin-bottom:4px;'>{sel_year}</div>", unsafe_allow_html=True)
 
+    # ── 헬퍼 함수 ──
+    def stat_cards(data_df, label_prefix=""):
+        cnt   = len(data_df)
+        hrs   = pd.to_numeric(data_df["시수"], errors="coerce").sum()
+        fee   = pd.to_numeric(data_df["강의료(1일)"], errors="coerce").sum()
+        days  = data_df["강의일시"].astype(str).str[:10].nunique()
+        return f"""
+        <div style="display:flex; gap:16px; margin:12px 0;">
+            <div style="background:#f0f4ff; border-radius:10px; padding:12px 20px; text-align:center; flex:1;">
+                <div style="font-size:11px; color:#666;">{label_prefix}강의 건수</div>
+                <div style="font-size:20px; font-weight:bold; color:#1a56db;">{cnt}건</div>
+            </div>
+            <div style="background:#f0fff4; border-radius:10px; padding:12px 20px; text-align:center; flex:1;">
+                <div style="font-size:11px; color:#666;">{label_prefix}총 시수</div>
+                <div style="font-size:20px; font-weight:bold; color:#0e9f6e;">{hrs:.0f}시간</div>
+            </div>
+            <div style="background:#fff8f0; border-radius:10px; padding:12px 20px; text-align:center; flex:1;">
+                <div style="font-size:11px; color:#666;">{label_prefix}총 강의료</div>
+                <div style="font-size:20px; font-weight:bold; color:#e3a008;">₩{fee:,.0f}</div>
+            </div>
+            <div style="background:#fdf0ff; border-radius:10px; padding:12px 20px; text-align:center; flex:1;">
+                <div style="font-size:11px; color:#666;">{label_prefix}참여일</div>
+                <div style="font-size:20px; font-weight:bold; color:#7c3aed;">{days}일</div>
+            </div>
+        </div>
+        """
+
     # ── 연간 통계 ──
     if not df_active.empty:
         df_active["_dt"] = pd.to_datetime(df_active["강의일시"], errors="coerce")
-        df_year     = df_active[df_active["_dt"].dt.year == sel_year]
-        yr_cnt      = len(df_year)
-        yr_hrs      = pd.to_numeric(df_year["시수"], errors="coerce").sum()
-        yr_fee      = pd.to_numeric(df_year["강의료(1일)"], errors="coerce").sum()
-        yr_days     = df_year["강의일시"].str[:10].nunique()
-        df_active   = df_active.drop(columns=["_dt"])
-    else:
-        yr_cnt = yr_hrs = yr_fee = yr_days = 0
+        df_year   = df_active[df_active["_dt"].dt.year == sel_year]
+        df_active = df_active.drop(columns=["_dt"])
+        st.markdown(stat_cards(df_year, f"{sel_year}년 "), unsafe_allow_html=True)
 
-    yr_hrs_str = f"{yr_hrs:.0f}"
-    yr_fee_str = f"₩{yr_fee:,.0f}"
-
-    st.markdown(f"""
-    <div style="display:flex; gap:16px; margin:16px 0;">
-        <div style="background:#f0f4ff; border-radius:10px; padding:14px 20px; text-align:center; flex:1;">
-            <div style="font-size:12px; color:#666;">{sel_year}년 강의 건수</div>
-            <div style="font-size:22px; font-weight:bold; color:#1a56db;">{yr_cnt}건</div>
-        </div>
-        <div style="background:#f0fff4; border-radius:10px; padding:14px 20px; text-align:center; flex:1;">
-            <div style="font-size:12px; color:#666;">{sel_year}년 총 시수</div>
-            <div style="font-size:22px; font-weight:bold; color:#0e9f6e;">{yr_hrs_str}시간</div>
-        </div>
-        <div style="background:#fff8f0; border-radius:10px; padding:14px 20px; text-align:center; flex:1;">
-            <div style="font-size:12px; color:#666;">{sel_year}년 총 강의료</div>
-            <div style="font-size:22px; font-weight:bold; color:#e3a008;">{yr_fee_str}</div>
-        </div>
-        <div style="background:#fdf0ff; border-radius:10px; padding:14px 20px; text-align:center; flex:1;">
-            <div style="font-size:12px; color:#666;">{sel_year}년 참여일</div>
-            <div style="font-size:22px; font-weight:bold; color:#7c3aed;">{yr_days}일</div>
-        </div>
-    </div>
-    """, unsafe_allow_html=True)
-
-    # ── 월별 버튼 ──
-    st.markdown("""
-    <div style="font-size:11px; font-weight:500; color:var(--color-text-secondary);
-                text-transform:uppercase; letter-spacing:0.08em; margin-bottom:8px;">월별</div>
-    """, unsafe_allow_html=True)
-
+    # ── 버튼 스타일 ──
     st.markdown("""
     <style>
     div[data-testid="column"] button {
-        padding: 3px 4px !important;
-        font-size: 12px !important;
-        min-height: 28px !important;
-        height: 28px !important;
+        padding: 3px 4px !important; font-size: 12px !important;
+        min-height: 28px !important; height: 28px !important;
         border-radius: 6px !important;
     }
     </style>
     """, unsafe_allow_html=True)
 
+    # ── 월별 버튼 ──
+    st.markdown('<div style="font-size:11px; font-weight:500; color:var(--color-text-secondary); text-transform:uppercase; letter-spacing:0.08em; margin-bottom:8px;">월별</div>', unsafe_allow_html=True)
     cols = st.columns(12)
     for i, mo in enumerate(range(1, 13)):
         with cols[i]:
-            selected = (
-                st.session_state.get("filter_year")  == sel_year and
-                st.session_state.get("filter_month") == mo and
-                not st.session_state.get("filter_instructor")
-            )
+            sel_m = st.session_state.get("filter_month") == mo
             if st.button(f"{mo}월", key=f"month_{sel_year}_{mo}",
                          use_container_width=True,
-                         type="primary" if selected else "secondary"):
-                st.session_state["filter_year"]       = sel_year
-                st.session_state["filter_month"]      = mo
+                         type="primary" if sel_m else "secondary"):
+                st.session_state["filter_month"] = mo if not sel_m else None
                 st.rerun()
 
     # ── 강사별 버튼 ──
-    st.markdown("""
-    <div style="font-size:11px; font-weight:500; color:var(--color-text-secondary);
-                text-transform:uppercase; letter-spacing:0.08em;
-                margin-top:16px; margin-bottom:8px;
-                border-top:0.5px solid var(--color-border-tertiary); padding-top:16px;">강사별</div>
-    """, unsafe_allow_html=True)
+    st.markdown('<div style="font-size:11px; font-weight:500; color:var(--color-text-secondary); text-transform:uppercase; letter-spacing:0.08em; margin-top:16px; margin-bottom:8px; border-top:0.5px solid var(--color-border-tertiary); padding-top:16px;">강사별</div>', unsafe_allow_html=True)
 
     if not df_active.empty:
         instructors = sorted([
@@ -977,92 +960,76 @@ elif menu == "📅 최종 스케줄 매칭시스템":
         ])
         instr_cols = st.columns(len(instructors) + 1)
         with instr_cols[0]:
-            if st.button("전체", key="instr_all",
-                         type="primary" if not st.session_state.get("filter_instructor") else "secondary"):
+            is_all = not st.session_state.get("filter_instructor")
+            if st.button("전체", key="instr_all", type="primary" if is_all else "secondary"):
                 st.session_state["filter_instructor"] = None
+                st.session_state["filter_month"]      = None
                 st.rerun()
         for i, instr in enumerate(instructors):
             with instr_cols[i + 1]:
-                selected_i = st.session_state.get("filter_instructor") == instr
+                sel_i = st.session_state.get("filter_instructor") == instr
                 if st.button(instr, key=f"instr_{instr}",
-                             type="primary" if selected_i else "secondary"):
+                             type="primary" if sel_i else "secondary"):
                     st.session_state["filter_instructor"] = instr
-                    st.session_state["filter_year"]       = sel_year
                     st.session_state["filter_month"]      = None
                     st.rerun()
 
     st.divider()
 
-    # ── 선택된 월 또는 강사 데이터 ──
-    filter_year       = st.session_state.get("filter_year")
+    # ── 결과 표시 ──
     filter_month      = st.session_state.get("filter_month")
     filter_instructor = st.session_state.get("filter_instructor")
 
-    if not filter_year and not filter_instructor:
-        st.info("위에서 월 또는 강사님을 선택하세요.")
+    if df.empty:
+        st.info("저장된 데이터가 없습니다.")
     else:
-        if df.empty:
-            st.info("저장된 데이터가 없습니다.")
-        else:
-            df["_dt"] = pd.to_datetime(df["강의일시"], errors="coerce")
+        df["_dt"] = pd.to_datetime(df["강의일시"], errors="coerce")
+        base_df   = df[df["_dt"].dt.year == sel_year].copy()
 
-            if filter_instructor:
-                fdf = df[
-                    (df["_dt"].dt.year == sel_year) &
-                    (df["강사님"] == filter_instructor)
-                ].drop(columns=["_dt"]).copy()
-                st.markdown(f"### 👤 {filter_instructor} — {sel_year}년 전체")
-            else:
-                fdf = df[
-                    (df["_dt"].dt.year  == filter_year) &
-                    (df["_dt"].dt.month == filter_month)
-                ].drop(columns=["_dt"]).copy()
-                st.markdown(f"### 📅 {filter_year}년 {filter_month}월 강의 일정")
+        # 강사 선택된 경우: 강사 연간 통계 고정 표시
+        if filter_instructor:
+            instr_df = base_df[base_df["강사님"] == filter_instructor]
+            instr_active = instr_df[instr_df["상태"] != "취소"] if "상태" in instr_df.columns else instr_df
+            st.markdown(f"#### 👤 {filter_instructor} — {sel_year}년 전체")
+            st.markdown(stat_cards(instr_active.drop(columns=["_dt"], errors="ignore")), unsafe_allow_html=True)
+
+            # 강사 선택 후 월별 버튼
+            st.markdown('<div style="font-size:11px; font-weight:500; color:var(--color-text-secondary); text-transform:uppercase; letter-spacing:0.08em; margin-bottom:8px;">월별 상세</div>', unsafe_allow_html=True)
+            cols2 = st.columns(12)
+            for i, mo in enumerate(range(1, 13)):
+                with cols2[i]:
+                    sel_m2 = st.session_state.get("filter_month") == mo
+                    if st.button(f"{mo}월", key=f"imonth_{mo}",
+                                 use_container_width=True,
+                                 type="primary" if sel_m2 else "secondary"):
+                        st.session_state["filter_month"] = mo if not sel_m2 else None
+                        st.rerun()
+            st.divider()
+
+        # 최종 데이터 필터링
+        fdf = base_df.copy()
+        if filter_instructor:
+            fdf = fdf[fdf["강사님"] == filter_instructor]
+        if filter_month:
+            fdf = fdf[fdf["_dt"].dt.month == filter_month]
+        fdf = fdf.drop(columns=["_dt"])
+
+        # 제목
+        parts = []
+        if filter_instructor: parts.append(f"👤 {filter_instructor}")
+        parts.append(f"{sel_year}년")
+        if filter_month: parts.append(f"{filter_month}월")
+        else: parts.append("전체") if filter_instructor else None
+
+        if filter_month or filter_instructor:
+            st.markdown(f"### {' — '.join(parts)}")
 
             if fdf.empty:
                 st.info("데이터가 없습니다.")
             else:
                 fdf_active = fdf[fdf["상태"] != "취소"] if "상태" in fdf.columns else fdf
-                cnt        = len(fdf_active)
-                hrs        = pd.to_numeric(fdf_active["시수"], errors="coerce").sum()
-                fee        = pd.to_numeric(fdf_active["강의료(1일)"], errors="coerce").sum()
-                days       = fdf_active["강의일시"].astype(str).str[:10].nunique()
-                avg_daily  = fee / days if days > 0 else 0
-                hourly     = fee / hrs if hrs > 0 else 0
-
-                hrs_str       = f"{hrs:.0f}"
-                fee_str       = f"₩{fee:,.0f}"
-                avg_daily_str = f"₩{avg_daily:,.0f}"
-                hourly_str    = f"₩{hourly:,.0f}"
-
-                st.markdown(f"""
-                <div style="display:flex; gap:16px; margin-bottom:16px;">
-                    <div style="background:#f0f4ff; border-radius:10px; padding:12px 24px; text-align:center; flex:1;">
-                        <div style="font-size:12px; color:#666;">강의 건수</div>
-                        <div style="font-size:20px; font-weight:bold; color:#1a56db;">{cnt}건</div>
-                    </div>
-                    <div style="background:#f0fff4; border-radius:10px; padding:12px 24px; text-align:center; flex:1;">
-                        <div style="font-size:12px; color:#666;">총 시수</div>
-                        <div style="font-size:20px; font-weight:bold; color:#0e9f6e;">{hrs_str}시간</div>
-                    </div>
-                    <div style="background:#fff8f0; border-radius:10px; padding:12px 24px; text-align:center; flex:1;">
-                        <div style="font-size:12px; color:#666;">총 강의료</div>
-                        <div style="font-size:20px; font-weight:bold; color:#e3a008;">{fee_str}</div>
-                    </div>
-                    <div style="background:#fdf0ff; border-radius:10px; padding:12px 24px; text-align:center; flex:1;">
-                        <div style="font-size:12px; color:#666;">참여일</div>
-                        <div style="font-size:20px; font-weight:bold; color:#7c3aed;">{days}일</div>
-                    </div>
-                    <div style="background:#fff0f0; border-radius:10px; padding:12px 24px; text-align:center; flex:1;">
-                        <div style="font-size:12px; color:#666;">일당</div>
-                        <div style="font-size:20px; font-weight:bold; color:#e02424;">{avg_daily_str}</div>
-                    </div>
-                    <div style="background:#f0f9ff; border-radius:10px; padding:12px 24px; text-align:center; flex:1;">
-                        <div style="font-size:12px; color:#666;">시간당</div>
-                        <div style="font-size:20px; font-weight:bold; color:#0369a1;">{hourly_str}</div>
-                    </div>
-                </div>
-                """, unsafe_allow_html=True)
+                if filter_month:
+                    st.markdown(stat_cards(fdf_active), unsafe_allow_html=True)
                 st.divider()
 
                 if "auto_matched_df" in st.session_state:
@@ -1130,6 +1097,8 @@ elif menu == "📅 최종 스케줄 매칭시스템":
                         if save_gsheet_final(df):
                             st.success("✅ 저장 완료!")
                             st.rerun()
+        else:
+            st.info("월 또는 강사님을 선택하세요.")
 
 
 # ══════════════════════════════════════════════
