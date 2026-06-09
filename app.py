@@ -1069,6 +1069,7 @@ elif menu == "📊 강의 현황":
                     for _, row in selected_rows.iterrows():
                         instructor = str(row.get("강사님", "")).strip()
                         cal_id     = INSTRUCTOR_CALENDARS.get(instructor, "")
+                        st.write(f"강사: '{instructor}' / cal_id: '{cal_id}'")
                         if not cal_id:
                             errors += 1
                             continue
