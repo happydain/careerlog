@@ -124,7 +124,9 @@ if menu == "🏠 대시보드":
                 start_h     = start_time[:2].lstrip("0") or "0"
                 end_h       = end_time[:2].lstrip("0") or "0"
                 instr_short = instructor[1:] if instructor != "미배정" else "미배정"
-                title = f"{start_h}-{end_h} {instr_short} | {row['의뢰기관']} | {location} | {row['과정명']}"
+                outco = str(row.get("출강기업", "")) if str(row.get("출강기업", "")) not in ("", "nan") else ""
+                agency_str = f"{row['의뢰기관']}_{outco}" if outco else str(row['의뢰기관'])
+                title = f"{start_h}-{end_h} {instr_short} | {agency_str} | {location} | {row['과정명']}"
 
                 events.append({
                     "title": title,
