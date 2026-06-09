@@ -438,7 +438,7 @@ elif menu == "📋 의뢰일별 스케줄(취소,변경반영)":
 elif menu == "📅 최종 스케줄 매칭시스템":
     st.header("📅 최종 스케줄 매칭시스템")
 
-    start_year, start_month = 2022, 10
+    start_year, start_month = 2022, 1
     end_year, end_month = 2027, 12
     
     months = []
@@ -490,7 +490,79 @@ elif menu == "📅 최종 스케줄 매칭시스템":
                     st.rerun()
     df = load_gsheet_final()
 
+st.divider()
 
+# 선택된 월 표시
+filter_year  = st.session_state.get("filter_year")
+filter_month = st.session_state.get("filter_month")
+
+if filter_year and filter_month:
+    st.markdown(f"### 📅 {filter_year}년 {filter_month}월 강의 일정")
+    
+    df = load_gsheet_final()
+    if df.empty:
+        st.info("저장된 데이터가 없습니다.")
+    else:
+        df["_dt"] = pd.to_datetime(df["강의일시"], errors="coerce")
+        fdf = df[
+            (df["_dt"].dt.year  == filter_year) &
+            (df["_dt"].dt.month == filter_month)
+        ].drop(columns=["_dt"]).copy()
+
+        if fdf.empty:
+            st.info(f"{filter_year}년 {filter_month}월 데이터가 없습니다.")
+        else:
+            # 집계
+            total_hours = pd.to_numeric(fdf["시수"], errors="coerce").sum()
+            total_fee   = pd.to_numeric(fdf["강의료(1일)"], errors="coerce").sum()
+            c1, c2, c3 = st.columns(3)
+            c1.metric("총 강의 건수", f"{len(fdf)}건")
+            c2.metric("총 시수", f"{total_hours:.0f}시간")
+            c3.metric("총 강의료", f"₩{total_fee:,.0f}")
+            st.divider()
+
+            try:
+                fdf["강의일시"] = pd.to_datetime(fdf["강의일시"], errors="coerce").dt.date
+            except Exception:
+                pass
+
+            original_fdf = fdf.copy()
+            edited_fdf = st.data_editor(
+                fdf,
+                use_container_width=True,
+                height=500,
+                num_rows="fixed",
+                column_config=get_column_config(),
+            )
+
+            # 자동매칭
+            col_m1, col_m2 = st.columns([1, 3])
+            with col_m1:
+                if st.button("🤖 강사 자동매칭", key="auto_match_btn"):
+                    count = 0
+                    for idx in edited_fdf.index:
+                        instructor = str(edited_fdf.loc[idx, "강사님"]).strip()
+                        if not instructor or instructor in ("nan", ""):
+                            edited_fdf.loc[idx, "강사님"] = "송주영"
+                            count += 1
+                    st.session_state["auto_matched_df"] = edited_fdf
+                    st.success(f"✅ {count}건 → 송주영 자동 배정 완료!")
+                    st.rerun()
+
+            with col_m2:
+                if st.button("💾 저장", key="match_save_btn"):
+                    df.update(edited_fdf)
+                    if save_gsheet_final(df):
+                        st.success("✅ 저장 완료!")
+                        st.rerun()
+
+            if "auto_matched_df" in st.session_state:
+                fdf = st.session_state.pop("auto_matched_df")
+                st.rerun()
+else:
+    st.info("위에서 월을 선택하세요.")
+
+    
     if df.empty:
         st.info("저장된 데이터가 없습니다.")
     else:
