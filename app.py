@@ -55,7 +55,6 @@ st.title("📅 보건스케줄 자동정리")
 # ══════════════════════════════════════════════
 if menu == "🏠 대시보드":
     from streamlit_calendar import calendar as st_calendar
-    import calendar as cal_module
 
     df = load_gsheet_final()
 
@@ -127,7 +126,6 @@ if menu == "🏠 대시보드":
                 status     = str(row.get("상태", "정상"))
                 color      = INSTRUCTOR_COLORS.get(instructor, "#888")
 
-                # 취소된 건 회색
                 if status == "취소":
                     color = "#aaa"
 
@@ -163,17 +161,8 @@ if menu == "🏠 대시보드":
         "selectable": True,
         "editable": False,
         "eventDisplay": "block",
-        "dayMaxEvents": 4,
-        "eventDisplay": "block",
-        "dayMaxEvents": 4,
-        "views": {
-            "dayGridMonth": {
-                "eventMinHeight": 10,
-            }
-        },
+        "dayMaxEvents": 5,
         "eventTextColor": "white",
-        "contentHeight": 700,
-    }
     }
 
     custom_css = """
@@ -187,10 +176,8 @@ if menu == "🏠 대시보드":
             font-size: 9px !important;
         }
     """
-    
-    cal_result = st_calendar(events=events, options=calendar_options, custom_css=custom_css, key="main_calendar")
 
-    cal_result = st_calendar(events=events, options=calendar_options, key="main_calendar")
+    cal_result = st_calendar(events=events, options=calendar_options, custom_css=custom_css, key="main_calendar")
 
     # ── 클릭 이벤트 ──
     if cal_result and cal_result.get("eventClick"):
@@ -202,7 +189,6 @@ if menu == "🏠 대시보드":
             f"위치: {props.get('방식위치', '')} | "
             f"상태: {props.get('상태', '')}"
         )
-        
 # ══════════════════════════════════════════════
 # 📥 보건스케줄 입력
 # ══════════════════════════════════════════════
