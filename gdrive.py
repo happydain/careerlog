@@ -87,7 +87,7 @@ def create_request_folder(year: int, agency: str, request_date: str, requester: 
         if f["name"].startswith(base)
     ]
     seq = len(existing) + 1
-    folder_name = f"{base}_{seq}-{folder_type}"
+    folder_name = f"{base}_{seq}_{folder_type}"
     folder_id = _create_folder(service, folder_name, agency_id)
     return folder_id
 
