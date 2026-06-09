@@ -186,18 +186,49 @@ if menu == "🏠 대시보드":
                     for _, row in idf.sort_values("시작").iterrows():
                         start_h = str(row["시작"])[:2].lstrip("0") or "0"
                         end_h   = str(row["종료"])[:2].lstrip("0") or "0"
-                        st.markdown(f"**{start_h}-{end_h}** {row['의뢰기관']} {row['방식/위치']}")
-                        col_e, col_d = st.columns(2)
-                        with col_e:
-                            if st.button("✏️ 변경", key=f"edit_{row.name}"):
-                                st.session_state["_menu"] = "📅 최종 스케줄 매칭시스템"
-                                st.rerun()
-                        with col_d:
-                            if st.button("🗑️ 취소", key=f"cancel_{row.name}"):
+                        st.markdown(f"**{start_h}-{end_h}** {row['의뢰기관']} {row['방식/위치']} {row['과정명']}")
+                        
+                        with st.expander("✏️ 변경/취소"):
+                            change_type = st.selectbox("변경 유형", 
+                                ["강사변경", "날짜변경", "과목변경", "장소변경", "취소"],
+                                key=f"type_{row.name}")
+                            
+                            if change_type == "강사변경":
+                                new_val = st.selectbox("새 강사", list(INSTRUCTOR_COLORS.keys()), key=f"val_{row.name}")
+                            elif change_type == "날짜변경":
+                                new_val = st.date_input("새 날짜", key=f"val_{row.name}")
+                            elif change_type == "과목변경":
+                                new_val = st.text_input("새 과목명", key=f"val_{row.name}")
+                            elif change_type == "장소변경":
+                                new_val = st.selectbox("새 장소", LOCATION_OPTIONS, key=f"val_{row.name}")
+                            elif change_type == "취소":
+                                new_val = "취소"
+                            
+                            modifier = st.text_input("변경자", key=f"mod_{row.name}")
+                            
+                            if st.button("💾 저장", key=f"save_{row.name}"):
                                 full_df = load_gsheet_final()
-                                full_df.loc[row.name, "상태"] = "취소"
+                                today = datetime.now().strftime("%Y-%m-%d")
+                                
+                                col_map = {
+                                    "강사변경": "강사님",
+                                    "날짜변경": "강의일시",
+                                    "과목변경": "과정명",
+                                    "장소변경": "방식/위치",
+                                    "취소":     "상태",
+                                }
+                                target_col = col_map[change_type]
+                                full_df.loc[row.name, target_col] = str(new_val)
+                                full_df.loc[row.name, "상태"] = change_type
+                                full_df.loc[row.name, "변경일자"] = today
+                                full_df.loc[row.name, "변경의뢰인"] = modifier or "미입력"
+                                
+                                existing = str(full_df.loc[row.name, "변경이력"]).strip()
+                                new_hist = f"[{today}] {change_type}: {new_val}"
+                                full_df.loc[row.name, "변경이력"] = f"{existing} / {new_hist}".strip(" /")
+                                
                                 if save_gsheet_final(full_df):
-                                    st.success("✅ 취소!")
+                                    st.success("✅ 저장 완료!")
                                     st.rerun()
                     st.divider()
             else:
