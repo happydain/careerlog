@@ -56,15 +56,15 @@ st.title("📅 보건스케줄 자동정리")
 if menu == "🏠 대시보드":
     from streamlit_calendar import calendar as st_calendar
     
-        st.header("🏠 대시보드")
-        st.info("""
-        📌 **한눈에 보는 월별 스케줄**
-        - 📅 월별 강의 일정을 캘린더로 확인
-        - 👤 강사별 색상으로 한눈에 파악
-        - ✏️ 날짜 클릭 → 강사변경 / 날짜변경 / 취소 등 즉시 반영
-        - 📊 하단에서 해당 월 강의 건수 / 시수 / 강의료 집계 확인
-        """)
-        st.divider()
+    st.header("🏠 대시보드")
+    st.info("""
+    📌 **한눈에 보는 월별 스케줄**
+    - 📅 월별 강의 일정을 캘린더로 확인
+    - 👤 강사별 색상으로 한눈에 파악
+    - ✏️ 날짜 클릭 → 강사변경 / 날짜변경 / 취소 등 즉시 반영
+    - 📊 하단에서 해당 월 강의 건수 / 시수 / 강의료 집계 확인
+    """)
+    st.divider()
     now = datetime.now()
     df  = load_gsheet_final()
 
