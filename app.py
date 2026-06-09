@@ -109,8 +109,7 @@ if menu == "📥 보건스케줄 입력":
                 else:
                     try:
                         if common_agency == "인천대한협":
-                            df_excel = parse_incheon_excel(uploaded_file, common_agency,
-                                                           common_requester, request_date_str)
+                            df_excel = parse_incheon_excel(uploaded_file, common_agency, common_requester, request_date_str, request_method=common_method)
                         
                         elif common_agency == "중대협":
                             df_excel = parse_jungdae_excel(uploaded_file, common_requester,
