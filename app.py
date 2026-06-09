@@ -166,7 +166,7 @@ if menu == "🏠 대시보드":
         "selectable": True,
         "editable": False,
         "eventDisplay": "block",
-        "dayMaxEvents": True,
+        "dayMaxEvents": False,
         "eventTextColor": "white",
         "eventTimeFormat": {
             "hour": "numeric",
