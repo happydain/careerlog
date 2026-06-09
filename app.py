@@ -101,7 +101,7 @@ if menu == "📥 보건스케줄 입력":
     st.divider()
 
 
-col_excel, col_kakao = st.columns(2)
+    col_excel, col_kakao = st.columns(2)
 
     # ── 엑셀 업로드 ────────────────────────────
     with col_excel:
