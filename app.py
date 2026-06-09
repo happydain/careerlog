@@ -117,12 +117,12 @@ if menu == "📥 보건스케줄 입력":
 
     st.divider()
 
-    # ── 엑셀 업로드 ────────────────────────────
+# ── 엑셀 업로드 ────────────────────────────
     st.markdown("### 📄 강의의뢰 엑셀 업로드")
     st.info(f"📌 현재 의뢰기관: **{common_agency}** · 의뢰인: **{common_requester or '미입력'}** · {request_date_str}")
     uploaded_file = st.file_uploader("엑셀 파일 (.xlsx)", type=["xlsx"])
 
-if uploaded_file:
+    if uploaded_file:
         if st.button("📄 엑셀 일정 변환"):
             if not common_requester.strip():
                 st.error("담당자 이름을 입력해주세요.")
