@@ -703,10 +703,10 @@ elif menu == "🗓️ 강사 매칭 시스템":
                             events = get_events(first_day, last_day, calendar_id=cal_id)
                             events_by_instructor[instructor] = [
                                 {
-                                    "date":  e.get("start", {}).get("dateTime", "")[:10],
-                                    "start": e.get("start", {}).get("dateTime", "")[11:16],
-                                    "title": e.get("summary", ""),
-                                }
+                                        "date":  e.get("start", {}).get("dateTime", e.get("start", {}).get("date", ""))[:10],
+                                        "start": e.get("start", {}).get("dateTime", "")[11:16] if e.get("start", {}).get("dateTime") else "",
+                                        "title": e.get("summary", ""),
+                                    }
                                 for e in events
                             ]
             
