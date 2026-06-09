@@ -108,6 +108,7 @@ if menu == "📥 보건스케줄 입력":
                         if common_agency == "인천대한협":
                             df_excel = parse_incheon_excel(uploaded_file, common_agency,
                                                            common_requester, request_date_str)
+                        
                         elif common_agency == "중대협":
                             df_excel = parse_jungdae_excel(uploaded_file, common_requester,
                                                            request_date_str, year)
@@ -157,6 +158,8 @@ if menu == "📥 보건스케줄 입력":
                         df_text = parse_seoul_kakao(raw_text, year, common_requester, request_date_str)
                     elif common_agency == "한안협":
                         df_text = parse_hanahn_kakao(raw_text, year, common_requester, request_date_str, common_method)
+                    elif common_agency == "인천대한협":
+                        df_text = parse_incheon_kakao(raw_text, year, common_requester, request_date_str)
                     else:
                         df_text = parse_kakao_text(raw_text, year)
                         df_text["의뢰기관"] = common_agency
