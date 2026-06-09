@@ -130,12 +130,12 @@ if menu == "🏠 대시보드":
                 if status == "취소": 
                     continue
 
-                start_h     = start_time[:2].lstrip("0") or "0"
-                end_h       = end_time[:2].lstrip("0") or "0"
-                instr_short = instructor[1:] if instructor != "미배정" else "미배정"
-                outco = str(row.get("출강기업", "")) if str(row.get("출강기업", "")) not in ("", "nan") else ""
-                agency_str = f"{row['의뢰기관']}_{outco}" if outco else str(row['의뢰기관'])
-                title = f"{start_h}-{end_h} {instr_short} | {row['의뢰기관']}{outco_str} | {row['방식/위치']} | {row['과정명']}"
+                outco     = str(row.get("출강기업", "")).strip()
+                outco_str = f"_{outco}" if outco and outco != "nan" else ""
+                start_h   = str(row["시작"])[:2].lstrip("0") or "0"
+                end_h     = str(row["종료"])[:2].lstrip("0") or "0"
+                instr_short = instructor[1:] if len(instructor) >= 2 else instructor
+                title     = f"{start_h}-{end_h} {instr_short} | {row['의뢰기관']}{outco_str} | {row['방식/위치']} | {row['과정명']}" | {row['과정명']}"
 
                 events.append({
                     "title": title,
