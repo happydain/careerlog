@@ -272,17 +272,15 @@ if menu == "📥 보건스케줄 입력":
                         )
 
                         drive_errors = []
+                        evidence_files = []  # 자동 업로드 비활성화
 
                         try:
-                            # 의뢰 저장 시
                             lecture_count = len(edited_df)
-                            folder_id  = create_request_folder(year, common_agency, request_date_str, common_requester, f"의뢰{lecture_count}건")
+                            folder_id  = create_request_folder(
+                                year, common_agency, request_date_str, common_requester,
+                                f"의뢰_{lecture_count}건"
+                            )
                             folder_url = get_folder_url(folder_id)
-                            if evidence_files:
-                                append_evidence_to_sheet(
-                                    f"{request_date_str}_{common_requester}",
-                                    evidence_files
-                                )
                         except Exception as e:
                             folder_url = ""
                             drive_errors.append(f"폴더 생성 실패: {e}")
@@ -295,7 +293,7 @@ if menu == "📥 보건스케줄 입력":
                             if drive_errors:
                                 st.warning("⚠️ 드라이브 폴더 생성 실패 (시트는 저장됨):\n" + "\n".join(drive_errors))
                             else:
-                                st.success("✅ 구글시트 + 드라이브 저장 완료!")
+                                st.success(f"✅ 저장 완료! 📂 [증빙폴더 열기]({folder_url})" if folder_url else "✅ 구글시트 저장 완료!")
                             del st.session_state["temp_df"]
                             st.session_state.pop("raw_text_for_drive", None)
                             st.session_state.pop("excel_file_for_drive", None)
