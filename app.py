@@ -142,7 +142,8 @@ if menu == "🏠 대시보드":
                         "상태":     status,
                     }
                 })
-            except Exception:
+            except Exception as e:
+                st.write(f"오류: {e}, row: {row.get('의뢰기관', '')}")
                 pass
 
     # ── 캘린더 옵션 ──
