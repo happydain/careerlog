@@ -5,6 +5,10 @@ from datetime import datetime
 
 from config import COLUMNS, AGENCY_OPTIONS, LOCATION_OPTIONS
 from utils import calc_hours, calc_fee, get_column_config
+
+from config import STATUS_OPTIONS
+"상태": st.column_config.SelectboxColumn("상태", options=STATUS_OPTIONS),
+
 from gsheet import (
     append_to_gsheet, load_gsheet_raw, load_gsheet_final,
     save_gsheet_final, append_evidence_to_sheet,
