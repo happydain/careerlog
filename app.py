@@ -95,25 +95,27 @@ if menu == "📥 보건스케줄 입력":
     st.info(f"📌 **{common_agency}** · {common_requester or '의뢰인 미입력'} · {common_date.strftime('%Y/%m/%d')}")
     st.divider()
 
-    # ── 엑셀 / 카톡 나란히 ──────────────────────
-    col_excel, col_kakao = st.columns(2)
+   # ── 3단 입력 ──────────────────────────────
+    col_excel, col_kakao, col_image = st.columns(3)
 
     with col_excel:
-        st.markdown("### 📄 강의의뢰 엑셀 업로드")
+        st.markdown("### 📄 엑셀")
         uploaded_file = st.file_uploader("엑셀 파일 (.xlsx)", type=["xlsx"])
 
         if uploaded_file:
-            if st.button("📄 엑셀 일정 변환"):
+            if st.button("📄 변환"):
                 if not common_requester.strip():
                     st.error("담당자 이름을 입력해주세요.")
                 else:
                     try:
                         if common_agency == "인천대한협":
-                            df_excel = parse_incheon_excel(uploaded_file, common_agency, common_requester, request_date_str, request_method=common_method)
-                        
+                            df_excel = parse_incheon_excel(uploaded_file, common_agency,
+                                                           common_requester, request_date_str,
+                                                           request_method=common_method)
                         elif common_agency == "중대협":
                             df_excel = parse_jungdae_excel(uploaded_file, common_requester,
                                                            request_date_str, year)
+                            df_excel["의뢰방법"] = common_method
                         else:
                             try:
                                 df_excel = parse_suwon2_excel(uploaded_file, common_agency)
@@ -135,70 +137,75 @@ if menu == "📥 보건스케줄 입력":
                             st.session_state["temp_df"] = df_excel
                             st.session_state["raw_text_for_drive"] = ""
                             st.session_state["excel_file_for_drive"] = uploaded_file
-                            st.success(f"✅ {len(df_excel)}건 일정 생성 완료")
+                            st.success(f"✅ {len(df_excel)}건")
                     except Exception as e:
-                        st.error(f"엑셀 변환 오류: {e}")
+                        st.error(f"오류: {e}")
 
-            if st.button("🔍 원본 엑셀 미리보기", key="preview_excel"):
+            if st.button("🔍 미리보기", key="preview_excel"):
                 uploaded_file.seek(0)
                 df_preview = pd.read_excel(uploaded_file, header=None)
                 st.dataframe(df_preview, use_container_width=True, height=300)
 
     with col_kakao:
-        tab_kakao, tab_image = st.tabs(["💬 카톡/이메일", "🖼️ 이미지"])
+        st.markdown("### 💬 카톡 / 이메일")
+        raw_text = st.text_area("메시지를 붙여넣으세요.", height=200, key="raw_text_input")
 
-        with tab_kakao:
-            raw_text = st.text_area("강의 요청 메시지를 붙여넣으세요.", height=220, key="raw_text_input")
-
-            if st.button("🪄 카톡 일정 분석"):
-                if not common_requester.strip():
-                    st.error("담당자 이름을 입력해주세요.")
-                elif not raw_text.strip():
-                    st.warning("텍스트를 입력해주세요.")
+        if st.button("🪄 분석"):
+            if not common_requester.strip():
+                st.error("담당자 이름을 입력해주세요.")
+            elif not raw_text.strip():
+                st.warning("텍스트를 입력해주세요.")
+            else:
+                if common_agency == "서울대한협":
+                    df_text = parse_seoul_kakao(raw_text, year, common_requester, request_date_str)
+                elif common_agency == "한안협":
+                    df_text = parse_hanahn_kakao(raw_text, year, common_requester, request_date_str, common_method)
+                elif common_agency == "인천대한협":
+                    df_text = parse_incheon_kakao(raw_text, year, common_requester, request_date_str, request_method=common_method)
                 else:
-                    if common_agency == "서울대한협":
-                        df_text = parse_seoul_kakao(raw_text, year, common_requester, request_date_str)
-                    elif common_agency == "한안협":
-                        df_text = parse_hanahn_kakao(raw_text, year, common_requester, request_date_str, common_method)
-                    elif common_agency == "인천대한협":
-                        df_text = parse_incheon_kakao(raw_text, year, common_requester, request_date_str, request_method=common_method)
-                    else:
-                        df_text = parse_kakao_text(raw_text, year)
-                        df_text["의뢰기관"] = common_agency
-                        df_text["의뢰인"] = common_requester
-                        df_text["의뢰일"] = request_date_str
-                        df_text["의뢰방법"] = common_method
+                    df_text = parse_kakao_text(raw_text, year)
+                    df_text["의뢰기관"] = common_agency
+                    df_text["의뢰인"] = common_requester
+                    df_text["의뢰일"] = request_date_str
+                    df_text["의뢰방법"] = common_method
 
-                    if df_text.empty:
-                        st.warning("날짜 정보를 찾지 못했습니다.")
-                    else:
-                        st.session_state["temp_df"] = df_text
-                        st.session_state["raw_text_for_drive"] = raw_text
-                        st.session_state.pop("excel_file_for_drive", None)
-                        st.success(f"✅ {len(df_text)}건 일정 생성 완료")
+                if df_text.empty:
+                    st.warning("날짜를 찾지 못했습니다.")
+                else:
+                    st.session_state["temp_df"] = df_text
+                    st.session_state["raw_text_for_drive"] = raw_text
+                    st.session_state.pop("excel_file_for_drive", None)
+                    st.success(f"✅ {len(df_text)}건")
 
-        with tab_image:
-            img_file = st.file_uploader("강의 일정 이미지", type=["png", "jpg", "jpeg"], key="img_upload")
-            if img_file:
-                if st.button("🪄 이미지 분석", key="img_analyze"):
-                    from parsers.image_parser import parse_image_schedule
-                    with st.spinner("이미지 분석 중..."):
-                        try:
-                            extracted = parse_image_schedule(img_file)
-                            st.text_area("추출된 텍스트", extracted, height=150, key="extracted_text")
+    with col_image:
+        st.markdown("### 🖼️ 이미지")
+        img_file = st.file_uploader("이미지 파일", type=["png", "jpg", "jpeg"], key="img_upload")
+
+        if img_file:
+            if st.button("🪄 이미지 분석", key="img_analyze"):
+                from parsers.image_parser import parse_image_schedule
+                with st.spinner("분석 중..."):
+                    try:
+                        extracted = parse_image_schedule(img_file)
+                        st.text_area("추출된 텍스트", extracted, height=100, key="extracted_text")
+                        if common_agency == "인천대한협":
+                            df_img = parse_incheon_kakao(extracted, year, common_requester,
+                                                         request_date_str, request_method=common_method)
+                        else:
                             df_img = parse_kakao_text(extracted, year)
-                            if not df_img.empty:
-                                df_img["의뢰기관"] = common_agency
-                                df_img["의뢰인"] = common_requester
-                                df_img["의뢰일"] = request_date_str
-                                df_img["의뢰방법"] = common_method
-                                st.session_state["temp_df"] = df_img
-                                st.session_state["raw_text_for_drive"] = extracted
-                                st.success(f"✅ {len(df_img)}건 일정 생성 완료")
-                            else:
-                                st.warning("일정을 찾지 못했습니다. 추출된 텍스트를 확인해주세요.")
-                        except Exception as e:
-                            st.error(f"이미지 분석 오류: {e}")
+                            df_img["의뢰기관"] = common_agency
+                            df_img["의뢰인"] = common_requester
+                            df_img["의뢰일"] = request_date_str
+                            df_img["의뢰방법"] = common_method
+
+                        if not df_img.empty:
+                            st.session_state["temp_df"] = df_img
+                            st.session_state["raw_text_for_drive"] = extracted
+                            st.success(f"✅ {len(df_img)}건")
+                        else:
+                            st.warning("일정을 찾지 못했습니다.")
+                    except Exception as e:
+                        st.error(f"오류: {e}")
 
     st.divider()
 
