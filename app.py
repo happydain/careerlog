@@ -55,23 +55,29 @@ st.title("📅 보건스케줄 자동정리")
 # ══════════════════════════════════════════════
 if menu == "🏠 대시보드":
     from streamlit_calendar import calendar as st_calendar
-
-    st.header("🏠 대시보드")
-    st.info("""
-    📌 **한눈에 보는 월별 스케줄**
-    - 📅 월별 강의 일정을 캘린더로 확인
-    - 👤 강사별 색상으로 한눈에 파악
-    - ✏️ 날짜 클릭 → 강사변경 / 날짜변경 / 취소 등 즉시 반영
-    - 📊 하단에서 해당 월 강의 건수 / 시수 / 강의료 집계 확인
-    """)
-    st.divider()
-
+    
+        st.header("🏠 대시보드")
+        st.info("""
+        📌 **한눈에 보는 월별 스케줄**
+        - 📅 월별 강의 일정을 캘린더로 확인
+        - 👤 강사별 색상으로 한눈에 파악
+        - ✏️ 날짜 클릭 → 강사변경 / 날짜변경 / 취소 등 즉시 반영
+        - 📊 하단에서 해당 월 강의 건수 / 시수 / 강의료 집계 확인
+        """)
+        st.divider()
     now = datetime.now()
     df  = load_gsheet_final()
 
     # ── 년/월 선택 + 필터 ──
-    col_a, col_i = st.columns(2)
-
+    col_y, col_m, col_a, col_i = st.columns(4)
+    with col_y:
+        cal_year = st.selectbox("년도", list(range(2022, 2028)),
+                                index=list(range(2022, 2028)).index(now.year),
+                                key="cal_year_sel")
+    with col_m:
+        cal_month = st.selectbox("월", list(range(1, 13)),
+                                 index=now.month - 1,
+                                 key="cal_month_sel")
     with col_a:
         agency_f = st.selectbox("의뢰기관", ["전체"] + (sorted(df["의뢰기관"].dropna().unique().tolist()) if not df.empty else []), key="cal_agency")
     with col_i:
