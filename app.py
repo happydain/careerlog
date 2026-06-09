@@ -1073,11 +1073,10 @@ elif menu == "📊 강의 현황":
                             errors += 1
                             continue
                         try:
-                            start_h = str(row["시작"])[:2].lstrip("0") or "0"
-                            end_h   = str(row["종료"])[:2].lstrip("0") or "0"
-                            instr_short = instructor[1:] if len(instructor) >= 2 else instructor
-                            outco_str = f"_{outco[1:]}" if outco else ""  # 앞의 _ 제거
-                            title = f"{start_h}-{end_h} ({instr_short}, {row['방식/위치']}, {row['과정명']}) {row['의뢰기관']}{outco_str}_{target}"
+                            outco     = str(row.get("출강기업", "")).strip()
+                            outco_str = f"_{outco}" if outco and outco != "nan" else ""
+                            target    = str(row.get("대상자", "")).strip()
+                            title     = f"{start_h}-{end_h} ({instr_short}, {row['방식/위치']}, {row['과정명']}) {row['의뢰기관']}{outco_str}_{target}"
                             add_event(
                                 date_str    = str(row["강의일시"])[:10],
                                 start       = str(row["시작"]),
