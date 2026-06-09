@@ -297,31 +297,51 @@ if menu == "📥 보건스케줄 입력":
 # 📋 의뢰일별
 # ══════════════════════════════════════════════
 elif menu == "📋 의뢰일별 스케줄":
-    st.header("📋 의뢰일별 (원본)")
+    st.header("📋 의뢰일별 스케줄")
     df = load_gsheet_raw()
 
     if df.empty:
         st.info("저장된 데이터가 없습니다.")
     else:
-        col1, col2, col3 = st.columns(3)
+        # ── 필터 ──
+        col1, col2, col3, col4 = st.columns(4)
         with col1:
-            agency_f = st.selectbox("의뢰기관", ["전체"] + sorted(df["의뢰기관"].dropna().unique().tolist()))
+            df["_년도"] = pd.to_datetime(df["강의일시"], errors="coerce").dt.year
+            year_list = ["전체"] + sorted(df["_년도"].dropna().unique().astype(int).tolist(), reverse=True)
+            year_f = st.selectbox("년도", year_list)
         with col2:
-            instr_f = st.selectbox("강사님", ["전체"] + sorted(df["강사님"].dropna().unique().tolist()))
+            df["_월"] = pd.to_datetime(df["강의일시"], errors="coerce").dt.month
+            month_list = ["전체"] + sorted(df["_월"].dropna().unique().astype(int).tolist())
+            month_f = st.selectbox("월", month_list)
         with col3:
-            subj_f = st.selectbox("과정명", ["전체"] + sorted(df["과정명"].dropna().unique().tolist()))
+            agency_f = st.selectbox("의뢰기관", ["전체"] + sorted(df["의뢰기관"].dropna().unique().tolist()))
+        with col4:
+            instr_f = st.selectbox("강사님", ["전체"] + sorted(df["강사님"].dropna().unique().tolist()))
 
         fdf = df.copy()
+        if year_f   != "전체": fdf = fdf[fdf["_년도"] == int(year_f)]
+        if month_f  != "전체": fdf = fdf[fdf["_월"]   == int(month_f)]
         if agency_f != "전체": fdf = fdf[fdf["의뢰기관"] == agency_f]
         if instr_f  != "전체": fdf = fdf[fdf["강사님"]   == instr_f]
-        if subj_f   != "전체": fdf = fdf[fdf["과정명"]   == subj_f]
+        fdf = fdf.drop(columns=["_년도", "_월"], errors="ignore")
+        df  = df.drop(columns=["_년도", "_월"], errors="ignore")
+
+        # ── 집계 ──
+        total_hours = pd.to_numeric(fdf["시수"], errors="coerce").sum()
+        total_fee   = pd.to_numeric(fdf["강의료(1일)"], errors="coerce").sum()
+        c1, c2, c3 = st.columns(3)
+        c1.metric("총 강의 건수", f"{len(fdf)}건")
+        c2.metric("총 시수", f"{total_hours:.0f}시간")
+        c3.metric("총 강의료", f"₩{total_fee:,.0f}")
+
+        st.divider()
 
         original_fdf = fdf.copy()
 
         edited_raw_df = st.data_editor(
             fdf,
             use_container_width=True,
-            height=700,
+            height=600,
             num_rows="fixed",
             column_config=get_column_config(),
         )
