@@ -12,7 +12,6 @@ from parsers import (
 )
 from gdrive import create_request_folder, get_folder_url
 
-st.set_page_config(page_title="보건스케줄", page_icon="📅", layout="wide")
 st.sidebar.title("📅 CareerLog")
 st.title("📥 보건스케줄 입력")
 st.info(
