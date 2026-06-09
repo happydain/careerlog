@@ -66,7 +66,7 @@ def get_events(start_date: str, end_date: str, calendar_id: str = CALENDAR_ID) -
         service = get_calendar_service()
 
         result = service.events().list(
-            calendarId=CALENDAR_ID,
+            calendarId=calendarId=calendar_id,
             timeMin=f"{start_date}T00:00:00+09:00",
             timeMax=f"{end_date}T23:59:59+09:00",
             singleEvents=True,
