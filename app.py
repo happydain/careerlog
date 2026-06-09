@@ -1094,16 +1094,16 @@ elif menu == "📊 강의 현황":
                 if errors:
                     st.warning(f"⚠️ {errors}건 실패 (캘린더 미연동 강사 포함)")
 
-        # ── 엑셀 저장 ──
-        buffer = io.BytesIO()
-        view_df.to_excel(buffer, index=False, engine="xlsxwriter")
-        st.download_button(
-            label="📥 엑셀 다운로드",
-            data=buffer.getvalue(),
-            file_name=f"강의현황_{datetime.now().strftime('%Y%m%d')}.xlsx",
-            mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
-            key="schedule_dl",
-        )
+    # ── 엑셀 저장 ──
+    buffer = io.BytesIO()
+    view_df.to_excel(buffer, index=False, engine="xlsxwriter")
+    st.download_button(
+        label="📥 엑셀 다운로드",
+        data=buffer.getvalue(),
+        file_name=f"강의현황_{datetime.now().strftime('%Y%m%d')}.xlsx",
+        mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+        key="schedule_dl",
+    )
 # ══════════════════════════════════════════════
 # 👨‍🏫 강사별 대시보드
 # ══════════════════════════════════════════════
