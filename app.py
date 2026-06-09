@@ -212,7 +212,6 @@ if menu == "🏠 대시보드":
                         end_h   = str(row["종료"])[:2].lstrip("0") or "0"
                         instr_short = instructor[1:] if len(instructor) >= 2 else instructor
                         hrs     = str(row.get("시수", ""))
-                        title   = f"{start_h}-{end_h} {instr_short} | {row['의뢰기관']}{outco} {hrs} | {row['과정명']} | {target}"
 
                         with st.expander("✏️ 변경/취소"):
                             change_type = st.selectbox(
