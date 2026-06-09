@@ -34,8 +34,6 @@ st.markdown("""
 """, unsafe_allow_html=True)
 
 st.sidebar.title("📅 CareerLog")
-
-
 default_menu = st.session_state.pop("_menu", "📥 보건스케줄 입력")
 menu_options = [
     "📥 보건스케줄 입력",
@@ -45,22 +43,16 @@ menu_options = [
     "👨‍🏫 강사별 대시보드",
 ]
 menu = st.sidebar.radio("메뉴 선택", menu_options, index=menu_options.index(default_menu))
-
 st.title("📅 보건스케줄 자동정리")
 
 
 # ══════════════════════════════════════════════
 # 📥 보건스케줄 입력
 # ══════════════════════════════════════════════
-
 if menu == "📥 보건스케줄 입력":
     st.header("📥 보건스케줄 입력")
-    st.info(
-        "카카오톡·이메일·엑셀로 받은 강의 의뢰를 붙여넣거나 업로드하세요.\n"
-        "저장 시 구글시트 + 구글드라이브 폴더가 자동 생성됩니다."
-    )
 
-# ── 기본 정보 ──────────────────────────────
+    # ── 기본 정보 ──────────────────────────────
     st.markdown("### ⚙️ 기본 정보")
     st.divider()
 
@@ -100,10 +92,9 @@ if menu == "📥 보건스케줄 입력":
     st.info(f"📌 **{common_agency}** · {common_requester or '의뢰인 미입력'} · {common_date.strftime('%Y/%m/%d')}")
     st.divider()
 
-
+    # ── 엑셀 / 카톡 나란히 ──────────────────────
     col_excel, col_kakao = st.columns(2)
 
-    # ── 엑셀 업로드 ────────────────────────────
     with col_excel:
         st.markdown("### 📄 강의의뢰 엑셀 업로드")
         uploaded_file = st.file_uploader("엑셀 파일 (.xlsx)", type=["xlsx"])
@@ -150,9 +141,8 @@ if menu == "📥 보건스케줄 입력":
                 df_preview = pd.read_excel(uploaded_file, header=None)
                 st.dataframe(df_preview, use_container_width=True, height=300)
 
-    # ── 카톡 입력 ──────────────────────────────
     with col_kakao:
-        st.markdown("### 💬 카톡 / 이메일 텍스트 입력")
+        st.markdown("### 💬 카톡 / 이메일")
         raw_text = st.text_area("강의 요청 메시지를 붙여넣으세요.", height=220, key="raw_text_input")
 
         if st.button("🪄 카톡 일정 분석"):
@@ -211,144 +201,7 @@ if menu == "📥 보건스케줄 입력":
         st.success("✅ 저장 완료!")
         if st.button("📋 의뢰일별 스케줄 확인하기", key="go_to_raw"):
             st.session_state.pop("saved_done")
-            st.session_state["_menu"] = "📋 의뢰일별 스케줄(취소,변경반영)"
-            st.rerun()
-
-    # ── 최종 확인 및 저장 ──────────────────────
-    st.header("📋 최종 확인 및 저장")
-
-    if "temp_df" in st.session_state:
-        try:
-            st.session_state["temp_df"]["강의일시"] = pd.to_datetime(
-                st.session_state["temp_df"]["강의일시"], errors="coerce"
-            ).dt.date
-        except Exception:
-            pass
-
-        edited_df = st.data_editor(
-            st.session_state["temp_df"],
-            use_container_width=True,
-            num_rows="dynamic",
-            column_config=get_column_config(),
-        )
-
-        unknown_locations = [
-            l for l in edited_df["방식/위치"].dropna().unique()
-            if str(l).strip() and str(l) not in LOCATION_OPTIONS
-        ]
-        if unknown_locations:
-            st.warning(f"⚠️ 목록에 없는 방식/위치: **{', '.join(unknown_locations)}**")
-            cols = st.columns(len(unknown_locations))
-            for i, loc in enumerate(unknown_locations):
-                with cols[i]:
-                    if st.button(f"✅ {loc} 추가", key=f"add_loc_{i}"):
-                        LOCATION_OPTIONS.append(loc)
-                        st.success(f"{loc} 추가됨!")
-                        st.rerun()
-
-        st.divider()
-        col1, col2, col3 = st.columns(3)
-
-        with col1:
-            if st.button("💾 저장", key="save_btn"):
-                if not common_requester.strip():
-                    st.error("담당자 이름을 입력해주세요.")
-                else:
-                    with st.spinner("저장 중..."):
-
-                        def auto_weekday(r):
-                            try:
-                                return ["월","화","수","목","금","토","일"][pd.to_datetime(r["강의일시"]).weekday()]
-                            except:
-                                return r.get("요일", "")
-
-                        def auto_fee(r):
-                            if str(r.get("의뢰기관", "")) == "한안협":
-                                return 120000 if str(r.get("강사님", "")) == "이다인" else 110000
-                            return r.get("강의료(1시간)", 100000)
-
-                        edited_df["요일"] = edited_df.apply(auto_weekday, axis=1)
-                        edited_df["시수"] = edited_df.apply(
-                            lambda r: calc_hours(r["시작"], r["종료"])
-                            if pd.notna(r.get("시작")) and pd.notna(r.get("종료")) else 0, axis=1
-                        )
-                        edited_df["강의료(1시간)"] = edited_df.apply(auto_fee, axis=1)
-                        edited_df["강의료(1일)"] = edited_df.apply(
-                            lambda r: calc_fee(r["시수"], r["강의료(1시간)"])
-                            if pd.notna(r.get("시수")) and pd.notna(r.get("강의료(1시간)")) else 0, axis=1
-                        )
-
-                        drive_errors = []
-
-                        try:
-                            folder_id  = create_request_folder(year, common_agency, request_date_str, common_requester)
-                            folder_url = get_folder_url(folder_id)
-                            if evidence_files:
-                                append_evidence_to_sheet(
-                                    f"{request_date_str}_{common_requester}",
-                                    evidence_files
-                                )
-                        except Exception as e:
-                            folder_url = ""
-                            drive_errors.append(f"폴더 생성 실패: {e}")
-
-                        for idx in edited_df.index:
-                            edited_df.loc[idx, "증빙폴더"] = folder_url
-
-                        result = append_to_gsheet(edited_df)
-                        if result:
-                            if drive_errors:
-                                st.warning("⚠️ 드라이브 폴더 생성 실패 (시트는 저장됨):\n" + "\n".join(drive_errors))
-                            else:
-                                st.success("✅ 구글시트 + 드라이브 저장 완료!")
-                            del st.session_state["temp_df"]
-                            st.session_state.pop("raw_text_for_drive", None)
-                            st.session_state.pop("excel_file_for_drive", None)
-                            st.session_state["saved_done"] = True
-                            st.rerun()
-                        else:
-                            st.error("❌ 구글시트 저장 실패")
-                            if drive_errors:
-                                st.warning("드라이브 오류:\n" + "\n".join(drive_errors))
-
-        with col2:
-            buffer = io.BytesIO()
-            edited_df.to_excel(buffer, index=False, engine="xlsxwriter")
-            st.download_button(
-                label="📥 엑셀 다운로드",
-                data=buffer.getvalue(),
-                file_name=f"보건스케줄_{datetime.now().strftime('%Y%m%d')}.xlsx",
-                mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
-                key="download_btn",
-            )
-
-        with col3:
-            if st.button("🧹 초기화", key="reset_btn"):
-                del st.session_state["temp_df"]
-                st.session_state.pop("raw_text_for_drive", None)
-                st.session_state.pop("excel_file_for_drive", None)
-                st.rerun()
-                
-                col_excel, col_kakao = st.columns(2)
-
-   
-    st.divider()
-
-    # ── 수동 입력 ──────────────────────────────
-    st.markdown("### ✍️ 수동으로 직접 입력하기")
-    if st.button("➕ 빈 테이블 생성"):
-        st.session_state["temp_df"] = pd.DataFrame(columns=COLUMNS)
-        st.session_state["raw_text_for_drive"] = ""
-        st.rerun()
-
-    st.divider()
-
-    # ── 저장 완료 후 안내 ──────────────────────
-    if st.session_state.get("saved_done"):
-        st.success("✅ 저장 완료!")
-        if st.button("📋 의뢰일별 스케줄 확인하기", key="go_to_raw"):
-            st.session_state.pop("saved_done")
-            st.session_state["_menu"] = "📋 의뢰일별 스케줄(취소,변경반영)"
+            st.session_state["_menu"] = "📋 의뢰일별 스케줄(취소,변경)"
             st.rerun()
 
     # ── 최종 확인 및 저장 ──────────────────────
@@ -470,7 +323,6 @@ if menu == "📥 보건스케줄 입력":
 # ══════════════════════════════════════════════
 # 📋 의뢰일별
 # ══════════════════════════════════════════════
-
 elif menu == "📋 의뢰일별 스케줄(취소,변경)":
     st.header("📋 의뢰일별 스케줄(취소,변경)")
     st.info("""
@@ -484,12 +336,11 @@ elif menu == "📋 의뢰일별 스케줄(취소,변경)":
     if df.empty:
         st.info("저장된 데이터가 없습니다.")
     else:
-        # ── 필터 ──
         df["_년도"] = pd.to_datetime(df["강의일시"], errors="coerce").dt.year
         df["_월"]   = pd.to_datetime(df["강의일시"], errors="coerce").dt.month
         year_list  = ["전체"] + sorted(df["_년도"].dropna().unique().astype(int).tolist(), reverse=True)
         month_list = ["전체"] + sorted(df["_월"].dropna().unique().astype(int).tolist())
-        
+
         col0, col1, col2, col3, col4 = st.columns([1, 2, 2, 2, 2])
         with col0:
             st.markdown("<div style='height:28px'></div>", unsafe_allow_html=True)
@@ -506,7 +357,6 @@ elif menu == "📋 의뢰일별 스케줄(취소,변경)":
         with col4:
             instr_f = st.selectbox("강사님", ["전체"] + sorted(df["강사님"].dropna().unique().tolist()))
 
-
         fdf = df.copy()
         if year_f   != "전체": fdf = fdf[fdf["_년도"] == int(year_f)]
         if month_f  != "전체": fdf = fdf[fdf["_월"]   == int(month_f)]
@@ -515,10 +365,9 @@ elif menu == "📋 의뢰일별 스케줄(취소,변경)":
         fdf = fdf.drop(columns=["_년도", "_월"], errors="ignore")
         df  = df.drop(columns=["_년도", "_월"], errors="ignore")
 
-        # ── 집계 ──
         total_hours = pd.to_numeric(fdf["시수"], errors="coerce").sum()
         total_fee   = pd.to_numeric(fdf["강의료(1일)"], errors="coerce").sum()
-        
+
         st.markdown(f"""
         <div style="display:flex; gap:16px; margin-bottom:8px;">
             <div style="background:#f0f4ff; border-radius:10px; padding:12px 24px; text-align:center; flex:1;">
@@ -542,6 +391,7 @@ elif menu == "📋 의뢰일별 스케줄(취소,변경)":
             fdf["강의일시"] = pd.to_datetime(fdf["강의일시"], errors="coerce").dt.date
         except Exception:
             pass
+
         original_fdf = fdf.copy()
         edited_raw_df = st.data_editor(
             fdf,
@@ -590,13 +440,9 @@ elif menu == "📋 의뢰일별 스케줄(취소,변경)":
 # ══════════════════════════════════════════════
 # 📅 최종 스케줄 매칭시스템
 # ══════════════════════════════════════════════
-# ══════════════════════════════════════════════
-# 📅 최종 스케줄 매칭시스템
-# ══════════════════════════════════════════════
 elif menu == "📅 최종 스케줄 매칭시스템":
     st.header("📅 최종 스케줄 매칭시스템")
 
-    # ── 월별 버튼 ──
     start_year, start_month = 2022, 1
     end_year, end_month = 2027, 12
 
@@ -650,7 +496,6 @@ elif menu == "📅 최종 스케줄 매칭시스템":
 
     st.divider()
 
-    # ── 선택된 월 데이터 ──
     filter_year  = st.session_state.get("filter_year")
     filter_month = st.session_state.get("filter_month")
 
@@ -745,7 +590,6 @@ elif menu == "📅 최종 스케줄 매칭시스템":
                         if save_gsheet_final(df):
                             st.success("✅ 저장 완료!")
                             st.rerun()
-           
 
 
 # ══════════════════════════════════════════════
@@ -794,7 +638,6 @@ elif menu == "👨‍🏫 강사별 대시보드":
         idf = df[df["강사님"] == selected].copy()
         cal_id = INSTRUCTOR_CALENDARS.get(selected, "")
 
-        # ── 집계 ──
         try:
             total_hours = pd.to_numeric(idf["시수"], errors="coerce").sum()
             total_fee   = pd.to_numeric(idf["강의료(1일)"], errors="coerce").sum()
@@ -809,12 +652,8 @@ elif menu == "👨‍🏫 강사별 대시보드":
 
         tab1, tab2 = st.tabs(["📥 캘린더 전체 가져오기", "📅 이번달 스케줄"])
 
-        # ──────────────────────────────────────
-        # TAB 1: 캘린더 전체 가져오기
-        # ──────────────────────────────────────
         with tab1:
             st.markdown("2022년부터 현재까지 캘린더 일정을 가져와 엑셀로 저장합니다.")
-
             if not cal_id:
                 st.warning(f"⚠️ {selected} 강사님 캘린더가 연동되지 않았습니다.")
             else:
@@ -855,7 +694,6 @@ elif menu == "👨‍🏫 강사별 대시보드":
                     cal_df = st.session_state["cal_imported"]
                     name   = st.session_state.get("cal_imported_name", selected)
                     st.dataframe(cal_df, use_container_width=True, height=400)
-
                     col1, col2 = st.columns(2)
                     with col1:
                         buffer = io.BytesIO()
@@ -872,9 +710,6 @@ elif menu == "👨‍🏫 강사별 대시보드":
                             del st.session_state["cal_imported"]
                             st.rerun()
 
-        # ──────────────────────────────────────
-        # TAB 2: 이번달 스케줄
-        # ──────────────────────────────────────
         with tab2:
             if not cal_id:
                 st.warning(f"⚠️ {selected} 강사님 캘린더가 연동되지 않았습니다.")
@@ -913,6 +748,3 @@ elif menu == "👨‍🏫 강사별 대시보드":
                     month_df = pd.DataFrame(rows)
                     st.markdown(f"#### {view_year}년 {view_month}월 — {len(rows)}건")
                     st.dataframe(month_df, use_container_width=True, height=500)
-
-                    total_h = len([r for r in rows if r["시작"]])
-                    st.info(f"총 {len(rows)}건 일정")
