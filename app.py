@@ -230,14 +230,6 @@ if menu == "📥 보건스케줄 입력":
 
     st.divider()
 
-    # ── 수동 입력 ──────────────────────────────
-    st.markdown("### ✍️ 수동으로 직접 입력하기")
-    if st.button("➕ 빈 테이블 생성"):
-        st.session_state["temp_df"] = pd.DataFrame(columns=COLUMNS)
-        st.session_state["raw_text_for_drive"] = ""
-        st.rerun()
-
-    st.divider()
 
     # ── 저장 완료 후 안내 ──────────────────────
     if st.session_state.get("saved_done"):
@@ -328,7 +320,13 @@ if menu == "📥 보건스케줄 입력":
                         for idx in edited_df.index:
                             edited_df.loc[idx, "증빙폴더"] = folder_url
 
-                        result = append_to_gsheet(edited_df)
+                        if st.session_state.get("is_bulk_upload"):
+                            from gsheet import replace_gsheet_final
+                            result = replace_gsheet_final(edited_df)
+                            st.session_state.pop("is_bulk_upload", None)
+                        else:
+                            result = append_to_gsheet(edited_df)
+                    
                         if result:
                             if drive_errors:
                                 st.warning("⚠️ 드라이브 폴더 생성 실패 (시트는 저장됨):\n" + "\n".join(drive_errors))
