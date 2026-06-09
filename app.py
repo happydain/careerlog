@@ -1204,7 +1204,7 @@ elif menu == "👨‍🏫 강사별 대시보드":
             else:
                 st.info("외부출강 데이터가 없습니다.")
 
-        # ── TAB4: 캘린더 ──
+       # ── TAB4: 캘린더 ──
         with tab4:
             cal_id = INSTRUCTOR_CALENDARS.get(selected, "")
             if not cal_id:
@@ -1217,18 +1217,19 @@ elif menu == "👨‍🏫 강사별 대시보드":
                                              key="cal_view_year")
                 with col2:
                     view_month = st.selectbox("월", ["전체"] + list(range(1, 13)),
-                          index=0, key="cal_view_month")
+                                              index=0, key="cal_view_month")
 
                 if st.button("📥 캘린더 가져오기", key="cal_fetch"):
                     with st.spinner("가져오는 중..."):
                         if view_month == "전체":
-                                    first_day = f"{view_year}-01-01"
-                                    last_day  = f"{view_year}-12-31"
-                                else:
-                                    first_day = f"{view_year}-{int(view_month):02d}-01"
-                                    last_day  = f"{view_year}-{int(view_month):02d}-{cal_module.monthrange(view_year, int(view_month))[1]:02d}"
-                                
-                                events = get_events(first_day, last_day, calendar_id=cal_id)
+                            first_day = f"{view_year}-01-01"
+                            last_day  = f"{view_year}-12-31"
+                        else:
+                            mo = int(view_month)
+                            first_day = f"{view_year}-{mo:02d}-01"
+                            last_day  = f"{view_year}-{mo:02d}-{cal_module.monthrange(view_year, mo)[1]:02d}"
+
+                        events = get_events(first_day, last_day, calendar_id=cal_id)
                         rows = []
                         for e in events:
                             start = e.get("start", {}).get("dateTime", e.get("start", {}).get("date", ""))
@@ -1240,7 +1241,7 @@ elif menu == "👨‍🏫 강사별 대시보드":
                                 "제목": e.get("summary", ""),
                                 "장소": e.get("location", ""),
                             })
-                        st.session_state["cal_fetched"] = pd.DataFrame(rows)
+                        st.session_state["cal_fetched"]      = pd.DataFrame(rows)
                         st.session_state["cal_fetched_name"] = selected
                         st.success(f"✅ {len(rows)}건")
                         st.rerun()
