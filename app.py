@@ -43,7 +43,7 @@ menu_options = [
     "🏠 대시보드",
     "📥 보건스케줄 입력",
     "📊 강의 현황",
-    "📊 협회별 월별 스케줄",
+    "🤖 강사 매칭 시스템",
     "👨‍🏫 강사별 대시보드",
 ]
 menu = st.sidebar.radio("메뉴 선택", menu_options, index=menu_options.index(default_menu))
