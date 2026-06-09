@@ -319,8 +319,8 @@ elif menu == "📋 의뢰일별 스케줄":
         
         col0, col1, col2, col3, col4 = st.columns([1, 2, 2, 2, 2])
         with col0:
-            st.markdown("　")
-            if st.button("🔄 전체", key="reset_filter"):
+            st.markdown("<div style='height:28px'></div>", unsafe_allow_html=True)
+            if st.button("↺", key="reset_filter", help="전체 보기", use_container_width=True):
                 for k in ["year_f", "month_f", "agency_f", "instr_f"]:
                     st.session_state.pop(k, None)
                 st.rerun()
