@@ -6,7 +6,6 @@ from config import INSTRUCTOR_CONFIG
 
 
 def get_used_hours(df: pd.DataFrame, instructor: str, year: int, month: int) -> float:
-    """해당 강사의 해당 월 누적 시수"""
     try:
         mask = (
             (df["강사님"] == instructor) &
@@ -32,58 +31,41 @@ def is_morning(start_time: str) -> bool:
 
 
 def match_instructor(row: dict, df: pd.DataFrame, year: int, month: int) -> str:
-    """
-    한 강의에 대해 최적 강사 반환
-    row: 강의 행 딕셔너리
-    df: 전체 보건스케줄 DataFrame (누적 시수 계산용)
-    """
     agency   = str(row.get("의뢰기관", ""))
     location = str(row.get("방식/위치", ""))
     start    = str(row.get("시작", ""))
-    wanted   = str(row.get("요청사항", ""))  # 원티드 강사
+    wanted   = str(row.get("요청사항", ""))
 
-    # 1. 원티드 최우선
     for name in INSTRUCTOR_CONFIG:
         if name in wanted:
             return name
 
-    zoom     = is_zoom(location)
-    morning  = is_morning(start)
+    zoom    = is_zoom(location)
+    morning = is_morning(start)
 
-    # 우선순위 순으로 후보 정렬
     candidates = []
     for name, cfg in INSTRUCTOR_CONFIG.items():
         if cfg.get("backup"):
             continue
-
-        # 줌 강의인데 줌 불가 강사 제외
         if zoom and not cfg.get("zoom"):
             continue
-
-        # 오전만 가능한 강사인데 오후 강의면 제외
         if cfg.get("morning_only") and not morning:
             continue
 
-        # 한도 체크
         limit = cfg.get("limit")
         if limit:
             used = get_used_hours(df, name, year, month)
             if used >= limit:
                 continue
 
-        # 선호 기관 점수
         preferred = cfg.get("preferred_agency", [])
         score = 2 if agency in preferred else 1
-
         candidates.append((score, name))
 
-    # 점수 높은 순으로 정렬
     candidates.sort(key=lambda x: -x[0])
-
     if candidates:
         return candidates[0][1]
 
-    # 모두 안 되면 백업(이다인)
     for name, cfg in INSTRUCTOR_CONFIG.items():
         if cfg.get("backup"):
             return name
@@ -91,34 +73,22 @@ def match_instructor(row: dict, df: pd.DataFrame, year: int, month: int) -> str:
     return ""
 
 
-def auto_match(df: pd.DataFrame, year: int, month: int) -> pd.DataFrame:
-    """
-    미배정 강의 자동매칭
-    강사님이 비어있는 행만 배정
-    """
-    result = df.copy()
+def auto_match(df: pd.DataFrame, year: int, month: int):
+    result  = df.copy()
     changed = 0
-
     for idx in result.index:
         instructor = str(result.loc[idx, "강사님"]).strip()
         if instructor and instructor not in ("", "nan"):
-            continue  # 이미 배정된 경우 스킵
-
-        row = result.loc[idx].to_dict()
+            continue
+        row     = result.loc[idx].to_dict()
         matched = match_instructor(row, result, year, month)
-
         if matched:
             result.loc[idx, "강사님"] = matched
             changed += 1
-
     return result, changed
 
 
 def check_overload(df: pd.DataFrame, year: int, month: int) -> dict:
-    """
-    한도 초과 강사 체크
-    반환: {강사명: {"used": 사용시수, "limit": 한도, "over": 초과시수}}
-    """
     warnings = {}
     for name, cfg in INSTRUCTOR_CONFIG.items():
         limit = cfg.get("limit")
@@ -126,11 +96,72 @@ def check_overload(df: pd.DataFrame, year: int, month: int) -> dict:
             continue
         used = get_used_hours(df, name, year, month)
         if used > limit:
-            warnings[name] = {
-                "used":  used,
-                "limit": limit,
-                "over":  used - limit,
-            }
+            warnings[name] = {"used": used, "limit": limit, "over": used - limit}
     return warnings
 
 
+def check_date_conflicts(df: pd.DataFrame, year: int, month: int) -> list:
+    """같은 날 같은 강사 시간 겹침 체크"""
+    conflicts = []
+    try:
+        df = df.copy()
+        df["_dt"] = pd.to_datetime(df["강의일시"], errors="coerce")
+        fdf = df[
+            (df["_dt"].dt.year  == year) &
+            (df["_dt"].dt.month == month) &
+            (df.get("상태", pd.Series(["정상"] * len(df))) != "취소")
+        ].copy()
+
+        for date, day_df in fdf.groupby(fdf["_dt"].dt.date):
+            for instructor, i_df in day_df.groupby("강사님"):
+                if not instructor or str(instructor) in ("", "nan"):
+                    continue
+                if len(i_df) > 1:
+                    times = i_df[["시작", "종료", "의뢰기관", "과정명"]].values.tolist()
+                    conflicts.append({
+                        "날짜":   str(date),
+                        "강사":   instructor,
+                        "건수":   len(i_df),
+                        "강의":   times,
+                    })
+    except Exception:
+        pass
+    return conflicts
+
+
+def apply_calendar_wanted(fdf: pd.DataFrame, events_by_instructor: dict) -> tuple:
+    """
+    캘린더 원티드 반영
+    events_by_instructor: {강사명: [{"date": ..., "start": ..., "title": ...}]}
+    """
+    result  = fdf.copy()
+    applied = 0
+    log     = []
+
+    for instructor, events in events_by_instructor.items():
+        for e in events:
+            title = e.get("title", "")
+            if "원티드" not in title:
+                continue
+
+            date_str      = e.get("date", "")
+            morning_only  = "오전" in title
+            afternoon_only = "오후" in title
+
+            mask = result["강의일시"].astype(str).str[:10] == date_str
+            for idx in result[mask].index:
+                try:
+                    hour = int(str(result.loc[idx, "시작"]).split(":")[0])
+                except Exception:
+                    hour = 9
+
+                if morning_only and hour >= 13:
+                    continue
+                if afternoon_only and hour < 13:
+                    continue
+
+                result.loc[idx, "강사님"] = instructor
+                applied += 1
+                log.append(f"{date_str} {result.loc[idx, '시작']} → {instructor} ({title})")
+
+    return result, applied, log
