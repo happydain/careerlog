@@ -1056,35 +1056,54 @@ elif menu == "📊 강의 현황":
             num_rows="fixed",
         )
         
-    if st.button("📅 선택 강사별 캘린더에 등록", key="apply_to_calendar"):
-        selected_rows = edited_view[edited_view["등록"] == True]
-        from gcalendar import add_event
-        from config import INSTRUCTOR_CALENDARS
-        success = 0
-        errors  = 0
-        with st.spinner("캘린더 등록 중..."):
-            for _, row in selected_rows.iterrows():
-                outco  = str(row.get("출강기업", "")).strip()
-                outco  = f"_{outco}" if outco and outco != "nan" else ""
-                target = str(row.get("대상자", "")).strip()
-                title  = f"{row['의뢰기관']}{outco}_{row['방식/위치']}_{row['과정명']}_{target}"
-            
-                add_event(
-                    date_str    = str(row["강의일시"])[:10],
-                    start       = str(row["시작"]),
-                    end         = str(row["종료"]),
-                    title       = title,
-                    instructor  = instructor,
-                    agency      = str(row["의뢰기관"]),
-                    location    = str(row["방식/위치"]),
-                    calendar_id = cal_id,
-                )
-                    success += 1
-                except Exception as e:
-                    errors += 1
-        st.success(f"✅ {success}건 등록 완료!")
-        if errors:
-            st.warning(f"⚠️ {errors}건 실패 (캘린더 미연동 강사 포함)")
+    if st.button("📅 선택 일정 캘린더 등록", key="apply_to_calendar"):
+            selected_rows = edited_view[edited_view["등록"] == True]
+            if selected_rows.empty:
+                st.warning("등록할 일정을 선택해주세요.")
+            else:
+                from gcalendar import add_event
+                from config import INSTRUCTOR_CALENDARS
+                success = 0
+                errors  = 0
+                with st.spinner("캘린더 등록 중..."):
+                    for _, row in selected_rows.iterrows():
+                        instructor = str(row.get("강사님", "")).strip()
+                        cal_id     = INSTRUCTOR_CALENDARS.get(instructor, "")
+                        if not cal_id:
+                            errors += 1
+                            continue
+                        try:
+                            outco  = str(row.get("출강기업", "")).strip()
+                            outco  = f"_{outco}" if outco and outco != "nan" else ""
+                            target = str(row.get("대상자", "")).strip()
+                            title  = f"{row['의뢰기관']}{outco}_{row['방식/위치']}_{row['과정명']}_{target}"
+                            add_event(
+                                date_str    = str(row["강의일시"])[:10],
+                                start       = str(row["시작"]),
+                                end         = str(row["종료"]),
+                                title       = title,
+                                instructor  = instructor,
+                                agency      = str(row["의뢰기관"]),
+                                location    = str(row["방식/위치"]),
+                                calendar_id = cal_id,
+                            )
+                            success += 1
+                        except Exception as e:
+                            errors += 1
+                st.success(f"✅ {success}건 등록 완료!")
+                if errors:
+                    st.warning(f"⚠️ {errors}건 실패 (캘린더 미연동 강사 포함)")
+
+        # ── 엑셀 저장 ──
+        buffer = io.BytesIO()
+        view_df.to_excel(buffer, index=False, engine="xlsxwriter")
+        st.download_button(
+            label="📥 엑셀 다운로드",
+            data=buffer.getvalue(),
+            file_name=f"강의현황_{datetime.now().strftime('%Y%m%d')}.xlsx",
+            mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+            key="schedule_dl",
+        )
 # ══════════════════════════════════════════════
 # 👨‍🏫 강사별 대시보드
 # ══════════════════════════════════════════════
