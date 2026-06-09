@@ -462,6 +462,9 @@ elif menu == "📅 최종 스케줄(취소,변경반영)":
 
         original_df = fdf.copy()
 
+        if "auto_matched_df" in st.session_state:
+            fdf = st.session_state.pop("auto_matched_df")
+
         edited_gsheet_df = st.data_editor(
             fdf,
             use_container_width=True,
@@ -475,6 +478,16 @@ elif menu == "📅 최종 스케줄(취소,변경반영)":
             modifier = st.text_input("변경 담당자 이름", placeholder="변경 저장 시 입력")
 
         with col_save:
+            if st.button("🤖 강사 자동매칭", key="auto_match_btn"):
+                count = 0
+                for idx in edited_gsheet_df.index:
+                    instructor = str(edited_gsheet_df.loc[idx, "강사님"]).strip()
+                    if not instructor or instructor == "nan":
+                        edited_gsheet_df.loc[idx, "강사님"] = "송주영"
+                        count += 1
+                st.session_state["auto_matched_df"] = edited_gsheet_df
+                st.success(f"✅ 강사 미배정 {count}건 → 송주영 자동 배정 완료!")
+                st.rerun()
             if st.button("💾 변경사항 저장", key="final_save_btn"):
                 today = datetime.now().strftime("%Y-%m-%d")
                 for idx in edited_gsheet_df.index:
