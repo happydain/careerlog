@@ -94,7 +94,7 @@ if menu == "📥 보건스케줄 입력":
         elif not raw_text.strip():
             st.warning("텍스트를 입력해주세요.")
         else:
-            if common_agency == "대한협서울":
+            if common_agency == "서울대한협":
                 df_text = parse_seoul_kakao(raw_text, year, common_requester, request_date_str)
             elif common_agency == "한안협":
                 df_text = parse_hanahn_kakao(raw_text, year, common_requester, request_date_str, common_method)
@@ -126,7 +126,7 @@ if menu == "📥 보건스케줄 입력":
                 st.error("담당자 이름을 입력해주세요.")
             else:
                 try:
-                    if common_agency == "대한협인천":
+                    if common_agency == "인천대한협":
                         df_excel = parse_incheon_excel(uploaded_file, common_agency,
                                                        common_requester, request_date_str)
                     elif common_agency == "중대협":
