@@ -63,13 +63,14 @@ def _get_or_create_folder(service, name, parent_id):
     return fid
 
 
-def create_request_folder(year: int, agency: str, request_date: str, requester: str, folder_type: str = "의뢰") -> str:
+def create_request_folder(year: int, agency: str, request_date: str, requester: str, folder_type: str = "의뢰1건") -> str:
     service = get_drive_service()
     year_id   = _get_or_create_folder(service, str(year), DRIVE_ROOT_FOLDER_ID)
     agency_id = _get_or_create_folder(service, agency, year_id)
+
     base = f"{request_date.replace('-', '')}_{requester}"
 
-    # 부모 폴더 전체 목록에서 파이썬으로 필터링
+    # 같은 base로 시작하는 폴더 개수 세기
     q = (
         f"'{agency_id}' in parents "
         f"and mimeType='application/vnd.google-apps.folder' "
@@ -83,10 +84,11 @@ def create_request_folder(year: int, agency: str, request_date: str, requester: 
 
     existing = [
         f for f in result.get("files", [])
-        if f["name"].startswith(f"{base}_{folder_type}")
+        if f["name"].startswith(base)
     ]
     seq = len(existing) + 1
-    folder_id = _create_folder(service, f"{base}_{folder_type}{seq}", agency_id)
+    folder_name = f"{base}_{seq}-{folder_type}"
+    folder_id = _create_folder(service, folder_name, agency_id)
     return folder_id
 
 def get_folder_url(folder_id: str) -> str:
