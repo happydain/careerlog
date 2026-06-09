@@ -706,7 +706,6 @@ elif menu == "📅 최종 스케줄 매칭시스템":
         with instr_cols[0]:
             if st.button("전체", key="instr_all",
                          type="primary" if not st.session_state.get("filter_instructor") else "secondary"):
-                st.session_state["filter_instructor"] = None
                 st.rerun()
         for i, instr in enumerate(instructors):
             with instr_cols[i + 1]:
@@ -961,7 +960,6 @@ elif menu == "📅 최종 스케줄 매칭시스템":
                          type="primary" if selected else "secondary"):
                 st.session_state["filter_year"]       = sel_year
                 st.session_state["filter_month"]      = mo
-                st.session_state["filter_instructor"] = None
                 st.rerun()
 
     # ── 강사별 버튼 ──
