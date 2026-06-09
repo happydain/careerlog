@@ -56,21 +56,29 @@ st.title("📅 보건스케줄 자동정리")
 if menu == "🏠 대시보드":
     from streamlit_calendar import calendar as st_calendar
 
-    df = load_gsheet_final()
+    now = datetime.now()
+    df  = load_gsheet_final()
+
+    # ── 년/월 선택 ──
+    col_y, col_m, col_a, col_i = st.columns(4)
+    with col_y:
+        cal_year = st.selectbox("년도", list(range(2022, 2028)),
+                                index=list(range(2022, 2028)).index(now.year),
+                                key="cal_year_sel")
+    with col_m:
+        cal_month = st.selectbox("월", list(range(1, 13)),
+                                 index=now.month - 1,
+                                 key="cal_month_sel")
+    with col_a:
+        agency_f = st.selectbox("의뢰기관", ["전체"] + (sorted(df["의뢰기관"].dropna().unique().tolist()) if not df.empty else []), key="cal_agency")
+    with col_i:
+        instr_f = st.selectbox("강사님", ["전체"] + (sorted(df["강사님"].dropna().unique().tolist()) if not df.empty else []), key="cal_instr")
 
     # ── 필터 ──
-    if not df.empty:
-        col1, col2 = st.columns(2)
-        with col1:
-            agency_f = st.selectbox("의뢰기관", ["전체"] + sorted(df["의뢰기관"].dropna().unique().tolist()), key="cal_agency")
-        with col2:
-            instr_f = st.selectbox("강사님", ["전체"] + sorted(df["강사님"].dropna().unique().tolist()), key="cal_instr")
-
-        fdf = df.copy()
+    fdf = df.copy() if not df.empty else pd.DataFrame()
+    if not fdf.empty:
         if agency_f != "전체": fdf = fdf[fdf["의뢰기관"] == agency_f]
         if instr_f  != "전체": fdf = fdf[fdf["강사님"]   == instr_f]
-    else:
-        fdf = pd.DataFrame()
 
     # ── 강사 색상 ──
     INSTRUCTOR_COLORS = {
@@ -88,7 +96,7 @@ if menu == "🏠 대시보드":
         f'<span style="background:{c}; color:white; padding:2px 10px; border-radius:12px; font-size:12px; margin-right:4px;">{n}</span>'
         for n, c in INSTRUCTOR_COLORS.items()
     ])
-    st.markdown(legend_html + '<span style="background:#888; color:white; padding:2px 10px; border-radius:12px; font-size:12px;">미배정</span>', unsafe_allow_html=True)
+    st.markdown(legend_html + '<span style="background:#888; color:white; padding:2px 10px; border-radius:12px; font-size:12px; margin-right:4px;">미배정</span>', unsafe_allow_html=True)
     st.divider()
 
     # ── 이벤트 생성 ──
@@ -110,7 +118,7 @@ if menu == "🏠 대시보드":
                 start_h     = start_time[:2].lstrip("0") or "0"
                 end_h       = end_time[:2].lstrip("0") or "0"
                 instr_short = instructor[1:] if instructor != "미배정" else "미배정"
-                title = f"{start_h}-{end_h} {instr_short} | {row['의뢰기관']} | {location} | {row['과정명']} | {row['대상자']}"
+                title = f"{start_h}-{end_h} {instr_short} | {row['의뢰기관']} | {location} | {row['과정명']}"
 
                 events.append({
                     "title": title,
@@ -136,11 +144,12 @@ if menu == "🏠 대시보드":
             "center": "title",
             "right":  "dayGridMonth,timeGridWeek,listMonth"
         },
-        "initialView": "dayGridMonth",
-        "locale": "ko",
-        "height": 700,
-        "selectable": True,
-        "editable": False,
+        "initialView":  "dayGridMonth",
+        "initialDate":  f"{cal_year}-{cal_month:02d}-01",
+        "locale":       "ko",
+        "height":       700,
+        "selectable":   True,
+        "editable":     False,
         "eventDisplay": "block",
         "dayMaxEvents": False,
         "displayEventTime": False,
@@ -184,21 +193,9 @@ if menu == "🏠 대시보드":
         else:
             st.caption("날짜를 클릭하면 상세 일정이 표시됩니다.")
 
-    # ── 월별 현황 집계 ──
+    # ── 월별 현황 ──
     st.divider()
-
-    if cal_result and cal_result.get("datesSet"):
-        current_start = cal_result["datesSet"]["startStr"][:10]
-        current_dt = pd.to_datetime(current_start)
-        st.session_state["cal_year"]  = current_dt.year
-        st.session_state["cal_month"] = current_dt.month + 1
-        if st.session_state["cal_month"] > 12:
-            st.session_state["cal_month"] = 1
-            st.session_state["cal_year"] += 1
-
-    now = datetime.now()
-    cal_year  = st.session_state.get("cal_year",  now.year)
-    cal_month = st.session_state.get("cal_month", now.month)
+    st.markdown(f"### {cal_year}년 {cal_month}월 현황")
 
     total_count = total_hours = total_fee = 0
     if not df.empty:
@@ -210,13 +207,12 @@ if menu == "🏠 대시보드":
         total_count = len(this_month)
         total_hours = pd.to_numeric(this_month["시수"], errors="coerce").sum()
         total_fee   = pd.to_numeric(this_month["강의료(1일)"], errors="coerce").sum()
-        df = df.drop(columns=["_dt"])
 
-    st.markdown(f"### {cal_year}년 {cal_month}월 현황")
     c1, c2, c3 = st.columns(3)
     c1.metric("강의 건수", f"{total_count}건")
     c2.metric("총 시수",   f"{total_hours:.0f}시간")
     c3.metric("총 강의료", f"₩{total_fee:,.0f}")
+    
 # ══════════════════════════════════════════════
 # 📥 보건스케줄 입력
 # ══════════════════════════════════════════════
