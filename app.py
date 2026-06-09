@@ -70,7 +70,7 @@ if menu == "🏠 대시보드":
     df  = load_gsheet_final()
 
     # ── 년/월 선택 + 필터 ──
-     col_a, col_i = st.columns(2)
+    col_a, col_i = st.columns(2)
 
     with col_a:
         agency_f = st.selectbox("의뢰기관", ["전체"] + (sorted(df["의뢰기관"].dropna().unique().tolist()) if not df.empty else []), key="cal_agency")
