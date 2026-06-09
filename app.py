@@ -312,14 +312,16 @@ elif menu == "📋 의뢰일별 스케줄":
         st.info("저장된 데이터가 없습니다.")
     else:
         # ── 필터 ──
-        col1, col2, col3, col4 = st.columns(4)
+        col0, col1, col2, col3, col4 = st.columns([1, 2, 2, 2, 2])
+        with col0:
+            st.markdown("　")  # 빈 공간
+            if st.button("🔄 전체", key="reset_filter"):
+                for k in ["year_f", "month_f", "agency_f", "instr_f"]:
+                    st.session_state.pop(k, None)
+                st.rerun()
         with col1:
-            df["_년도"] = pd.to_datetime(df["강의일시"], errors="coerce").dt.year
-            year_list = ["전체"] + sorted(df["_년도"].dropna().unique().astype(int).tolist(), reverse=True)
             year_f = st.selectbox("년도", year_list)
         with col2:
-            df["_월"] = pd.to_datetime(df["강의일시"], errors="coerce").dt.month
-            month_list = ["전체"] + sorted(df["_월"].dropna().unique().astype(int).tolist())
             month_f = st.selectbox("월", month_list)
         with col3:
             agency_f = st.selectbox("의뢰기관", ["전체"] + sorted(df["의뢰기관"].dropna().unique().tolist()))
