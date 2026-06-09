@@ -211,7 +211,9 @@ if menu == "🏠 대시보드":
                     for _, row in idf.sort_values("시작").iterrows():
                         start_h = str(row["시작"])[:2].lstrip("0") or "0"
                         end_h   = str(row["종료"])[:2].lstrip("0") or "0"
-                        st.markdown(f"**{start_h}-{end_h}** {row['의뢰기관']} {row['방식/위치']} {row['과정명']}")
+                        instr_short = instructor[1:] if len(instructor) >= 2 else instructor
+                        hrs     = str(row.get("시수", ""))
+                        title   = f"{start_h}-{end_h} {instr_short} | {row['의뢰기관']}{outco} {hrs} | {row['과정명']} | {target}"
 
                         with st.expander("✏️ 변경/취소"):
                             change_type = st.selectbox(
