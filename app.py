@@ -52,6 +52,7 @@ st.title("📅 보건스케줄 자동정리")
 # ══════════════════════════════════════════════
 # 📥 보건스케줄 입력
 # ══════════════════════════════════════════════
+
 if menu == "📥 보건스케줄 입력":
     st.header("📥 보건스케줄 입력")
     st.info(
@@ -98,7 +99,13 @@ if menu == "📥 보건스케줄 입력":
     request_date_str = common_date.strftime("%Y-%m-%d")
     st.info(f"📌 **{common_agency}** · {common_requester or '의뢰인 미입력'} · {common_date.strftime('%Y/%m/%d')}")
     st.divider()
+
+
+col_excel,col_kakao = st.columns(2)
+
 # ── 엑셀 업로드 ────────────────────────────
+
+with col_excel:
     st.markdown("### 📄 강의의뢰 엑셀 업로드")
     st.info(f"📌 현재 의뢰기관: **{common_agency}** · 의뢰인: **{common_requester or '미입력'}** · {request_date_str}")
     uploaded_file = st.file_uploader("엑셀 파일 (.xlsx)", type=["xlsx"])
@@ -148,7 +155,9 @@ if menu == "📥 보건스케줄 입력":
     st.divider()
 
     
-    # ── 카톡 입력 ──────────────────────────────
+# ── 카톡 입력 ──────────────────────────────
+
+with col_excel:
     st.markdown("### 💬 카톡 / 이메일 텍스트 입력")
     st.info(f"📌 현재 의뢰기관: **{common_agency}** · 의뢰인: **{common_requester or '미입력'}** · {request_date_str}")
     raw_text = st.text_area("강의 요청 메시지를 붙여넣으세요.", height=220, key="raw_text_input")
