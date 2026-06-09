@@ -712,7 +712,6 @@ elif menu == "📊 강의 현황":
             st.rerun()
     
     month_buttons("mon", "sel_month")
-    month_buttons("mon", "sel_month")
 
     sel_month = st.session_state.get("sel_month")
     if sel_month and not df_active.empty:
