@@ -42,8 +42,8 @@ default_menu = st.session_state.pop("_menu", "📥 보건스케줄 입력")
 menu_options = [
     "🏠 대시보드",
     "📥 보건스케줄 입력",
+    "🗓️ 강사 매칭 시스템",
     "📊 강의 현황",
-    "🤖 강사 매칭 시스템",
     "👨‍🏫 강사별 대시보드",
 ]
 menu = st.sidebar.radio("메뉴 선택", menu_options, index=menu_options.index(default_menu))
@@ -600,6 +600,144 @@ if menu == "📥 보건스케줄 입력":
                 st.session_state.pop("raw_text_for_drive", None)
                 st.session_state.pop("excel_file_for_drive", None)
                 st.rerun()
+# ══════════════════════════════════════════════
+# 🗓️ 강사 매칭 시스템
+# ══════════════════════════════════════════════
+elif menu == "🗓️ 강사 매칭 시스템":
+    from matching_engine import auto_match, check_overload
+    from config import INSTRUCTOR_CONFIG
+
+    st.header("🤖 강사 매칭 시스템")
+    st.info("월별 미배정 강의에 강사를 자동 매칭합니다. 원티드 강사, 기관 우선순위, 한도를 고려해 배정합니다.")
+
+    df = load_gsheet_final()
+
+    if df.empty:
+        st.info("저장된 데이터가 없습니다.")
+    else:
+        now = datetime.now()
+
+        # ── 년도/월 선택 ──
+        col1, col2 = st.columns(2)
+        with col1:
+            sel_year = st.selectbox("년도", list(range(2022, 2028)),
+                                    index=list(range(2022, 2028)).index(now.year),
+                                    key="ms_year")
+        with col2:
+            sel_month = st.selectbox("월", list(range(1, 13)),
+                                     index=now.month - 1,
+                                     key="ms_month")
+
+        # ── 해당 월 데이터 ──
+        df["_dt"] = pd.to_datetime(df["강의일시"], errors="coerce")
+        fdf = df[
+            (df["_dt"].dt.year  == sel_year) &
+            (df["_dt"].dt.month == sel_month)
+        ].drop(columns=["_dt"]).copy()
+
+        if fdf.empty:
+            st.info(f"{sel_year}년 {sel_month}월 데이터가 없습니다.")
+        else:
+            # ── 강사 설정 현황 ──
+            st.markdown("### ⚙️ 강사 설정")
+            cfg_rows = []
+            for name, cfg in INSTRUCTOR_CONFIG.items():
+                used = pd.to_numeric(
+                    df[
+                        (df["강사님"] == name) &
+                        (pd.to_datetime(df["강의일시"], errors="coerce").dt.year == sel_year) &
+                        (pd.to_datetime(df["강의일시"], errors="coerce").dt.month == sel_month)
+                    ]["시수"], errors="coerce"
+                ).sum()
+                limit = cfg.get("limit")
+                cfg_rows.append({
+                    "강사":     name,
+                    "줌 가능":  "✅" if cfg.get("zoom") else "❌",
+                    "오전만":   "✅" if cfg.get("morning_only") else "❌",
+                    "선호기관": ", ".join(cfg.get("preferred_agency", [])) or "전체",
+                    "한도(시수)": f"{limit}h" if limit else "무제한",
+                    "이번달 사용": f"{used:.0f}h",
+                    "남은 한도":  f"{limit - used:.0f}h" if limit else "무제한",
+                    "백업":     "✅" if cfg.get("backup") else "",
+                })
+            st.dataframe(pd.DataFrame(cfg_rows), use_container_width=True, hide_index=True)
+
+            st.divider()
+
+            # ── 미배정 현황 ──
+            unassigned = fdf[fdf["강사님"].astype(str).str.strip().isin(["", "nan"])]
+            assigned   = fdf[~fdf["강사님"].astype(str).str.strip().isin(["", "nan"])]
+
+            col_a, col_b = st.columns(2)
+            col_a.metric("미배정", f"{len(unassigned)}건")
+            col_b.metric("배정완료", f"{len(assigned)}건")
+
+            # ── 한도 초과 경고 ──
+            overloads = check_overload(df, sel_year, sel_month)
+            if overloads:
+                for name, info in overloads.items():
+                    st.warning(f"⚠️ **{name}** 한도 초과! 사용 {info['used']:.0f}h / 한도 {info['limit']}h (초과 {info['over']:.0f}h)")
+
+            st.divider()
+
+            # ── 자동매칭 ──
+            st.markdown("### 🤖 자동 매칭")
+
+            if st.button("🤖 미배정 강의 자동매칭", key="auto_match_engine"):
+                with st.spinner("매칭 중..."):
+                    matched_df, changed = auto_match(fdf, sel_year, sel_month)
+                    st.session_state["matched_df"] = matched_df
+                    st.success(f"✅ {changed}건 자동 배정 완료!")
+                    st.rerun()
+
+            # ── 매칭 결과 편집 ──
+            if "matched_df" in st.session_state:
+                fdf = st.session_state["matched_df"]
+
+            try:
+                fdf["강의일시"] = pd.to_datetime(fdf["강의일시"], errors="coerce").dt.date
+            except Exception:
+                pass
+
+            original_fdf = fdf.copy()
+            edited_fdf = st.data_editor(
+                fdf,
+                use_container_width=True,
+                height=500,
+                num_rows="fixed",
+                column_config=get_column_config(),
+            )
+
+            # ── 저장 ──
+            col_s1, col_s2 = st.columns([2, 4])
+            with col_s1:
+                modifier = st.text_input("변경자", placeholder="이름 입력", key="ms_modifier")
+            with col_s2:
+                if st.button("💾 저장", key="ms_save"):
+                    today = datetime.now().strftime("%Y-%m-%d")
+                    for idx in edited_fdf.index:
+                        changes = []
+                        for col in COLUMNS:
+                            if col in ("변경이력", "증빙폴더"):
+                                continue
+                            orig = str(original_fdf.loc[idx, col]) if idx in original_fdf.index else ""
+                            new  = str(edited_fdf.loc[idx, col])
+                            if orig != new:
+                                changes.append(f"{col} {orig}→{new}")
+                        if changes:
+                            summary  = ", ".join(changes)
+                            existing = str(edited_fdf.loc[idx, "변경이력"]).strip()
+                            new_hist = f"[{today}] {summary}"
+                            edited_fdf.loc[idx, "변경이력"]   = f"{existing} / {new_hist}".strip(" /")
+                            edited_fdf.loc[idx, "변경일자"]   = today
+                            edited_fdf.loc[idx, "변경의뢰인"] = modifier or "미입력"
+
+                    df.update(edited_fdf)
+                    if save_gsheet_final(df):
+                        st.success("✅ 저장 완료!")
+                        st.session_state.pop("matched_df", None)
+                        st.rerun()
+
 
 # ══════════════════════════════════════════════
 # 📊 강의 현황
