@@ -331,15 +331,6 @@ if menu == "📥 보건스케줄 입력":
                 
                 col_excel, col_kakao = st.columns(2)
 
-  
-            if st.button("🔍 원본 엑셀 미리보기", key="preview_excel"):
-                uploaded_file.seek(0)
-                df_preview = pd.read_excel(uploaded_file, header=None)
-                st.dataframe(df_preview, use_container_width=True, height=300)
-
-   
-    st.divider()
-
    
     st.divider()
 
