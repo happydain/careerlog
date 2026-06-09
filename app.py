@@ -132,6 +132,7 @@ if menu == "🏠 대시보드":
                 start_h = start_time[:2].lstrip("0") or "0"
                 end_h   = end_time[:2].lstrip("0") or "0"
                 instr_short = instructor[:2] if instructor != "미배정" else "미배정"
+                location    = str(row["방식/위치"]) if str(row["방식/위치"]) not in ("", "nan") else ""  # ← 추가
                 title = f"{start_h}-{end_h} {instr_short} | {row['의뢰기관']} | {location} | {row['과정명']} | {row['대상자']}"
 
 
