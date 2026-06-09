@@ -182,7 +182,10 @@ if menu == "🏠 대시보드":
 
     with col_detail:
         if cal_result and cal_result.get("dateClick"):
-            st.session_state["selected_date"] = cal_result["dateClick"]["date"][:10]
+            clicked = cal_result["dateClick"]["date"][:10]
+            # UTC → KST 보정
+            clicked_dt = pd.to_datetime(clicked) + pd.Timedelta(hours=9)
+            st.session_state["selected_date"] = clicked_dt.strftime("%Y-%m-%d")
 
         if st.session_state.get("selected_date") and not fdf.empty:
             sel_date = st.session_state["selected_date"]
