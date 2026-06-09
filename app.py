@@ -122,7 +122,7 @@ if menu == "📥 보건스케줄 입력":
     st.info(f"📌 현재 의뢰기관: **{common_agency}** · 의뢰인: **{common_requester or '미입력'}** · {request_date_str}")
     uploaded_file = st.file_uploader("엑셀 파일 (.xlsx)", type=["xlsx"])
 
-    if uploaded_file:
+if uploaded_file:
         if st.button("📄 엑셀 일정 변환"):
             if not common_requester.strip():
                 st.error("담당자 이름을 입력해주세요.")
@@ -148,6 +148,7 @@ if menu == "📥 보건스케줄 입력":
                         df_excel["의뢰인"] = common_requester
                         df_excel["의뢰일"] = request_date_str
                         df_excel["의뢰방법"] = common_method
+
                     if df_excel.empty:
                         st.warning("변환된 일정이 없습니다.")
                     else:
@@ -158,9 +159,14 @@ if menu == "📥 보건스케줄 입력":
                 except Exception as e:
                     st.error(f"엑셀 변환 오류: {e}")
 
+        if st.button("🔍 원본 엑셀 미리보기", key="preview_excel"):
+            uploaded_file.seek(0)
+            df_preview = pd.read_excel(uploaded_file, header=None)
+            st.dataframe(df_preview, use_container_width=True, height=300)
+
     st.divider()
 
-    # ── 증빙 파일 ────────────────────────────
+# ── 증빙 파일 ────────────────────────────
     st.markdown("### 📎 증빙 파일")
     st.info("💡 저장 후 증빙폴더 링크를 클릭해서 파일을 직접 드라이브에 업로드하세요.")
     if st.session_state.get("excel_file_for_drive"):
@@ -215,7 +221,14 @@ if menu == "📥 보건스케줄 입력":
             if str(l).strip() and str(l) not in LOCATION_OPTIONS
         ]
         if unknown_locations:
-            st.warning(f"⚠️ 목록에 없는 방식/위치: **{', '.join(unknown_locations)}** — 직접 수정해주세요.")
+            st.warning(f"⚠️ 목록에 없는 방식/위치: **{', '.join(unknown_locations)}**")
+            cols = st.columns(len(unknown_locations))
+            for i, loc in enumerate(unknown_locations):
+                with cols[i]:
+                    if st.button(f"✅ {loc} 추가", key=f"add_loc_{i}"):
+                        LOCATION_OPTIONS.append(loc)
+                        st.success(f"{loc} 추가됨!")
+                        st.rerun()
 
         st.divider()
         col1, col2, col3 = st.columns(3)
