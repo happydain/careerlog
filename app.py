@@ -860,10 +860,11 @@ elif menu == "📅 최종 스케줄 매칭시스템":
                 fdf_active = fdf[fdf["상태"] != "취소"] if "상태" in fdf.columns else fdf
                 total_hours = pd.to_numeric(fdf_active["시수"], errors="coerce").sum()
                 total_fee   = pd.to_numeric(fdf_active["강의료(1일)"], errors="coerce").sum()
-                c1, c2, c3 = st.columns(3)
+                c1, c2, c3, c4 = st.columns(4)
                 c1.metric("강의 건수", f"{len(fdf_active)}건")
                 c2.metric("총 시수", f"{total_hours:.0f}시간")
                 c3.metric("총 강의료", f"₩{total_fee:,.0f}")
+                c4.metric("참여일", f"{total_days}일")  
                 st.divider()
 
                 if "auto_matched_df" in st.session_state:
