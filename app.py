@@ -704,7 +704,7 @@ elif menu == "📅 최종 스케줄 매칭시스템":
     """, unsafe_allow_html=True)
 
     if not df_active.empty:
-        instructors = sorted([i for i in df_active["강사님"].dropna().unique().tolist() if str(i).strip() and str(i) != "nan"])
+        instructors = sorted([i for i in df_active["강사님"].dropna().unique().tolist() if str(i).strip() and str(i) != "nan"])
         instr_cols  = st.columns(len(instructors) + 1)
         with instr_cols[0]:
             if st.button("전체", key="instr_all",
