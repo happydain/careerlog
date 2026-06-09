@@ -78,19 +78,19 @@ def detect_target(text):
 def detect_subject(text):
     text_upper = str(text).upper()
     if "동료를 살리는 응급처치" in text or "CPR" in text_upper or "AED" in text_upper or "-1" in text:
-        return "응급처치 대한1"
+        return "응급1 대한"
     if "상황별 응급처치" in text or "사고별 응급처치" in text:
-        return "응급처치 대한2"
+        return "응급2 대한"
     if "뇌심" in text or "뇌심혈관" in text or "-2" in text:
-        return "뇌심혈관"
+        return "뇌심"
     if "직장" in text and "괴롭힘" in text:
-        return "직장내괴롭힘"
+        return "괴롭힘"
     if "근골격계" in text:
-        return "근골격계"
+        return "근골"
     if "건강진단" in text:
         return "건강진단"
     if "응급처치" in text:
-        return "응급처치"
+        return "응급"
     return ""
 
 
@@ -144,6 +144,7 @@ def make_row(date_obj, start, end, agency, subject, target,
         "시작": start,
         "종료": end,
         "의뢰기관": agency,
+        "출강기업": "",   
         "과정명": subject,
         "대상자": target,
         "업종": industry,
