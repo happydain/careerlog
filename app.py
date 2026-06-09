@@ -78,7 +78,7 @@ if menu == "📥 보건스케줄 입력":
         else:
             common_requester = st.text_input("의뢰인")
     with col4:
-        common_method = st.selectbox("의뢰방법", ["카카오톡", "이메일", "전화", "문자", "기타"])
+        common_method = st.selectbox("의뢰방법", ["카카오톡엑셀", "카카오톡문자", "이메일", "전화", "문자", "기타"])
 
     request_date_str = common_date.strftime("%Y-%m-%d")
 
