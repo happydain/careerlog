@@ -684,6 +684,39 @@ elif menu == "🗓️ 강사 매칭 시스템":
             st.markdown("### 🤖 자동 매칭")
 
             if st.button("🤖 미배정 강의 자동매칭", key="auto_match_engine"):
+            if st.button("📅 캘린더 원티드 반영", key="cal_wanted"):
+                from gcalendar import get_events
+                from config import INSTRUCTOR_CALENDARS
+                from matching_engine import apply_calendar_wanted
+                import calendar as cal_module
+            
+                with st.spinner("캘린더 읽는 중..."):
+                    first_day = f"{sel_year}-{sel_month:02d}-01"
+                    last_day  = f"{sel_year}-{sel_month:02d}-{cal_module.monthrange(sel_year, sel_month)[1]:02d}"
+            
+                    events_by_instructor = {}
+                    for instructor, cal_id in INSTRUCTOR_CALENDARS.items():
+                        if not cal_id:
+                            continue
+                        events = get_events(first_day, last_day, calendar_id=cal_id)
+                        events_by_instructor[instructor] = [
+                            {
+                                "date":  e.get("start", {}).get("dateTime", "")[:10],
+                                "start": e.get("start", {}).get("dateTime", "")[11:16],
+                                "title": e.get("summary", ""),
+                            }
+                            for e in events
+                        ]
+            
+                    result, applied, log = apply_calendar_wanted(fdf, events_by_instructor)
+                    if applied > 0:
+                        st.session_state["matched_df"] = result
+                        st.success(f"✅ 원티드 {applied}건 반영!")
+                        for l in log:
+                            st.caption(l)
+                        st.rerun()
+                    else:
+                        st.info("이번달 원티드 일정이 없습니다.")
                 with st.spinner("매칭 중..."):
                     matched_df, changed = auto_match(fdf, sel_year, sel_month)
                     st.session_state["matched_df"] = matched_df
