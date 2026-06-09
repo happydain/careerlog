@@ -624,51 +624,89 @@ elif menu == "📊 협회별 월별 스케줄":
 # ══════════════════════════════════════════════
 # 👨‍🏫 강사별 대시보드
 # ══════════════════════════════════════════════
-elif menu == "👨‍🏫 강사별 대시보드":
-    st.header("👨‍🏫 강사별 대시보드")
-    st.divider()
-    st.markdown("### 📅 구글 캘린더 일정 가져오기")
-    if st.button("📥 캘린더에서 전체 가져오기", key="import_cal_btn"):
-        from gcalendar import get_events
-        import calendar as cal_module
-        with st.spinner("2022년부터 전체 일정 가져오는 중..."):
-            all_events = []
-            y, m = 2022, 1
-            now = datetime.now()
-            while (y, m) <= (now.year, now.month):
-                first_day = f"{y}-{m:02d}-01"
-                last_day  = f"{y}-{m:02d}-{cal_module.monthrange(y, m)[1]:02d}"
-                events = get_events(first_day, last_day)
-                all_events.extend(events)
-                m += 1
-                if m > 12:
-                    m = 1
-                    y += 1
-            rows = []
-            for e in all_events:
-                start = e.get("start", {}).get("dateTime", e.get("start", {}).get("date", ""))
-                end   = e.get("end",   {}).get("dateTime", e.get("end",   {}).get("date", ""))
-                rows.append({
-                    "강의일시": start[:10] if start else "",
-                    "시작":    start[11:16] if len(start) > 10 else "",
-                    "종료":    end[11:16]   if len(end)   > 10 else "",
-                    "제목":    e.get("summary", ""),
-                    "장소":    e.get("location", ""),
-                    "이벤트ID": e.get("id", ""),
-                })
-            st.session_state["cal_imported"] = pd.DataFrame(rows)
-            st.success(f"✅ {len(rows)}건 가져왔어요!")
-            st.rerun()
 
-    if "cal_imported" in st.session_state:
-        cal_df = st.session_state["cal_imported"]
-        st.dataframe(cal_df, use_container_width=True, height=400)
-        buffer = io.BytesIO()
-        cal_df.to_excel(buffer, index=False, engine="xlsxwriter")
-        st.download_button(
-            label="📥 엑셀 다운로드",
-            data=buffer.getvalue(),
-            file_name=f"캘린더_{selected}_{datetime.now().strftime('%Y%m%d')}.xlsx",
-            mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
-            key="cal_download_btn",
-        )
+# ══════════════════════════════════════════════
+# 👨‍🏫 강사별 대시보드
+# ══════════════════════════════════════════════
+elif menu == "👨‍🏫 강사별 대시보드":
+    from gcalendar import get_events
+    from config import INSTRUCTOR_CALENDARS
+    import calendar as cal_module
+
+    st.header("👨‍🏫 강사별 대시보드")
+    df = load_gsheet_final()
+
+    if df.empty:
+        st.info("저장된 데이터가 없습니다.")
+    elif "강사님" not in df.columns:
+        st.warning("강사님 컬럼이 없습니다.")
+    else:
+        selected = st.selectbox("강사 선택", sorted(df["강사님"].dropna().unique().tolist()))
+        idf = df[df["강사님"] == selected].copy()
+
+        st.subheader(f"{selected} 강사 일정")
+        st.dataframe(idf, use_container_width=True, height=400,
+                     column_config=get_column_config())
+        try:
+            total_hours = pd.to_numeric(idf["시수"], errors="coerce").sum()
+            total_fee   = pd.to_numeric(idf["강의료(1일)"], errors="coerce").sum()
+            c1, c2 = st.columns(2)
+            c1.metric("총 시수", f"{total_hours:.0f}시간")
+            c2.metric("총 강의료", f"₩{total_fee:,.0f}")
+        except Exception as e:
+            st.error(f"집계 오류: {e}")
+
+        st.divider()
+        st.markdown("### 📅 구글 캘린더 일정 가져오기")
+
+        cal_id = INSTRUCTOR_CALENDARS.get(selected, "")
+        if not cal_id:
+            st.warning(f"⚠️ {selected} 강사님 캘린더가 연동되지 않았습니다.")
+        else:
+            if st.button("📥 캘린더에서 전체 가져오기", key="import_cal_btn"):
+                with st.spinner("2022년부터 전체 일정 가져오는 중..."):
+                    all_events = []
+                    y, m = 2022, 1
+                    now = datetime.now()
+                    while (y, m) <= (now.year, now.month):
+                        first_day = f"{y}-{m:02d}-01"
+                        last_day  = f"{y}-{m:02d}-{cal_module.monthrange(y, m)[1]:02d}"
+                        events = get_events(first_day, last_day, calendar_id=cal_id)
+                        all_events.extend(events)
+                        m += 1
+                        if m > 12:
+                            m = 1
+                            y += 1
+
+                    rows = []
+                    for e in all_events:
+                        start = e.get("start", {}).get("dateTime", e.get("start", {}).get("date", ""))
+                        end   = e.get("end",   {}).get("dateTime", e.get("end",   {}).get("date", ""))
+                        rows.append({
+                            "강의일시": start[:10] if start else "",
+                            "시작":    start[11:16] if len(start) > 10 else "",
+                            "종료":    end[11:16]   if len(end)   > 10 else "",
+                            "제목":    e.get("summary", ""),
+                            "장소":    e.get("location", ""),
+                            "이벤트ID": e.get("id", ""),
+                        })
+
+                    st.session_state["cal_imported"] = pd.DataFrame(rows)
+                    st.session_state["cal_imported_name"] = selected
+                    st.success(f"✅ {len(rows)}건 가져왔어요!")
+                    st.rerun()
+
+            if "cal_imported" in st.session_state:
+                cal_df = st.session_state["cal_imported"]
+                name   = st.session_state.get("cal_imported_name", selected)
+                st.dataframe(cal_df, use_container_width=True, height=400)
+
+                buffer = io.BytesIO()
+                cal_df.to_excel(buffer, index=False, engine="xlsxwriter")
+                st.download_button(
+                    label="📥 엑셀 다운로드",
+                    data=buffer.getvalue(),
+                    file_name=f"캘린더_{name}_{datetime.now().strftime('%Y%m%d')}.xlsx",
+                    mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+                    key="cal_download_btn",
+                )
