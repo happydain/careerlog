@@ -63,16 +63,14 @@ def _get_or_create_folder(service, name, parent_id):
     return fid
 
 
-def create_request_folder(year: int, agency: str, request_date: str, requester: str) -> str:
-    """CareerLog/연도/기관/날짜_의뢰인_의뢰N건"""
+def create_request_folder(year: int, agency: str, request_date: str, requester: str, folder_type: str = "의뢰") -> str:
     service = get_drive_service()
     year_id   = _get_or_create_folder(service, str(year), DRIVE_ROOT_FOLDER_ID)
     agency_id = _get_or_create_folder(service, agency, year_id)
 
-    # 기존 의뢰N건 폴더 개수 세기
     base = f"{request_date.replace('-', '')}_{requester}"
     q = (
-        f"name contains '{base}_의뢰' "
+        f"name contains '{base}_{folder_type}' "
         f"and '{agency_id}' in parents "
         f"and mimeType='application/vnd.google-apps.folder' "
         f"and trashed=false"
@@ -82,11 +80,9 @@ def create_request_folder(year: int, agency: str, request_date: str, requester: 
         supportsAllDrives=True,
         includeItemsFromAllDrives=True
     ).execute()
-    count = len(result.get("files", [])) + 1
-    folder_name = f"{base}_의뢰{count}건"
-    folder_id = _create_folder(service, folder_name, agency_id)
+    count     = len(result.get("files", [])) + 1
+    folder_id = _create_folder(service, f"{base}_{folder_type}{count}건", agency_id)
     return folder_id
-
 
 def get_folder_url(folder_id: str) -> str:
     return f"https://drive.google.com/drive/folders/{folder_id}"
