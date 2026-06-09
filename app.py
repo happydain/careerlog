@@ -190,7 +190,33 @@ if menu == "🏠 대시보드":
         }
     """
 
-    cal_result = st_calendar(events=events, options=calendar_options, custom_css=custom_css, key="main_calendar")
+    col_cal, col_detail = st.columns([3, 1])
+
+    with col_cal:
+        cal_result = st_calendar(events=events, options=calendar_options, custom_css=custom_css, key="main_calendar")
+    
+    with col_detail:
+        if cal_result and cal_result.get("dateClick"):
+            clicked_date = cal_result["dateClick"]["date"][:10]
+            st.session_state["selected_date"] = clicked_date
+    
+        if st.session_state.get("selected_date") and not fdf.empty:
+            sel_date = st.session_state["selected_date"]
+            day_df = fdf[fdf["강의일시"].astype(str).str[:10] == sel_date]
+    
+            st.markdown(f"### 📅 {sel_date}")
+            if not day_df.empty:
+                for instructor, idf in day_df.groupby("강사님"):
+                    st.markdown(f"**👤 {instructor}**")
+                    for _, row in idf.iterrows():
+                        start_h = str(row["시작"])[:2].lstrip("0") or "0"
+                        end_h   = str(row["종료"])[:2].lstrip("0") or "0"
+                        st.markdown(f"- {start_h}-{end_h} {row['의뢰기관']} {row['과정명']} {row['방식/위치']}")
+                    st.divider()
+            else:
+                st.info("강의 없음")
+        else:
+            st.info("날짜를 클릭하세요")
 
     # ── 클릭 이벤트 ──
     if cal_result and cal_result.get("eventClick"):
