@@ -20,8 +20,6 @@ _ROOM_MAP = {
     "제2강의실": "인천2",
     "1강의실":   "인천1",
     "2강의실":   "인천2",
-    "제1":       "인천1",
-    "제2":       "인천2",
 }
 
 def _detect_industry(text: str) -> str:
@@ -46,13 +44,13 @@ def _parse_date_str(raw) -> pd.Timestamp:
 def parse_incheon_excel(uploaded_file, agency=AGENCY, requester="", request_date="",request_method=""):
     raw = pd.read_excel(uploaded_file, sheet_name=0, header=None)
 
-    # 헤더 찾기
-    header_row_idx = None
+    # 헤더 찾기 - "강의일" OR "강의시간" 있는 행
     for idx, row in raw.iterrows():
         values = [str(v).strip() for v in row.values]
-        if "강의일" in values and "강의시간" in values:
+        if "강의일" in values or "강의시간" in values:
             header_row_idx = idx
             break
+            
     if header_row_idx is None:
         raise ValueError("엑셀에서 '강의일', '강의시간' 헤더를 찾지 못했습니다.")
 
