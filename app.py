@@ -435,12 +435,16 @@ elif menu == "📋 의뢰일별 스케줄(취소,변경반영)":
 # ══════════════════════════════════════════════
 # 📅 최종 스케줄 매칭시스템
 # ══════════════════════════════════════════════
+# ══════════════════════════════════════════════
+# 📅 최종 스케줄 매칭시스템
+# ══════════════════════════════════════════════
 elif menu == "📅 최종 스케줄 매칭시스템":
     st.header("📅 최종 스케줄 매칭시스템")
 
+    # ── 월별 버튼 ──
     start_year, start_month = 2022, 1
     end_year, end_month = 2027, 12
-    
+
     months = []
     y, m = start_year, start_month
     while (y, m) <= (end_year, end_month):
@@ -449,7 +453,7 @@ elif menu == "📅 최종 스케줄 매칭시스템":
         if m > 12:
             m = 1
             y += 1
-    
+
     year_colors = {
         2022: "#FF6B6B",
         2023: "#FF9F43",
@@ -458,12 +462,12 @@ elif menu == "📅 최종 스케줄 매칭시스템":
         2026: "#00D2D3",
         2027: "#1DD1A1",
     }
-    
+
     years = sorted(set(y for y, m in months))
     for yr in years:
         yr_months = [mo for y, mo in months if y == yr]
         color = year_colors.get(yr, "#888")
-        
+
         st.markdown(f"""
         <div style="display:flex; align-items:center; gap:8px; margin-bottom:4px;">
             <span style="background:{color}; color:white; border-radius:6px;
@@ -471,7 +475,7 @@ elif menu == "📅 최종 스케줄 매칭시스템":
                          min-width:50px; text-align:center;">{yr}년</span>
         </div>
         """, unsafe_allow_html=True)
-        
+
         cols = st.columns(len(yr_months))
         for i, mo in enumerate(yr_months):
             with cols[i]:
@@ -488,77 +492,104 @@ elif menu == "📅 최종 스케줄 매칭시스템":
                     st.session_state["filter_year"] = yr
                     st.session_state["filter_month"] = mo
                     st.rerun()
-    df = load_gsheet_final()
 
-st.divider()
+    st.divider()
 
-# 선택된 월 표시
-filter_year  = st.session_state.get("filter_year")
-filter_month = st.session_state.get("filter_month")
+    # ── 선택된 월 데이터 ──
+    filter_year  = st.session_state.get("filter_year")
+    filter_month = st.session_state.get("filter_month")
 
-if filter_year and filter_month:
-    st.markdown(f"### 📅 {filter_year}년 {filter_month}월 강의 일정")
-    
-    df = load_gsheet_final()
-    if df.empty:
-        st.info("저장된 데이터가 없습니다.")
+    if not filter_year or not filter_month:
+        st.info("위에서 월을 선택하세요.")
     else:
-        df["_dt"] = pd.to_datetime(df["강의일시"], errors="coerce")
-        fdf = df[
-            (df["_dt"].dt.year  == filter_year) &
-            (df["_dt"].dt.month == filter_month)
-        ].drop(columns=["_dt"]).copy()
+        st.markdown(f"### 📅 {filter_year}년 {filter_month}월 강의 일정")
 
-        if fdf.empty:
-            st.info(f"{filter_year}년 {filter_month}월 데이터가 없습니다.")
+        df = load_gsheet_final()
+        if df.empty:
+            st.info("저장된 데이터가 없습니다.")
         else:
-            # 집계
-            total_hours = pd.to_numeric(fdf["시수"], errors="coerce").sum()
-            total_fee   = pd.to_numeric(fdf["강의료(1일)"], errors="coerce").sum()
-            c1, c2, c3 = st.columns(3)
-            c1.metric("총 강의 건수", f"{len(fdf)}건")
-            c2.metric("총 시수", f"{total_hours:.0f}시간")
-            c3.metric("총 강의료", f"₩{total_fee:,.0f}")
-            st.divider()
+            df["_dt"] = pd.to_datetime(df["강의일시"], errors="coerce")
+            fdf = df[
+                (df["_dt"].dt.year  == filter_year) &
+                (df["_dt"].dt.month == filter_month)
+            ].drop(columns=["_dt"]).copy()
 
-            try:
-                fdf["강의일시"] = pd.to_datetime(fdf["강의일시"], errors="coerce").dt.date
-            except Exception:
-                pass
+            if fdf.empty:
+                st.info(f"{filter_year}년 {filter_month}월 데이터가 없습니다.")
+            else:
+                total_hours = pd.to_numeric(fdf["시수"], errors="coerce").sum()
+                total_fee   = pd.to_numeric(fdf["강의료(1일)"], errors="coerce").sum()
+                c1, c2, c3 = st.columns(3)
+                c1.metric("총 강의 건수", f"{len(fdf)}건")
+                c2.metric("총 시수", f"{total_hours:.0f}시간")
+                c3.metric("총 강의료", f"₩{total_fee:,.0f}")
+                st.divider()
 
-            original_fdf = fdf.copy()
-            edited_fdf = st.data_editor(
-                fdf,
-                use_container_width=True,
-                height=500,
-                num_rows="fixed",
-                column_config=get_column_config(),
-            )
+                if "auto_matched_df" in st.session_state:
+                    fdf = st.session_state.pop("auto_matched_df")
 
-            # 자동매칭
-            col_m1, col_m2 = st.columns([1, 3])
-            with col_m1:
-                if st.button("🤖 강사 자동매칭", key="auto_match_btn"):
-                    count = 0
-                    for idx in edited_fdf.index:
-                        instructor = str(edited_fdf.loc[idx, "강사님"]).strip()
-                        if not instructor or instructor in ("nan", ""):
-                            edited_fdf.loc[idx, "강사님"] = "송주영"
-                            count += 1
-                    st.session_state["auto_matched_df"] = edited_fdf
-                    st.success(f"✅ {count}건 → 송주영 자동 배정 완료!")
-                    st.rerun()
+                try:
+                    fdf["강의일시"] = pd.to_datetime(fdf["강의일시"], errors="coerce").dt.date
+                except Exception:
+                    pass
 
-            with col_m2:
-                if st.button("💾 저장", key="match_save_btn"):
-                    df.update(edited_fdf)
-                    if save_gsheet_final(df):
-                        st.success("✅ 저장 완료!")
+                original_fdf = fdf.copy()
+                edited_fdf = st.data_editor(
+                    fdf,
+                    use_container_width=True,
+                    height=500,
+                    num_rows="fixed",
+                    column_config=get_column_config(),
+                )
+
+                col_m1, col_m2, col_m3 = st.columns([2, 2, 4])
+                with col_m1:
+                    if st.button("🤖 강사 자동매칭", key="auto_match_btn"):
+                        count = 0
+                        for idx in edited_fdf.index:
+                            instructor = str(edited_fdf.loc[idx, "강사님"]).strip()
+                            if not instructor or instructor in ("nan", ""):
+                                edited_fdf.loc[idx, "강사님"] = "송주영"
+                                count += 1
+                        st.session_state["auto_matched_df"] = edited_fdf
+                        st.success(f"✅ {count}건 → 송주영 자동 배정!")
                         st.rerun()
 
-            if "auto_matched_df" in st.session_state:
-                fdf = st.session_state.pop("auto_matched_df")
-                st.rerun()
+                with col_m2:
+                    modifier = st.text_input("변경자", placeholder="이름 입력", key="match_modifier")
+
+                with col_m3:
+                    if st.button("💾 저장", key="match_save_btn"):
+                        today = datetime.now().strftime("%Y-%m-%d")
+                        for idx in edited_fdf.index:
+                            changes = []
+                            for col in COLUMNS:
+                                if col in ("변경이력", "증빙폴더"):
+                                    continue
+                                orig = str(original_fdf.loc[idx, col]) if idx in original_fdf.index else ""
+                                new  = str(edited_fdf.loc[idx, col])
+                                if orig != new:
+                                    changes.append(f"{col} {orig}→{new}")
+                            if changes:
+                                summary  = ", ".join(changes)
+                                existing = str(edited_fdf.loc[idx, "변경이력"]).strip()
+                                new_hist = f"[{today}] {summary}"
+                                edited_fdf.loc[idx, "변경이력"]   = f"{existing} / {new_hist}".strip(" /")
+                                edited_fdf.loc[idx, "변경일자"]   = today
+                                edited_fdf.loc[idx, "변경의뢰인"] = modifier or "미입력"
+
+                                folder_url = str(edited_fdf.loc[idx, "증빙폴더"])
+                                if folder_url.startswith("https://drive.google.com"):
+                                    try:
+                                        folder_id = folder_url.split("/")[-1]
+                                        append_change_log(folder_id, summary, modifier or "미입력")
+                                    except Exception:
+                                        pass
+
+                        df.update(edited_fdf)
+                        if save_gsheet_final(df):
+                            st.success("✅ 저장 완료!")
+                            st.rerun()
 else:
     st.info("위에서 월을 선택하세요.")
 
