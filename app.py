@@ -9,10 +9,13 @@ from gsheet import (
     append_to_gsheet, load_gsheet_raw, load_gsheet_final,
     save_gsheet_final, append_evidence_to_sheet,
 )
+
 from parsers import (
     parse_kakao_text, parse_seoul_kakao, parse_hanahn_kakao,
-    parse_suwon_excel, parse_suwon2_excel, parse_jungdae_excel, parse_incheon_excel,
+    parse_suwon_excel, parse_suwon2_excel, parse_jungdae_excel,
+    parse_incheon_excel, parse_incheon_kakao,
 )
+
 from gdrive import (
     create_request_folder, get_folder_url, append_change_log,
 )
