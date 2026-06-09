@@ -1127,7 +1127,7 @@ elif menu == "📊 강의 현황":
                             success += 1
                         except Exception as e:
                             errors += 1
-                            st.write(f"오류: {e}")  # ← 이 줄 추가
+                            st.write(f"오류: {e}")
 
                 st.success(f"✅ {success}건 등록 완료!")
                 if errors:
