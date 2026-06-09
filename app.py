@@ -713,12 +713,17 @@ elif menu == "🗓️ 강사 매칭 시스템":
                         result, applied, log = apply_calendar_wanted(fdf, events_by_instructor)
                         if applied > 0:
                             st.session_state["matched_df"] = result
+                            st.session_state["wanted_log"] = log
                             st.success(f"✅ 원티드 {applied}건 반영!")
-                            for l in log:
-                                st.caption(l)
-                            st.rerun()
+                            # st.rerun() 제거
                         else:
                             st.info("이번달 원티드 일정이 없습니다.")
+                        
+                        # ← 여기 아래에 추가
+                        if st.session_state.get("wanted_log"):
+                            st.markdown("**원티드 반영 내역:**")
+                            for l in st.session_state["wanted_log"]:
+                                st.caption(l)
             
             with col_btn2:
                 if st.button("🤖 미배정 강의 자동매칭", key="auto_match_engine"):
