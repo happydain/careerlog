@@ -29,7 +29,7 @@ st.markdown("""
     font-size: 18px !important;
 }
 section[data-testid="stSidebar"] * label {
-    font-size: 50px !important;
+    font-size: 35px !important;
 }
 </style>
 """, unsafe_allow_html=True)
