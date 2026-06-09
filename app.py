@@ -873,13 +873,6 @@ elif menu == "📅 최종 스케줄 매칭시스템":
                 c5.metric("일당", f"₩{avg_daily_fee:,.0f}")
                 c6.metric("시간당", f"₩{hourly_rate:,.0f}")
                 
-                c1, c2, c3, c4, c5 = st.columns(5)
-                c1.metric("강의 건수", f"{len(fdf_active)}건")
-                c2.metric("총 시수", f"{total_hours:.0f}시간")
-                c3.metric("총 강의료", f"₩{total_fee:,.0f}")
-                c4.metric("참여일", f"{total_days}일")
-                c5.metric("1일 평균", f"{avg_hours:.1f}h / ₩{avg_fee:,.0f}")
-                st.divider()
 
                 if "auto_matched_df" in st.session_state:
                     fdf = st.session_state.pop("auto_matched_df")
