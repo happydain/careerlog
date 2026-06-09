@@ -23,7 +23,7 @@ st.markdown("""
 <style>
 [data-testid="stSidebar"] label p {
     font-size: 18px !important;
-    font-weight: 500 !important;
+    font-weight: 450 !important;
 }
 [data-testid="stSidebar"] .stRadio label {
     font-size: 18px !important;
@@ -40,7 +40,7 @@ st.sidebar.title("📅 CareerLog")
 default_menu = st.session_state.pop("_menu", "📥 보건스케줄 입력")
 menu_options = [
     "📥 보건스케줄 입력",
-    "📋 의뢰일별 스케줄(취소,변경반영)",
+    "📋 의뢰일별 스케줄(취소,변경)",
     "📅 최종 스케줄 매칭시스템",
     "📊 협회별 월별 스케줄",
     "👨‍🏫 강사별 대시보드",
@@ -210,7 +210,7 @@ if menu == "📥 보건스케줄 입력":
         st.success("✅ 저장 완료!")
         if st.button("📋 의뢰일별 스케줄 확인하기", key="go_to_raw"):
             st.session_state.pop("saved_done")
-            st.session_state["_menu"] = "📋 의뢰일별 스케줄(취소,변경반영)"
+            st.session_state["_menu"] = "📋 의뢰일별 스케줄(취소,변경)"
             st.rerun()
 
     # ── 최종 확인 및 저장 ──────────────────────
@@ -333,8 +333,8 @@ if menu == "📥 보건스케줄 입력":
 # 📋 의뢰일별
 # ══════════════════════════════════════════════
 
-elif menu == "📋 의뢰일별 스케줄(취소,변경반영)":
-    st.header("📋 의뢰일별 스케줄(취소,변경반영)")
+elif menu == "📋 의뢰일별 스케줄(취소,변경)":
+    st.header("📋 의뢰일별 스케줄(취소,변경)")
     st.info("""
     📌 **이 페이지에서 할 수 있는 것**
     - 🧑‍🏫 **강사님 지정** - 의뢰 건별로 강사님 이름 입력
