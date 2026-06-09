@@ -58,29 +58,6 @@ if menu == "🏠 대시보드":
 
     df = load_gsheet_final()
 
-    # ── 집계 카드 ──
-    now = datetime.now()
-    if not df.empty:
-        df["_dt"] = pd.to_datetime(df["강의일시"], errors="coerce")
-        this_month = df[
-            (df["_dt"].dt.year  == now.year) &
-            (df["_dt"].dt.month == now.month)
-        ]
-        total_count = len(this_month)
-        total_hours = pd.to_numeric(this_month["시수"], errors="coerce").sum()
-        total_fee   = pd.to_numeric(this_month["강의료(1일)"], errors="coerce").sum()
-        df = df.drop(columns=["_dt"])
-    else:
-        total_count = total_hours = total_fee = 0
-
-    st.markdown(f"### {now.year}년 {now.month}월 현황")
-    c1, c2, c3 = st.columns(3)
-    c1.metric("이번달 강의", f"{total_count}건")
-    c2.metric("이번달 시수", f"{total_hours:.0f}시간")
-    c3.metric("이번달 강의료", f"₩{total_fee:,.0f}")
-
-    st.divider()
-
     # ── 필터 ──
     if not df.empty:
         col1, col2 = st.columns(2)
@@ -124,17 +101,16 @@ if menu == "🏠 대시보드":
                 end_time   = str(row["종료"]) if str(row["종료"]) not in ("", "nan") else "11:00"
                 instructor = str(row["강사님"]) if str(row["강사님"]) not in ("", "nan") else "미배정"
                 status     = str(row.get("상태", "정상"))
+                location   = str(row["방식/위치"]) if str(row["방식/위치"]) not in ("", "nan") else ""
                 color      = INSTRUCTOR_COLORS.get(instructor, "#888")
 
                 if status == "취소":
                     color = "#aaa"
 
-                start_h = start_time[:2].lstrip("0") or "0"
-                end_h   = end_time[:2].lstrip("0") or "0"
-                instr_short = instructor[1:1] if instructor != "미배정" else "미배정"
-                location    = str(row["방식/위치"]) if str(row["방식/위치"]) not in ("", "nan") else ""  # ← 추가
+                start_h     = start_time[:2].lstrip("0") or "0"
+                end_h       = end_time[:2].lstrip("0") or "0"
+                instr_short = instructor[1:] if instructor != "미배정" else "미배정"
                 title = f"{start_h}-{end_h} {instr_short} | {row['의뢰기관']} | {location} | {row['과정명']} | {row['대상자']}"
-
 
                 events.append({
                     "title": title,
@@ -146,7 +122,7 @@ if menu == "🏠 대시보드":
                         "강사님":   instructor,
                         "의뢰기관": str(row["의뢰기관"]),
                         "과정명":   str(row["과정명"]),
-                        "방식위치": str(row["방식/위치"]),
+                        "방식위치": location,
                         "상태":     status,
                     }
                 })
@@ -167,67 +143,80 @@ if menu == "🏠 대시보드":
         "editable": False,
         "eventDisplay": "block",
         "dayMaxEvents": False,
+        "displayEventTime": False,
         "eventTextColor": "white",
-        "eventTimeFormat": {
-            "hour": "numeric",
-            "minute": "2-digit",
-            "omitZeroMinute": True,
-            "meridiem": False
-        },
-        "displayEventTime": False,  # ← 시간 표시 끄기
-             
     }
 
     custom_css = """
         .fc-event-title {
-            font-size: 9px !important;
+            font-size: 8px !important;
             white-space: nowrap;
             overflow: hidden;
             text-overflow: ellipsis;
         }
-        .fc-event-time {
-            font-size: 7px !important;
-        }
     """
 
+    # ── 캘린더 + 날짜 상세 ──
     col_cal, col_detail = st.columns([3, 1])
 
     with col_cal:
         cal_result = st_calendar(events=events, options=calendar_options, custom_css=custom_css, key="main_calendar")
-    
+
     with col_detail:
         if cal_result and cal_result.get("dateClick"):
-            clicked_date = cal_result["dateClick"]["date"][:10]
-            st.session_state["selected_date"] = clicked_date
-    
+            st.session_state["selected_date"] = cal_result["dateClick"]["date"][:10]
+
         if st.session_state.get("selected_date") and not fdf.empty:
             sel_date = st.session_state["selected_date"]
-            day_df = fdf[fdf["강의일시"].astype(str).str[:10] == sel_date]
-    
-            st.markdown(f"### 📅 {sel_date}")
+            day_df   = fdf[fdf["강의일시"].astype(str).str[:10] == sel_date]
+
+            st.markdown(f"#### 📅 {sel_date}")
             if not day_df.empty:
                 for instructor, idf in day_df.groupby("강사님"):
-                    st.markdown(f"**👤 {instructor}**")
-                    for _, row in idf.iterrows():
+                    st.markdown(f"**{instructor}**")
+                    for _, row in idf.sort_values("시작").iterrows():
                         start_h = str(row["시작"])[:2].lstrip("0") or "0"
                         end_h   = str(row["종료"])[:2].lstrip("0") or "0"
-                        st.markdown(f"- {start_h}-{end_h} {row['의뢰기관']} {row['과정명']} {row['방식/위치']}")
+                        st.markdown(f"- {start_h}-{end_h} {row['의뢰기관']} {row['방식/위치']}")
                     st.divider()
             else:
                 st.info("강의 없음")
         else:
-            st.info("날짜를 클릭하세요")
+            st.caption("날짜를 클릭하면 상세 일정이 표시됩니다.")
 
-    # ── 클릭 이벤트 ──
-    if cal_result and cal_result.get("eventClick"):
-        clicked = cal_result["eventClick"]["event"]
-        props   = clicked.get("extendedProps", {})
-        st.info(
-            f"**{clicked['title']}**  \n"
-            f"강사: {props.get('강사님', '')} | "
-            f"위치: {props.get('방식위치', '')} | "
-            f"상태: {props.get('상태', '')}"
-        )
+    # ── 월별 현황 집계 ──
+    st.divider()
+
+    if cal_result and cal_result.get("datesSet"):
+        current_start = cal_result["datesSet"]["startStr"][:10]
+        current_dt = pd.to_datetime(current_start)
+        st.session_state["cal_year"]  = current_dt.year
+        st.session_state["cal_month"] = current_dt.month + 1
+        if st.session_state["cal_month"] > 12:
+            st.session_state["cal_month"] = 1
+            st.session_state["cal_year"] += 1
+
+    now = datetime.now()
+    cal_year  = st.session_state.get("cal_year",  now.year)
+    cal_month = st.session_state.get("cal_month", now.month)
+
+    total_count = total_hours = total_fee = 0
+    if not df.empty:
+        df["_dt"] = pd.to_datetime(df["강의일시"], errors="coerce")
+        this_month = df[
+            (df["_dt"].dt.year  == cal_year) &
+            (df["_dt"].dt.month == cal_month)
+        ]
+        total_count = len(this_month)
+        total_hours = pd.to_numeric(this_month["시수"], errors="coerce").sum()
+        total_fee   = pd.to_numeric(this_month["강의료(1일)"], errors="coerce").sum()
+        df = df.drop(columns=["_dt"])
+
+    st.markdown(f"### {cal_year}년 {cal_month}월 현황")
+    c1, c2, c3 = st.columns(3)
+    c1.metric("강의 건수", f"{total_count}건")
+    c2.metric("총 시수",   f"{total_hours:.0f}시간")
+    c3.metric("총 강의료", f"₩{total_fee:,.0f}")
 # ══════════════════════════════════════════════
 # 📥 보건스케줄 입력
 # ══════════════════════════════════════════════
