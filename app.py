@@ -106,7 +106,6 @@ if menu == "📥 보건스케줄 입력":
     # ── 엑셀 업로드 ────────────────────────────
     with col_excel:
         st.markdown("### 📄 강의의뢰 엑셀 업로드")
-        st.info(f"📌 현재 의뢰기관: **{common_agency}** · 의뢰인: **{common_requester or '미입력'}** · {request_date_str}")
         uploaded_file = st.file_uploader("엑셀 파일 (.xlsx)", type=["xlsx"])
 
         if uploaded_file:
@@ -154,7 +153,6 @@ if menu == "📥 보건스케줄 입력":
     # ── 카톡 입력 ──────────────────────────────
     with col_kakao:
         st.markdown("### 💬 카톡 / 이메일 텍스트 입력")
-        st.info(f"📌 현재 의뢰기관: **{common_agency}** · 의뢰인: **{common_requester or '미입력'}** · {request_date_str}")
         raw_text = st.text_area("강의 요청 메시지를 붙여넣으세요.", height=220, key="raw_text_input")
 
         if st.button("🪄 카톡 일정 분석"):
@@ -333,49 +331,7 @@ if menu == "📥 보건스케줄 입력":
                 
                 col_excel, col_kakao = st.columns(2)
 
-    # ── 엑셀 업로드 ────────────────────────────
-    with col_excel:
-        st.markdown("### 📄 강의의뢰 엑셀 업로드")
-        st.info(f"📌 현재 의뢰기관: **{common_agency}** · 의뢰인: **{common_requester or '미입력'}** · {request_date_str}")
-        uploaded_file = st.file_uploader("엑셀 파일 (.xlsx)", type=["xlsx"])
-
-        if uploaded_file:
-            if st.button("📄 엑셀 일정 변환"):
-                if not common_requester.strip():
-                    st.error("담당자 이름을 입력해주세요.")
-                else:
-                    try:
-                        if common_agency == "인천대한협":
-                            df_excel = parse_incheon_excel(uploaded_file, common_agency,
-                                                           common_requester, request_date_str)
-                        elif common_agency == "중대협":
-                            df_excel = parse_jungdae_excel(uploaded_file, common_requester,
-                                                           request_date_str, year)
-                        else:
-                            try:
-                                df_excel = parse_suwon2_excel(uploaded_file, common_agency)
-                                if df_excel.empty:
-                                    raise ValueError("데이터 없음")
-                            except Exception:
-                                try:
-                                    uploaded_file.seek(0)
-                                    df_excel = parse_suwon_excel(uploaded_file, common_agency)
-                                except Exception as e2:
-                                    raise ValueError(f"파싱 실패: {e2}")
-                            df_excel["의뢰인"] = common_requester
-                            df_excel["의뢰일"] = request_date_str
-                            df_excel["의뢰방법"] = common_method
-
-                        if df_excel.empty:
-                            st.warning("변환된 일정이 없습니다.")
-                        else:
-                            st.session_state["temp_df"] = df_excel
-                            st.session_state["raw_text_for_drive"] = ""
-                            st.session_state["excel_file_for_drive"] = uploaded_file
-                            st.success(f"✅ {len(df_excel)}건 일정 생성 완료")
-                    except Exception as e:
-                        st.error(f"엑셀 변환 오류: {e}")
-
+  
             if st.button("🔍 원본 엑셀 미리보기", key="preview_excel"):
                 uploaded_file.seek(0)
                 df_preview = pd.read_excel(uploaded_file, header=None)
