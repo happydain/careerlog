@@ -132,3 +132,35 @@ def check_overload(df: pd.DataFrame, year: int, month: int) -> dict:
                 "over":  used - limit,
             }
     return warnings
+
+# 캘린더에서 원티드 가져오기
+if st.button("📅 캘린더 원티드 가져오기", key="cal_wanted"):
+    from gcalendar import get_events
+    from config import INSTRUCTOR_CALENDARS
+    import calendar as cal_module
+
+    first_day = f"{sel_year}-{sel_month:02d}-01"
+    last_day  = f"{sel_year}-{sel_month:02d}-{cal_module.monthrange(sel_year, sel_month)[1]:02d}"
+
+    wanted_list = []
+    for instructor, cal_id in INSTRUCTOR_CALENDARS.items():
+        if not cal_id:
+            continue
+        events = get_events(first_day, last_day, calendar_id=cal_id)
+        for e in events:
+            title = e.get("summary", "")
+            if "원티드" in title or "wanted" in title.lower():
+                start = e.get("start", {}).get("dateTime", "")
+                wanted_list.append({
+                    "강사": instructor,
+                    "날짜": start[:10],
+                    "시작": start[11:16] if len(start) > 10 else "",
+                    "제목": title,
+                })
+
+    if wanted_list:
+        st.session_state["wanted_list"] = wanted_list
+        st.success(f"✅ 원티드 {len(wanted_list)}건 발견!")
+        st.dataframe(pd.DataFrame(wanted_list))
+    else:
+        st.info("이번달 원티드 일정이 없습니다.")
