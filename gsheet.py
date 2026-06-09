@@ -37,32 +37,25 @@ def append_to_gsheet(df):
         sheet = get_or_create_sheet(client, SHEET_NAME)
         ensure_header(sheet)
 
-        # 중복 체크
         existing_data = sheet.get_all_records()
+
         if existing_data:
             existing_df = pd.DataFrame(existing_data)
-            duplicates = []
-            for _, row in df.iterrows():
+
+            def is_duplicate(row):
                 mask = (
                     (existing_df["강의일시"].astype(str) == str(row.get("강의일시", ""))) &
                     (existing_df["의뢰기관"].astype(str) == str(row.get("의뢰기관", ""))) &
-                    (existing_df["과정명"].astype(str) == str(row.get("과정명", ""))) &
-                    (existing_df["시작"].astype(str) == str(row.get("시작", "")))
+                    (existing_df["과정명"].astype(str)   == str(row.get("과정명", ""))) &
+                    (existing_df["시작"].astype(str)     == str(row.get("시작", "")))
                 )
-                if mask.any():
-                    duplicates.append(f"{row.get('강의일시','')} / {row.get('의뢰기관','')} / {row.get('과정명','')} / {row.get('강사님','')}")
-            if duplicates:
-                st.warning(f"⚠️ 중복 데이터 {len(duplicates)}건 제외하고 저장합니다.")
-                # 중복 아닌 행만 필터링
-                def is_duplicate(row):
-                    mask = (
-                        (existing_df["강의일시"].astype(str) == str(row.get("강의일시", ""))) &
-                        (existing_df["의뢰기관"].astype(str) == str(row.get("의뢰기관", ""))) &
-                        (existing_df["과정명"].astype(str) == str(row.get("과정명", ""))) &
-                        (existing_df["시작"].astype(str) == str(row.get("시작", "")))
-                    )
-                    return mask.any()
-                df = df[~df.apply(is_duplicate, axis=1)]
+                return mask.any()
+
+            dup_mask = df.apply(is_duplicate, axis=1)
+            dup_count = dup_mask.sum()
+            if dup_count > 0:
+                st.warning(f"⚠️ 중복 데이터 {dup_count}건 제외하고 저장합니다.")
+                df = df[~dup_mask]
                 if df.empty:
                     st.warning("저장할 새 데이터가 없습니다.")
                     return False
@@ -72,33 +65,30 @@ def append_to_gsheet(df):
                 df[col] = ""
         df = df[COLUMNS]
 
-        try:
-            df["_dt"] = pd.to_datetime(df["강의일시"], errors="coerce")
-            df = df.sort_values("_dt", ascending=True).drop(columns=["_dt"])
-        except Exception:
-            pass
-
+        # 기존 + 신규 합쳐서 내림차순 정렬 후 전체 저장
         if existing_data:
             all_df = pd.concat([pd.DataFrame(existing_data), df], ignore_index=True)
         else:
             all_df = df
-        
+
         for col in COLUMNS:
             if col not in all_df.columns:
                 all_df[col] = ""
         all_df = all_df[COLUMNS]
-        
+
         try:
             all_df["_dt"] = pd.to_datetime(all_df["강의일시"], errors="coerce")
             all_df = all_df.sort_values("_dt", ascending=False).drop(columns=["_dt"])
         except Exception:
             pass
-        
+
         sheet.clear()
         sheet.append_row(COLUMNS)
-        df_clean = all_df.fillna("").astype(str)
-        sheet.append_rows(df_clean.values.tolist())
+        sheet.append_rows(all_df.fillna("").astype(str).values.tolist())
         return True
+    except Exception as e:
+        st.exception(e)
+        return False
 
 
 def replace_gsheet(df):
@@ -112,17 +102,40 @@ def replace_gsheet(df):
         df = df[COLUMNS]
         try:
             df["_dt"] = pd.to_datetime(df["강의일시"], errors="coerce")
-            df = df.sort_values("_dt", ascending=True).drop(columns=["_dt"])
+            df = df.sort_values("_dt", ascending=False).drop(columns=["_dt"])
         except Exception:
             pass
         sheet.clear()
         sheet.append_row(COLUMNS)
-        df_clean = df.fillna("").astype(str)
-        sheet.append_rows(df_clean.values.tolist())
+        sheet.append_rows(df.fillna("").astype(str).values.tolist())
         return True
     except Exception as e:
         st.exception(e)
         return False
+
+
+def replace_gsheet_final(df):
+    """보건스케쥴 시트 전체 교체"""
+    try:
+        client = get_gsheet_client()
+        sheet = get_or_create_sheet(client, SHEET_NAME)
+        for col in COLUMNS:
+            if col not in df.columns:
+                df[col] = ""
+        df = df[COLUMNS]
+        try:
+            df["_dt"] = pd.to_datetime(df["강의일시"], errors="coerce")
+            df = df.sort_values("_dt", ascending=False).drop(columns=["_dt"])
+        except Exception:
+            pass
+        sheet.clear()
+        sheet.append_row(COLUMNS)
+        sheet.append_rows(df.fillna("").astype(str).values.tolist())
+        return True
+    except Exception as e:
+        st.exception(e)
+        return False
+
 
 def load_gsheet():
     try:
@@ -151,8 +164,7 @@ def save_gsheet(df):
         df = df[COLUMNS]
         sheet.clear()
         sheet.append_row(COLUMNS)
-        df_clean = df.fillna("").astype(str)
-        sheet.append_rows(df_clean.values.tolist())
+        sheet.append_rows(df.fillna("").astype(str).values.tolist())
         return True
     except Exception as e:
         st.exception(e)
@@ -189,7 +201,6 @@ def append_evidence_to_sheet(folder_name: str, files):
 
 
 def init_status_column():
-    """기존 데이터에 상태 컬럼 일괄 추가"""
     try:
         client = get_gsheet_client()
         sheet = get_or_create_sheet(client, SHEET_NAME)
@@ -201,29 +212,6 @@ def init_status_column():
             sheet.append_rows(df.fillna("").astype(str).values.tolist())
         return True
     except Exception as e:
-        return False
-
-def replace_gsheet_final(df):
-    """보건스케쥴 시트 전체 교체"""
-    try:
-        client = get_gsheet_client()
-        sheet = get_or_create_sheet(client, "보건스케쥴")
-        for col in COLUMNS:
-            if col not in df.columns:
-                df[col] = ""
-        df = df[COLUMNS]
-        try:
-            df["_dt"] = pd.to_datetime(df["강의일시"], errors="coerce")
-            df = df.sort_values("_dt", ascending=True).drop(columns=["_dt"])
-        except Exception:
-            pass
-        sheet.clear()
-        sheet.append_row(COLUMNS)
-        df_clean = df.fillna("").astype(str)
-        sheet.append_rows(df_clean.values.tolist())
-        return True
-    except Exception as e:
-        st.exception(e)
         return False
 
 
