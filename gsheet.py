@@ -74,16 +74,31 @@ def append_to_gsheet(df):
 
         try:
             df["_dt"] = pd.to_datetime(df["강의일시"], errors="coerce")
-            df = df.sort_values("_dt", ascending=False).drop(columns=["_dt"])
+            df = df.sort_values("_dt", ascending=True).drop(columns=["_dt"])
         except Exception:
             pass
 
-        df_clean = df.fillna("").astype(str)
+        if existing_data:
+            all_df = pd.concat([pd.DataFrame(existing_data), df], ignore_index=True)
+        else:
+            all_df = df
+        
+        for col in COLUMNS:
+            if col not in all_df.columns:
+                all_df[col] = ""
+        all_df = all_df[COLUMNS]
+        
+        try:
+            all_df["_dt"] = pd.to_datetime(all_df["강의일시"], errors="coerce")
+            all_df = all_df.sort_values("_dt", ascending=False).drop(columns=["_dt"])
+        except Exception:
+            pass
+        
+        sheet.clear()
+        sheet.append_row(COLUMNS)
+        df_clean = all_df.fillna("").astype(str)
         sheet.append_rows(df_clean.values.tolist())
         return True
-    except Exception as e:
-        st.exception(e)
-        return False
 
 
 def replace_gsheet(df):
