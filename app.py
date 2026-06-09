@@ -53,6 +53,10 @@ st.title("📅 보건스케줄 자동정리")
 # ══════════════════════════════════════════════
 # 🏠 대시보드
 # ══════════════════════════════════════════════
+if not df.empty:
+    df = df[df["상태"] != "취소"]  # ← fdf 만들기 전에 취소 제거
+    fdf = df.copy()
+    
 if menu == "🏠 대시보드":
     from streamlit_calendar import calendar as st_calendar
     
